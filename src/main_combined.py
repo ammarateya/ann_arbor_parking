@@ -7,7 +7,7 @@ from dotenv import load_dotenv
 from db_manager import DatabaseManager
 from scraper import CitationScraper
 from email_notifier import EmailNotifier
-from backblaze_storage import BackblazeStorage
+from storage_factory import StorageFactory
 from web_server import app
 
 logging.basicConfig(level=logging.INFO)
@@ -43,7 +43,7 @@ def ongoing_scraper_job():
     scraper = CitationScraper()
     db_manager = DatabaseManager(DB_CONFIG)
     email_notifier = EmailNotifier()
-    b2_storage = BackblazeStorage()
+    b2_storage = StorageFactory.create_storage_service()
     
     successful_citations = []
     errors = []
