@@ -8,9 +8,9 @@ Based on your Cloudflare R2 API key, here are your credentials:
 
 ```bash
 STORAGE_PROVIDER=cloudflare_r2
-R2_ACCESS_KEY_ID=9d64d18c0c23cc9a419d8be3aff42fe1
-R2_SECRET_ACCESS_KEY=44ebdba376f428096683e16524aad543b93c5e5e6ad5e0f48340b92a6da8cfac
-R2_ACCOUNT_ID=cd7e82843fdfe4b9a7eebb52ac61ffcb
+R2_ACCESS_KEY_ID=your_r2_access_key_id_here
+R2_SECRET_ACCESS_KEY=your_r2_secret_access_key_here
+R2_ACCOUNT_ID=your_r2_account_id_here
 R2_BUCKET_NAME=parking-citations
 ```
 
@@ -36,9 +36,9 @@ R2_BUCKET_NAME=parking-citations
 
 ```
 STORAGE_PROVIDER=cloudflare_r2
-R2_ACCESS_KEY_ID=9d64d18c0c23cc9a419d8be3aff42fe1
-R2_SECRET_ACCESS_KEY=44ebdba376f428096683e16524aad543b93c5e5e6ad5e0f48340b92a6da8cfac
-R2_ACCOUNT_ID=cd7e82843fdfe4b9a7eebb52ac61ffcb
+R2_ACCESS_KEY_ID=your_r2_access_key_id_here
+R2_SECRET_ACCESS_KEY=your_r2_secret_access_key_here
+R2_ACCOUNT_ID=your_r2_account_id_here
 R2_BUCKET_NAME=parking-citations
 DB_HOST=db.kctfygcpobxjgpivujiy.supabase.co
 DB_NAME=postgres
