@@ -1,8 +1,8 @@
 # Cloudflare R2 Setup Guide
 
-## ✅ Your R2 Credentials
+## ✅ Your NEW R2 Credentials
 
-Based on your Cloudflare R2 API key, here are your credentials:
+Based on your new Cloudflare R2 API key, here are your credentials:
 
 ### Environment Variables for Render:
 
