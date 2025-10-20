@@ -1,6 +1,6 @@
 import psycopg
 import json
-from typing import Dict, Optional
+from typing import Dict, Optional, List
 
 
 class DatabaseManager:

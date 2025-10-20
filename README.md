@@ -1,46 +1,73 @@
-## Ann Arbor Citation Scraper
+# Ann Arbor Parking Citation Scraper
 
-Python scraper that builds and maintains a database of Ann Arbor citations.
+An automated scraper that collects parking citations from Ann Arbor's citation portal and runs continuously on Render's free tier.
 
-### Setup
+## 🚀 Quick Start
 
-1. Create and activate a virtualenv
+1. **Deploy to Render**: Follow instructions in [docs/DEPLOYMENT_INSTRUCTIONS.md](docs/DEPLOYMENT_INSTRUCTIONS.md)
+2. **Configure Environment**: Set up Supabase and email credentials
+3. **Monitor**: Check logs and receive email notifications
 
-```bash
-python3 -m venv .venv && source .venv/bin/activate
+## 📁 Project Structure
+
+```
+├── src/                    # Core application code
+│   ├── main_combined.py   # Main scraper + web server
+│   ├── scraper.py         # Citation scraping logic
+│   ├── db_manager.py      # Database operations
+│   ├── email_notifier.py  # Email notifications
+│   └── web_server.py      # Health check endpoints
+├── scripts/               # Utility scripts
+├── docs/                  # Documentation and schemas
+├── logs/                  # Log files
+├── images/               # Downloaded citation images
+├── main.py              # Entry point
+├── requirements.txt     # Python dependencies
+├── render.yaml         # Render deployment config
+└── Dockerfile          # Container configuration
 ```
 
-2. Install dependencies
+## ⚙️ Features
+
+- **Automated Scraping**: Runs every 10 minutes
+- **Smart Range**: Processes citations ±100 from last successful citation
+- **Email Notifications**: HTML reports sent to ammarat@umich.edu
+- **Database Storage**: Supabase PostgreSQL for persistent storage
+- **Health Monitoring**: Web endpoints for status checks
+- **Respectful Scraping**: Includes delays to be respectful to target server
+
+## 🔧 Configuration
+
+See [env.template](env.template) for required environment variables.
+
+## 📊 Monitoring
+
+- **Health Check**: `GET /` - Service status
+- **Statistics**: `GET /stats` - Scraper statistics
+- **Email Reports**: Automatic notifications after each run
+
+## 💰 Cost
+
+This setup uses only free tiers:
+- **Render**: Free (750 hours/month)
+- **Supabase**: Free (500MB database)
+- **Total Cost**: $0/month
+
+## 📚 Documentation
+
+- [Deployment Instructions](docs/DEPLOYMENT_INSTRUCTIONS.md)
+- [Database Schema](docs/schema.sql)
+- [OCR Enhancement Scripts](scripts/)
+
+## 🛠️ Development
+
+For local development, install dependencies and run:
 
 ```bash
 pip install -r requirements.txt
-```
-
-3. Configure environment
-
-- Create a `.env` file with the following variables (or export them in your shell):
-  - `DB_HOST`, `DB_NAME`, `DB_USER`, `DB_PASSWORD`, `DB_PORT`
-
-### Database schema
-
-Apply `schema.sql` to your Supabase Postgres (SQL Editor or psql):
-
-```bash
-psql "host=$DB_HOST dbname=$DB_NAME user=$DB_USER password=$DB_PASSWORD port=$DB_PORT sslmode=require" -f schema.sql
-```
-
-### Run
-
-- Initial backfill (once):
-  - Edit `main.py` and uncomment `initial_database_build()` under `if __name__ == "__main__":`
-- Ongoing job every minute:
-
-```bash
 python main.py
 ```
 
-### Notes
+## 📄 License
 
-- Scraper respects portal verification token and parses grid rows.
-- OCR helpers in `ocr_utils.py` for future image text extraction.
-- Tune delays if you encounter throttling.
+This project is for educational and research purposes.

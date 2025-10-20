@@ -40,11 +40,22 @@ create table if not exists public.scrape_logs (
   created_at     timestamp with time zone default now()
 );
 
--- Helpful indexes
-create index if not exists idx_citations_issue_date on public.citations (issue_date);
-create index if not exists idx_citations_plate on public.citations (plate_state, plate_number);
+-- Backblaze B2 stored images
+create table if not exists public.citation_images_b2 (
+  id                bigserial primary key,
+  citation_number   bigint references public.citations(citation_number) on delete cascade,
+  original_url      text not null,
+  b2_filename       text not null,
+  b2_file_id        text not null,
+  b2_download_url   text,
+  file_size_bytes   bigint,
+  content_type      text,
+  content_hash      text,
+  upload_timestamp  timestamp with time zone default now(),
+  created_at        timestamp with time zone default now()
+);
 
--- Optional images table to track local/remote storage
+-- Legacy images table (keeping for backward compatibility)
 create table if not exists public.citation_images (
   id                bigserial primary key,
   citation_number   bigint references public.citations(citation_number) on delete cascade,
@@ -53,6 +64,11 @@ create table if not exists public.citation_images (
   remote_url        text,
   created_at        timestamp with time zone default now()
 );
+
+-- Helpful indexes
+create index if not exists idx_citations_issue_date on public.citations (issue_date);
+create index if not exists idx_citations_plate on public.citations (plate_state, plate_number);
 create index if not exists idx_citation_images_citation on public.citation_images (citation_number);
-
-
+create index if not exists idx_citation_images_b2_citation on public.citation_images_b2 (citation_number);
+create index if not exists idx_citation_images_b2_hash on public.citation_images_b2 (content_hash);
+create index if not exists idx_citation_images_b2_filename on public.citation_images_b2 (b2_filename);
