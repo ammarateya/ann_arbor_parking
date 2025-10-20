@@ -30,3 +30,9 @@ services:
         sync: false # Will be set manually in Render dashboard
       - key: NOTIFICATION_EMAIL
         value: ammarat@umich.edu
+      - key: B2_APPLICATION_KEY_ID
+        sync: false  # Will be set manually in Render dashboard
+      - key: B2_APPLICATION_KEY
+        sync: false  # Will be set manually in Render dashboard
+      - key: B2_BUCKET_NAME
+        value: parking-citations

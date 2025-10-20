@@ -1,6 +1,7 @@
 from flask import Flask, jsonify
 import os
 from db_manager import DatabaseManager
+from backblaze_storage import BackblazeStorage
 
 app = Flask(__name__)
 
@@ -53,11 +54,21 @@ def stats():
                 """)
                 recent_citations = cur.fetchone()[0]
                 
+        # Get B2 storage stats
+        b2_storage = BackblazeStorage()
+        storage_stats = db_manager.get_storage_stats()
+        
         return jsonify({
             'total_citations': total_citations,
             'last_successful_citation': last_citation,
             'recent_citations_1h': recent_citations,
-            'scraper_status': 'active'
+            'scraper_status': 'active',
+            'b2_storage': {
+                'configured': b2_storage.is_configured(),
+                'total_images': storage_stats.get('total_images', 0),
+                'total_size_mb': storage_stats.get('total_mb', 0),
+                'citations_with_images': storage_stats.get('citations_with_images', 0)
+            }
         })
     except Exception as e:
         return jsonify({

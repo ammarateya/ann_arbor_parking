@@ -15,7 +15,7 @@ class EmailNotifier:
         self.email_password = os.getenv('EMAIL_PASSWORD')
         self.notification_email = os.getenv('NOTIFICATION_EMAIL', 'ammarat@umich.edu')
         
-    def send_notification(self, successful_citations: List[Dict], total_processed: int, errors: List[str] = None):
+    def send_notification(self, successful_citations: List[Dict], total_processed: int, errors: List[str] = None, images_uploaded: int = 0):
         """Send email notification about scraper run results"""
         if not self.email_user or not self.email_password:
             logging.warning("Email credentials not configured, skipping notification")
@@ -28,7 +28,7 @@ class EmailNotifier:
             msg['Subject'] = f"Parking Citation Scraper Report - {datetime.now().strftime('%Y-%m-%d %H:%M')}"
             
             # Create email body
-            body = self._create_email_body(successful_citations, total_processed, errors)
+            body = self._create_email_body(successful_citations, total_processed, errors, images_uploaded)
             msg.attach(MIMEText(body, 'html'))
             
             # Send email
@@ -44,7 +44,7 @@ class EmailNotifier:
             logging.error(f"Failed to send notification email: {e}")
             return False
     
-    def _create_email_body(self, successful_citations: List[Dict], total_processed: int, errors: List[str] = None) -> str:
+    def _create_email_body(self, successful_citations: List[Dict], total_processed: int, errors: List[str] = None, images_uploaded: int = 0) -> str:
         """Create HTML email body with scraper results"""
         html = f"""
         <html>
@@ -53,6 +53,7 @@ class EmailNotifier:
             <p><strong>Run Time:</strong> {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}</p>
             <p><strong>Total Citations Processed:</strong> {total_processed}</p>
             <p><strong>Successful Citations Found:</strong> {len(successful_citations)}</p>
+            <p><strong>Images Uploaded to B2:</strong> {images_uploaded}</p>
         """
         
         if successful_citations:

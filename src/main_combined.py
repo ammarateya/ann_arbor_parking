@@ -7,6 +7,7 @@ from dotenv import load_dotenv
 from db_manager import DatabaseManager
 from scraper import CitationScraper
 from email_notifier import EmailNotifier
+from backblaze_storage import BackblazeStorage
 from web_server import app
 
 logging.basicConfig(level=logging.INFO)
@@ -42,10 +43,12 @@ def ongoing_scraper_job():
     scraper = CitationScraper()
     db_manager = DatabaseManager(DB_CONFIG)
     email_notifier = EmailNotifier()
+    b2_storage = BackblazeStorage()
     
     successful_citations = []
     errors = []
     total_processed = 0
+    images_uploaded = 0
     
     try:
         last_citation = db_manager.get_last_successful_citation()
@@ -67,6 +70,25 @@ def ongoing_scraper_job():
                 if result:
                     db_manager.save_citation(result)
                     successful_citations.append(result)
+                    
+                    # Upload images to Backblaze B2 if available
+                    if result.get('image_urls') and b2_storage.is_configured():
+                        try:
+                            uploaded_images = b2_storage.upload_images_for_citation(
+                                result['image_urls'], 
+                                citation_num
+                            )
+                            
+                            # Save B2 image metadata to database
+                            for image_data in uploaded_images:
+                                image_data['original_url'] = result['image_urls'][uploaded_images.index(image_data)]
+                                db_manager.save_b2_image(citation_num, image_data)
+                                images_uploaded += 1
+                            
+                            logger.info(f"Uploaded {len(uploaded_images)} images for citation {citation_num}")
+                            
+                        except Exception as e:
+                            logger.error(f"Failed to upload images for citation {citation_num}: {e}")
                     
                     # Update last successful citation if this is higher than current
                     if citation_num > last_citation:
@@ -93,9 +115,9 @@ def ongoing_scraper_job():
     finally:
         # Send email notification
         if successful_citations or errors:
-            email_notifier.send_notification(successful_citations, total_processed, errors)
+            email_notifier.send_notification(successful_citations, total_processed, errors, images_uploaded)
         
-        logger.info(f"Scraper job completed. Processed: {total_processed}, Found: {len(successful_citations)}, Errors: {len(errors)}")
+        logger.info(f"Scraper job completed. Processed: {total_processed}, Found: {len(successful_citations)}, Images uploaded: {images_uploaded}, Errors: {len(errors)}")
 
 
 def scrape_job():

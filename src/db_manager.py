@@ -84,4 +84,81 @@ class DatabaseManager:
                     VALUES (%s, %s, %s)
                 """, (citation_number, found_results, error_message))
 
+    def save_b2_image(self, citation_number: int, image_data: Dict):
+        """Save Backblaze B2 image metadata to database"""
+        with self.get_connection() as conn:
+            with conn.cursor() as cur:
+                cur.execute("""
+                    INSERT INTO citation_images_b2 
+                    (citation_number, original_url, b2_filename, b2_file_id, b2_download_url,
+                     file_size_bytes, content_type, content_hash, upload_timestamp)
+                    VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
+                    ON CONFLICT (b2_file_id) DO NOTHING
+                """, (
+                    citation_number,
+                    image_data.get('original_url'),
+                    image_data.get('filename'),
+                    image_data.get('file_id'),
+                    image_data.get('download_url'),
+                    image_data.get('size_bytes'),
+                    image_data.get('content_type'),
+                    image_data.get('content_hash'),
+                    image_data.get('upload_timestamp')
+                ))
+
+    def get_b2_images_for_citation(self, citation_number: int) -> List[Dict]:
+        """Get all B2 stored images for a citation"""
+        with self.get_connection() as conn:
+            with conn.cursor() as cur:
+                cur.execute("""
+                    SELECT id, original_url, b2_filename, b2_file_id, b2_download_url,
+                           file_size_bytes, content_type, content_hash, upload_timestamp
+                    FROM citation_images_b2 
+                    WHERE citation_number = %s
+                    ORDER BY upload_timestamp
+                """, (citation_number,))
+                
+                columns = [desc[0] for desc in cur.description]
+                return [dict(zip(columns, row)) for row in cur.fetchall()]
+
+    def get_citations_with_images(self, limit: int = 100) -> List[Dict]:
+        """Get citations that have images stored in B2"""
+        with self.get_connection() as conn:
+            with conn.cursor() as cur:
+                cur.execute("""
+                    SELECT DISTINCT c.citation_number, c.location, c.issue_date, c.amount_due,
+                           COUNT(b2.id) as image_count
+                    FROM citations c
+                    JOIN citation_images_b2 b2 ON c.citation_number = b2.citation_number
+                    GROUP BY c.citation_number, c.location, c.issue_date, c.amount_due
+                    ORDER BY c.issue_date DESC
+                    LIMIT %s
+                """, (limit,))
+                
+                columns = [desc[0] for desc in cur.description]
+                return [dict(zip(columns, row)) for row in cur.fetchall()]
+
+    def get_storage_stats(self) -> Dict:
+        """Get B2 storage statistics"""
+        with self.get_connection() as conn:
+            with conn.cursor() as cur:
+                # Total images
+                cur.execute("SELECT COUNT(*) FROM citation_images_b2")
+                total_images = cur.fetchone()[0]
+                
+                # Total storage used
+                cur.execute("SELECT SUM(file_size_bytes) FROM citation_images_b2")
+                total_bytes = cur.fetchone()[0] or 0
+                
+                # Citations with images
+                cur.execute("SELECT COUNT(DISTINCT citation_number) FROM citation_images_b2")
+                citations_with_images = cur.fetchone()[0]
+                
+                return {
+                    'total_images': total_images,
+                    'total_bytes': total_bytes,
+                    'total_mb': round(total_bytes / (1024 * 1024), 2),
+                    'citations_with_images': citations_with_images
+                }
+
 
