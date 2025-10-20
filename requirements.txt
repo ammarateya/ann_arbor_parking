@@ -1,0 +1,14 @@
+psycopg[binary]==3.2.3
+requests==2.32.3
+beautifulsoup4==4.12.3
+lxml==5.3.0
+pytesseract==0.3.13
+opencv-python==4.10.0.84
+numpy==2.1.2
+schedule==1.2.2
+python-dotenv==1.0.1
+smtplib-ssl==1.0.0
+email-validator==2.1.1
+flask==3.0.0
+
+

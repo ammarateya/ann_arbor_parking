@@ -1,0 +1,32 @@
+services:
+  - type: web
+    name: parking-citation-scraper
+    env: python
+    plan: free
+    buildCommand: pip install -r requirements.txt
+    startCommand: python main_combined.py
+    envVars:
+      - key: DB_HOST
+        value: db.kctfygcpobxjgpivujiy.supabase.co
+      - key: DB_NAME
+        value: postgres
+      - key: DB_USER
+        value: postgres
+      - key: DB_PORT
+        value: "5432"
+      - key: DB_PASSWORD
+        sync: false # Will be set manually in Render dashboard
+      - key: SUPABASE_URL
+        value: https://kctfygcpobxjgpivujiy.supabase.co
+      - key: SUPABASE_ANON_KEY
+        sync: false # Will be set manually in Render dashboard
+      - key: EMAIL_HOST
+        value: smtp.gmail.com
+      - key: EMAIL_PORT
+        value: "587"
+      - key: EMAIL_USER
+        value: ammarat@umich.edu
+      - key: EMAIL_PASSWORD
+        sync: false # Will be set manually in Render dashboard
+      - key: NOTIFICATION_EMAIL
+        value: ammarat@umich.edu
