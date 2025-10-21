@@ -1,169 +1,150 @@
-import psycopg
+import os
 import json
+import logging
 from typing import Dict, Optional, List
+from supabase import create_client, Client
+
+logger = logging.getLogger(__name__)
 
 
 class DatabaseManager:
     def __init__(self, db_config):
         self.db_config = db_config
+        self.supabase: Client = None
+        self._initialize_supabase()
+
+    def _initialize_supabase(self):
+        """Initialize Supabase client using environment variables"""
+        try:
+            supabase_url = os.getenv('SUPABASE_URL')
+            supabase_key = os.getenv('SUPABASE_ANON_KEY')
+            
+            if not supabase_url or not supabase_key:
+                logger.error("Missing SUPABASE_URL or SUPABASE_ANON_KEY environment variables")
+                raise ValueError("Supabase credentials not configured")
+            
+            self.supabase = create_client(supabase_url, supabase_key)
+            logger.info("✓ Supabase client initialized successfully")
+            
+        except Exception as e:
+            logger.error(f"Failed to initialize Supabase client: {e}")
+            raise
 
     def get_connection(self):
-        cfg = dict(self.db_config)
-        # psycopg expects 'dbname' instead of 'database'
-        if 'database' in cfg and 'dbname' not in cfg:
-            cfg['dbname'] = cfg.pop('database')
-        
-        # Use connection string format to avoid IPv6 resolution issues
-        # This format is more reliable for cloud deployments
-        conn_string = f"host={cfg['host']} port={cfg['port']} dbname={cfg['dbname']} user={cfg['user']} password={cfg['password']}"
-        
-        return psycopg.connect(conn_string)
+        """Legacy method for compatibility - returns None since we use Supabase client directly"""
+        logger.warning("get_connection() called - using Supabase client instead of direct psycopg connection")
+        return None
 
     def save_citation(self, citation_data: Dict):
-        with self.get_connection() as conn:
-            with conn.cursor() as cur:
-                query = """
-                INSERT INTO citations 
-                (citation_number, location, plate_state, plate_number, vin, 
-                 issue_date, due_date, status, amount_due, more_info_url, raw_html,
-                 issuing_agency, comments, violations, image_urls)
-                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
-                ON CONFLICT (citation_number) DO UPDATE SET
-                    location = EXCLUDED.location,
-                    plate_state = EXCLUDED.plate_state,
-                    plate_number = EXCLUDED.plate_number,
-                    vin = EXCLUDED.vin,
-                    issue_date = EXCLUDED.issue_date,
-                    due_date = EXCLUDED.due_date,
-                    status = EXCLUDED.status,
-                    amount_due = EXCLUDED.amount_due,
-                    more_info_url = EXCLUDED.more_info_url,
-                    raw_html = EXCLUDED.raw_html,
-                    issuing_agency = EXCLUDED.issuing_agency,
-                    comments = EXCLUDED.comments,
-                    violations = EXCLUDED.violations,
-                    image_urls = EXCLUDED.image_urls,
-                    scraped_at = NOW()
-                """
-                cur.execute(query, (
-                    citation_data['citation_number'],
-                    citation_data['location'],
-                    citation_data['plate_state'],
-                    citation_data['plate_number'],
-                    citation_data['vin'],
-                    citation_data['issue_date'],
-                    citation_data['due_date'],
-                    citation_data['status'],
-                    citation_data['amount_due'],
-                    citation_data['more_info_url'],
-                    citation_data['raw_html'],
-                    citation_data.get('issuing_agency'),
-                    citation_data.get('comments'),
-                    json.dumps(citation_data.get('violations')) if citation_data.get('violations') is not None else None,
-                    json.dumps(citation_data.get('image_urls')) if citation_data.get('image_urls') is not None else None,
-                ))
+        """Save citation data to Supabase"""
+        try:
+            result = self.supabase.table('citations').insert(citation_data).execute()
+            logger.info(f"Saved citation {citation_data.get('citation_number', 'unknown')}")
+            return result
+        except Exception as e:
+            logger.error(f"Failed to save citation: {e}")
+            raise
 
     def get_last_successful_citation(self) -> Optional[int]:
-        with self.get_connection() as conn:
-            with conn.cursor() as cur:
-                cur.execute("SELECT last_successful_citation FROM scraper_state ORDER BY updated_at DESC LIMIT 1")
-                result = cur.fetchone()
-                return result[0] if result else None
+        """Get the last successfully scraped citation number"""
+        try:
+            result = self.supabase.table('scraper_state').select('last_successful_citation').execute()
+            if result.data:
+                return result.data[0]['last_successful_citation']
+            return None
+        except Exception as e:
+            logger.error(f"Failed to get last successful citation: {e}")
+            return None
 
     def update_last_successful_citation(self, citation_number: int):
-        with self.get_connection() as conn:
-            with conn.cursor() as cur:
-                cur.execute("""
-                    INSERT INTO scraper_state (last_successful_citation) 
-                    VALUES (%s)
-                    ON CONFLICT (id) DO UPDATE SET 
-                        last_successful_citation = EXCLUDED.last_successful_citation,
-                        updated_at = NOW()
-                """, (citation_number,))
+        """Update the last successfully scraped citation number"""
+        try:
+            result = self.supabase.table('scraper_state').upsert({
+                'id': 1,
+                'last_successful_citation': citation_number
+            }).execute()
+            logger.info(f"Updated last successful citation to {citation_number}")
+            return result
+        except Exception as e:
+            logger.error(f"Failed to update last successful citation: {e}")
+            raise
 
-    def log_scrape_attempt(self, citation_number: str, found_results: bool, error_message: str = None):
-        with self.get_connection() as conn:
-            with conn.cursor() as cur:
-                cur.execute("""
-                    INSERT INTO scrape_logs (search_term, found_results, error_message)
-                    VALUES (%s, %s, %s)
-                """, (citation_number, found_results, error_message))
+    def log_scrape_attempt(self, citation_number: int, success: bool, error_message: str = None):
+        """Log a scrape attempt"""
+        try:
+            log_data = {
+                'citation_number': citation_number,
+                'success': success,
+                'error_message': error_message,
+                'timestamp': 'now()'
+            }
+            result = self.supabase.table('scrape_logs').insert(log_data).execute()
+            return result
+        except Exception as e:
+            logger.error(f"Failed to log scrape attempt: {e}")
+            # Don't raise - logging failures shouldn't break the main flow
 
     def save_b2_image(self, citation_number: int, image_data: Dict):
-        """Save Backblaze B2 image metadata to database"""
-        with self.get_connection() as conn:
-            with conn.cursor() as cur:
-                cur.execute("""
-                    INSERT INTO citation_images_b2 
-                    (citation_number, original_url, b2_filename, b2_file_id, b2_download_url,
-                     file_size_bytes, content_type, content_hash, upload_timestamp)
-                    VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
-                    ON CONFLICT (b2_file_id) DO NOTHING
-                """, (
-                    citation_number,
-                    image_data.get('original_url'),
-                    image_data.get('filename'),
-                    image_data.get('file_id'),
-                    image_data.get('download_url'),
-                    image_data.get('size_bytes'),
-                    image_data.get('content_type'),
-                    image_data.get('content_hash'),
-                    image_data.get('upload_timestamp')
-                ))
+        """Save image metadata to database (kept same method name for compatibility)"""
+        try:
+            image_record = {
+                'citation_number': citation_number,
+                'filename': image_data.get('filename'),
+                'file_id': image_data.get('file_id'),
+                'download_url': image_data.get('download_url'),
+                'size_bytes': image_data.get('size_bytes'),
+                'content_type': image_data.get('content_type'),
+                'content_hash': image_data.get('content_hash'),
+                'upload_timestamp': image_data.get('upload_timestamp'),
+                'original_url': image_data.get('original_url')
+            }
+            result = self.supabase.table('citation_images').insert(image_record).execute()
+            logger.info(f"Saved image metadata for citation {citation_number}")
+            return result
+        except Exception as e:
+            logger.error(f"Failed to save image metadata: {e}")
+            raise
 
     def get_b2_images_for_citation(self, citation_number: int) -> List[Dict]:
-        """Get all B2 stored images for a citation"""
-        with self.get_connection() as conn:
-            with conn.cursor() as cur:
-                cur.execute("""
-                    SELECT id, original_url, b2_filename, b2_file_id, b2_download_url,
-                           file_size_bytes, content_type, content_hash, upload_timestamp
-                    FROM citation_images_b2 
-                    WHERE citation_number = %s
-                    ORDER BY upload_timestamp
-                """, (citation_number,))
-                
-                columns = [desc[0] for desc in cur.description]
-                return [dict(zip(columns, row)) for row in cur.fetchall()]
+        """Get all image records for a citation"""
+        try:
+            result = self.supabase.table('citation_images').select('*').eq('citation_number', citation_number).execute()
+            return result.data
+        except Exception as e:
+            logger.error(f"Failed to get images for citation {citation_number}: {e}")
+            return []
 
-    def get_citations_with_images(self, limit: int = 100) -> List[Dict]:
-        """Get citations that have images stored in B2"""
-        with self.get_connection() as conn:
-            with conn.cursor() as cur:
-                cur.execute("""
-                    SELECT DISTINCT c.citation_number, c.location, c.issue_date, c.amount_due,
-                           COUNT(b2.id) as image_count
-                    FROM citations c
-                    JOIN citation_images_b2 b2 ON c.citation_number = b2.citation_number
-                    GROUP BY c.citation_number, c.location, c.issue_date, c.amount_due
-                    ORDER BY c.issue_date DESC
-                    LIMIT %s
-                """, (limit,))
-                
-                columns = [desc[0] for desc in cur.description]
-                return [dict(zip(columns, row)) for row in cur.fetchall()]
+    def get_citations_with_images(self) -> List[Dict]:
+        """Get all citations that have associated images"""
+        try:
+            result = self.supabase.table('citations').select('citation_number').in_('citation_number', 
+                self.supabase.table('citation_images').select('citation_number').execute().data
+            ).execute()
+            return result.data
+        except Exception as e:
+            logger.error(f"Failed to get citations with images: {e}")
+            return []
 
     def get_storage_stats(self) -> Dict:
-        """Get B2 storage statistics"""
-        with self.get_connection() as conn:
-            with conn.cursor() as cur:
-                # Total images
-                cur.execute("SELECT COUNT(*) FROM citation_images_b2")
-                total_images = cur.fetchone()[0]
-                
-                # Total storage used
-                cur.execute("SELECT SUM(file_size_bytes) FROM citation_images_b2")
-                total_bytes = cur.fetchone()[0] or 0
-                
-                # Citations with images
-                cur.execute("SELECT COUNT(DISTINCT citation_number) FROM citation_images_b2")
-                citations_with_images = cur.fetchone()[0]
-                
-                return {
-                    'total_images': total_images,
-                    'total_bytes': total_bytes,
-                    'total_mb': round(total_bytes / (1024 * 1024), 2),
-                    'citations_with_images': citations_with_images
-                }
-
-
+        """Get storage statistics"""
+        try:
+            # Get total images count
+            images_result = self.supabase.table('citation_images').select('size_bytes', count='exact').execute()
+            total_images = images_result.count
+            
+            # Get total size
+            size_result = self.supabase.table('citation_images').select('size_bytes').execute()
+            total_size_bytes = sum(img['size_bytes'] for img in size_result.data if img['size_bytes'])
+            total_size_mb = total_size_bytes / (1024 * 1024)
+            
+            # Get citations with images count
+            citations_with_images = len(set(img['citation_number'] for img in size_result.data))
+            
+            return {
+                'total_images': total_images,
+                'total_mb': round(total_size_mb, 2),
+                'citations_with_images': citations_with_images
+            }
+        except Exception as e:
+            logger.error(f"Failed to get storage stats: {e}")
+            return {'total_images': 0, 'total_mb': 0, 'citations_with_images': 0}
