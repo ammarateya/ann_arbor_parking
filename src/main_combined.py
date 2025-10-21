@@ -108,7 +108,17 @@ def ongoing_scraper_job():
         
         logger.info(f"Processing citations from {start_range} to {end_range} (last successful: {last_citation})")
         
+        # Get all existing citation numbers in this range to avoid duplicate processing
+        logger.info("Fetching existing citations in range to optimize processing...")
+        existing_citations = db_manager.get_existing_citation_numbers_in_range(start_range, end_range)
+        logger.info(f"Found {len(existing_citations)} existing citations in range. Will skip these.")
+        
         for citation_num in range(start_range, end_range + 1):
+            # Skip if citation already exists in database
+            if citation_num in existing_citations:
+                logger.debug(f"Skipping citation {citation_num} - already exists in database")
+                continue
+                
             try:
                 logger.debug(f"Processing citation {citation_num}...")
                 result = scraper.search_citation(str(citation_num))
@@ -177,7 +187,8 @@ def ongoing_scraper_job():
                 logger.error(f"Failed to send email notification: {e}")
                 logger.error(f"Traceback: {traceback.format_exc()}")
         
-        logger.info(f"Scraper job completed. Processed: {total_processed}, Found: {len(successful_citations)}, Images uploaded: {images_uploaded}, Errors: {len(errors)}")
+        skipped_count = len(existing_citations)
+        logger.info(f"Scraper job completed. Processed: {total_processed}, Found: {len(successful_citations)}, Skipped (existing): {skipped_count}, Images uploaded: {images_uploaded}, Errors: {len(errors)}")
 
 
 def scrape_job():

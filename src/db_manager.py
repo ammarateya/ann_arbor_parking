@@ -64,6 +64,19 @@ class DatabaseManager:
             logger.error(f"Failed to get last successful citation: {e}")
             return None
 
+    def get_existing_citation_numbers_in_range(self, start_range: int, end_range: int) -> set:
+        """Get all existing citation numbers in the given range"""
+        try:
+            result = self.supabase.table('citations').select('citation_number').gte('citation_number', start_range).lte('citation_number', end_range).execute()
+            if result.data:
+                existing_numbers = {row['citation_number'] for row in result.data}
+                logger.info(f"Found {len(existing_numbers)} existing citations in range {start_range}-{end_range}")
+                return existing_numbers
+            return set()
+        except Exception as e:
+            logger.error(f"Failed to get existing citation numbers in range: {e}")
+            return set()
+
     def update_last_successful_citation(self, citation_number: int):
         """Update the last successfully scraped citation number"""
         try:
