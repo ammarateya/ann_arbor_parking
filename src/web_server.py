@@ -46,7 +46,9 @@ def stats():
         last_citation = db_manager.get_last_successful_citation()
         
         # Get recent activity (citations scraped in last hour)
-        recent_citations_response = db_manager.supabase.from_('citations').select('count', count='exact').gte('scraped_at', 'now() - interval \'1 hour\'').execute()
+        from datetime import datetime, timedelta
+        one_hour_ago = (datetime.now() - timedelta(hours=1)).isoformat()
+        recent_citations_response = db_manager.supabase.from_('citations').select('count', count='exact').gte('scraped_at', one_hour_ago).execute()
         recent_citations = recent_citations_response.count if recent_citations_response.count is not None else 0
                 
         # Get cloud storage stats
