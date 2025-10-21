@@ -147,6 +147,12 @@ class CitationScraper:
             elif value_el:
                 info_key = key.lower().replace(' ', '_')
                 text_val = value_el.get_text(" ", strip=True)
+                
+                # Skip 'plate' field to avoid conflicts with plate_state and plate_number
+                if info_key == 'plate':
+                    logging.debug(f"Skipping 'plate' field to avoid schema conflict")
+                    continue
+                    
                 if info_key == 'amount_due':
                     info[info_key] = self.extract_amount(text_val)
                 else:
