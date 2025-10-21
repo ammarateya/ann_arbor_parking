@@ -6,6 +6,8 @@ from datetime import datetime
 from typing import Optional, Dict, List
 import time
 import random
+from PIL import Image
+import io
 
 
 class CitationScraper:
@@ -158,7 +160,106 @@ class CitationScraper:
                 image_urls.append(f"https://annarbor.citationportal.com{href}")
         if image_urls:
             info['image_urls'] = image_urls
+            
+            # Extract clean address from receipt image (last image)
+            try:
+                clean_address = self.extract_address_from_receipt(image_urls[-1])
+                if clean_address:
+                    info['location'] = clean_address
+                    logging.info(f"Extracted clean address from OCR: {clean_address}")
+            except Exception as e:
+                logging.warning(f"Failed to extract address from receipt image: {e}")
 
         return info
+    
+    def extract_address_from_receipt(self, image_url: str) -> Optional[str]:
+        """Extract clean address from receipt image using OCR"""
+        try:
+            # Check if pytesseract is available
+            try:
+                import pytesseract
+            except ImportError:
+                logging.debug("Tesseract not available, skipping OCR")
+                return None
+            
+            # Download image
+            response = self.session.get(image_url, timeout=30)
+            response.raise_for_status()
+            
+            # Preprocess image
+            image = Image.open(io.BytesIO(response.content))
+            if image.mode != 'RGB':
+                image = image.convert('RGB')
+            
+            # Resize if too small
+            if image.width < 800 or image.height < 600:
+                ratio = max(800 / image.width, 600 / image.height)
+                new_width = int(image.width * ratio)
+                new_height = int(image.height * ratio)
+                image = image.resize((new_width, new_height), Image.Resampling.LANCZOS)
+            
+            # Extract text with OCR
+            custom_config = r'--oem 3 --psm 6 -c tessedit_char_whitelist=0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz.,- '
+            text = pytesseract.image_to_string(image, config=custom_config)
+            
+            # Extract address from text
+            return self.parse_address_from_ocr(text)
+            
+        except Exception as e:
+            logging.debug(f"Error extracting address from receipt: {e}")
+            return None
+    
+    def parse_address_from_ocr(self, text: str) -> Optional[str]:
+        """Parse address from OCR text"""
+        if not text:
+            return None
+        
+        # Look for LOCATION pattern first
+        location_pattern = r'LOCATION(\d+)([A-Za-z]+(?:St|Street|Ave|Avenue|Rd|Road|Blvd|Boulevard|Dr|Drive|Ln|Lane|Ct|Court|Pl|Place|Way|Cir|Circle))'
+        location_match = re.search(location_pattern, text, re.IGNORECASE)
+        if location_match:
+            number = location_match.group(1)
+            street = location_match.group(2)
+            formatted_street = self.add_spaces_before_capitals(street)
+            return f"{number} {formatted_street}"
+        
+        # Fallback patterns
+        address_patterns = [
+            r'\b(\d+)([A-Za-z]+(?:St|Street|Ave|Avenue|Rd|Road|Blvd|Boulevard|Dr|Drive|Ln|Lane|Ct|Court|Pl|Place|Way|Cir|Circle))\b',
+        ]
+        
+        for pattern in address_patterns:
+            matches = re.findall(pattern, text, re.IGNORECASE)
+            if matches and isinstance(matches[0], tuple):
+                number, street = matches[0]
+                formatted_street = self.add_spaces_before_capitals(street)
+                return f"{number} {formatted_street}"
+        
+        return None
+    
+    def add_spaces_before_capitals(self, text: str) -> str:
+        """Add spaces before capital letters for better readability"""
+        if not text:
+            return text
+        
+        # Special handling for directional indicators (N, S, E, W)
+        directional_pattern = r'^([NSEW])([A-Z][a-z]+.*)$'
+        match = re.match(directional_pattern, text)
+        if match:
+            direction = match.group(1)
+            street_part = match.group(2)
+            formatted_street = self.add_spaces_before_capitals(street_part)
+            return f"{direction} {formatted_street}"
+        
+        # Regular case: add space before capital letters
+        result = text[0]
+        for i in range(1, len(text)):
+            char = text[i]
+            if char.isupper() and text[i-1].islower():
+                result += ' ' + char
+            else:
+                result += char
+        
+        return result
 
 
