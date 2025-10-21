@@ -23,4 +23,9 @@ logs/
 data/
 images/
 
+# OCR results (temporary test files)
+ocr_results_*.json
+ocr_*.log
+app.log
+
 
