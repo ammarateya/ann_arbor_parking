@@ -204,7 +204,8 @@ def run_scraper():
         logger.error(f"Traceback: {traceback.format_exc()}")
 
 
-if __name__ == "__main__":
+def main():
+    """Main application entry point"""
     logger.info("=" * 50)
     logger.info("MAIN APPLICATION STARTING")
     logger.info("=" * 50)
@@ -261,3 +262,7 @@ if __name__ == "__main__":
         logger.error(f"Failed to start application: {e}")
         logger.error(f"Traceback: {traceback.format_exc()}")
         exit(1)
+
+
+if __name__ == "__main__":
+    main()

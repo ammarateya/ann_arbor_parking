@@ -21,14 +21,13 @@ print(f"Working directory: {os.getcwd()}")
 
 try:
     print("Attempting to import main_combined...")
-    from main_combined import *
+    import main_combined
     print("✓ main_combined imported successfully")
+    
+    print("Starting main application...")
+    main_combined.main()
+    
 except Exception as e:
-    print(f"✗ Failed to import main_combined: {e}")
+    print(f"✗ Failed to run application: {e}")
     print(f"Traceback: {traceback.format_exc()}")
     sys.exit(1)
-
-if __name__ == "__main__":
-    print("main.py completed - main_combined will handle everything")
-    # The main_combined module will handle everything
-    pass
