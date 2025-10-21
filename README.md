@@ -148,3 +148,4 @@ python main.py
 ## 📄 License
 
 This project is for educational and research purposes.# Force fresh deployment Mon Oct 20 20:08:49 EDT 2025
+# Trigger deployment Mon Oct 20 20:13:24 EDT 2025
