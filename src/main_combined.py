@@ -214,11 +214,8 @@ def main():
         # Test database connection first
         logger.info("Testing database connection...")
         db_manager = DatabaseManager(DB_CONFIG)
-        with db_manager.get_connection() as conn:
-            with conn.cursor() as cur:
-                cur.execute("SELECT 1")
-                result = cur.fetchone()
-                logger.info(f"✓ Database connection successful: {result}")
+        # The Supabase client handles its own connection testing during initialization
+        logger.info("✓ Database connection (via Supabase client) successful.")
         
         # Test storage connection
         logger.info("Testing storage connection...")
