@@ -1,7 +1,7 @@
 from flask import Flask, jsonify
 import os
 from db_manager import DatabaseManager
-from backblaze_storage import BackblazeStorage
+from storage_factory import StorageFactory
 
 app = Flask(__name__)
 
@@ -54,8 +54,8 @@ def stats():
                 """)
                 recent_citations = cur.fetchone()[0]
                 
-        # Get B2 storage stats
-        b2_storage = BackblazeStorage()
+        # Get cloud storage stats
+        cloud_storage = StorageFactory.create_storage_service()
         storage_stats = db_manager.get_storage_stats()
         
         return jsonify({
@@ -63,8 +63,9 @@ def stats():
             'last_successful_citation': last_citation,
             'recent_citations_1h': recent_citations,
             'scraper_status': 'active',
-            'b2_storage': {
-                'configured': b2_storage.is_configured(),
+            'cloud_storage': {
+                'configured': cloud_storage.is_configured() if cloud_storage else False,
+                'provider': os.getenv('STORAGE_PROVIDER', 'cloudflare_r2'),
                 'total_images': storage_stats.get('total_images', 0),
                 'total_size_mb': storage_stats.get('total_mb', 0),
                 'citations_with_images': storage_stats.get('citations_with_images', 0)

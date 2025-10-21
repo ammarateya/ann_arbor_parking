@@ -43,7 +43,7 @@ def ongoing_scraper_job():
     scraper = CitationScraper()
     db_manager = DatabaseManager(DB_CONFIG)
     email_notifier = EmailNotifier()
-    b2_storage = StorageFactory.create_storage_service()
+    cloud_storage = StorageFactory.create_storage_service()
     
     successful_citations = []
     errors = []
@@ -71,18 +71,18 @@ def ongoing_scraper_job():
                     db_manager.save_citation(result)
                     successful_citations.append(result)
                     
-                    # Upload images to Backblaze B2 if available
-                    if result.get('image_urls') and b2_storage.is_configured():
+                    # Upload images to cloud storage if available
+                    if result.get('image_urls') and cloud_storage and cloud_storage.is_configured():
                         try:
-                            uploaded_images = b2_storage.upload_images_for_citation(
+                            uploaded_images = cloud_storage.upload_images_for_citation(
                                 result['image_urls'], 
                                 citation_num
                             )
                             
-                            # Save B2 image metadata to database
+                            # Save cloud storage image metadata to database
                             for image_data in uploaded_images:
                                 image_data['original_url'] = result['image_urls'][uploaded_images.index(image_data)]
-                                db_manager.save_b2_image(citation_num, image_data)
+                                db_manager.save_b2_image(citation_num, image_data)  # Keep same method name for compatibility
                                 images_uploaded += 1
                             
                             logger.info(f"Uploaded {len(uploaded_images)} images for citation {citation_num}")

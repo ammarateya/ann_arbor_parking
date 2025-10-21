@@ -6,7 +6,6 @@ from typing import List, Optional, Dict, Tuple
 from PIL import Image
 import io
 from datetime import datetime
-from backblaze_storage import BackblazeStorage
 
 logger = logging.getLogger(__name__)
 
@@ -79,19 +78,19 @@ class ImageCompressor:
             return image_data, {'error': str(e)}
 
 
-class OptimizedBackblazeStorage(BackblazeStorage):
-    """Enhanced Backblaze storage with image compression"""
+class OptimizedCloudStorage:
+    """Enhanced cloud storage with image compression"""
     
-    def __init__(self):
-        super().__init__()
+    def __init__(self, storage_service):
+        self.storage = storage_service
         self.compressor = ImageCompressor()
     
     def upload_image(self, image_url: str, citation_number: int, image_index: int = 0) -> Optional[Dict]:
         """
-        Download, compress, and upload an image to Backblaze B2
+        Download, compress, and upload an image to cloud storage
         """
-        if not self.is_configured():
-            logger.warning("Backblaze B2 not configured, skipping image upload")
+        if not self.storage.is_configured():
+            logger.warning("Cloud storage not configured, skipping image upload")
             return None
         
         try:
@@ -112,12 +111,12 @@ class OptimizedBackblazeStorage(BackblazeStorage):
             # Generate content hash for deduplication
             content_hash = hashlib.sha1(compressed_data).hexdigest()
             
-            # Upload to B2
-            file_info = self.bucket.upload_bytes(
+            # Upload to cloud storage
+            result = self.storage.upload_file(
                 compressed_data,
                 filename,
                 content_type='image/jpeg',
-                file_infos={
+                metadata={
                     'citation_number': str(citation_number),
                     'original_url': image_url,
                     'upload_timestamp': timestamp,
@@ -128,12 +127,12 @@ class OptimizedBackblazeStorage(BackblazeStorage):
                 }
             )
             
-            logger.info(f"Uploaded compressed image to B2: {filename}")
+            logger.info(f"Uploaded compressed image to cloud storage: {filename}")
             
             return {
                 'filename': filename,
-                'file_id': file_info.id_,
-                'download_url': self._get_download_url(filename),
+                'file_id': result.get('file_id'),
+                'download_url': result.get('download_url'),
                 'size_bytes': len(compressed_data),
                 'content_type': 'image/jpeg',
                 'content_hash': content_hash,
