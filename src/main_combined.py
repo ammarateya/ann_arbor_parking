@@ -181,9 +181,15 @@ def ongoing_scraper_job():
 
 
 def scrape_job():
-    logger.info("Starting scrape job")
+    logger.info("=" * 70)
+    logger.info("⏰ SCHEDULED SCRAPE JOB TRIGGERED")
+    logger.info(f"⏰ Time: {time.strftime('%Y-%m-%d %H:%M:%S')}")
+    logger.info("=" * 70)
     ongoing_scraper_job()
-    logger.info("Scrape job complete")
+    logger.info("=" * 70)
+    logger.info("✓ SCHEDULED SCRAPE JOB COMPLETE")
+    logger.info(f"⏰ Next run in 10 minutes at: {time.strftime('%H:%M:%S', time.localtime(time.time() + 600))}")
+    logger.info("=" * 70)
 
 
 def run_scraper():
@@ -194,8 +200,14 @@ def run_scraper():
     schedule.every(10).minutes.do(scrape_job)
     
     logger.info("✓ Parking Citation Scraper started. Running every 10 minutes.")
+    logger.info(f"⏰ First scheduled run will be in 10 minutes at: {time.strftime('%H:%M:%S', time.localtime(time.time() + 600))}")
+    
+    # Run the first scrape immediately
+    logger.info("🚀 Running initial scrape job immediately...")
+    scrape_job()
     
     try:
+        logger.info("⏰ Scheduler thread now monitoring for 10-minute intervals...")
         while True:
             schedule.run_pending()
             time.sleep(1)

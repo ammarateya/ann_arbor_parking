@@ -55,8 +55,7 @@ class DatabaseAddressUpdater:
         """Update a single citation's address"""
         try:
             response = self.supabase.table('citations').update({
-                'location': new_address,
-                'updated_at': datetime.now().isoformat()
+                'location': new_address
             }).eq('citation_number', citation_number).execute()
             
             if response.data:
