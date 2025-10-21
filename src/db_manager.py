@@ -12,7 +12,12 @@ class DatabaseManager:
         # psycopg expects 'dbname' instead of 'database'
         if 'database' in cfg and 'dbname' not in cfg:
             cfg['dbname'] = cfg.pop('database')
-        return psycopg.connect(**cfg)
+        
+        # Use connection string format to avoid IPv6 resolution issues
+        # This format is more reliable for cloud deployments
+        conn_string = f"host={cfg['host']} port={cfg['port']} dbname={cfg['dbname']} user={cfg['user']} password={cfg['password']}"
+        
+        return psycopg.connect(conn_string)
 
     def save_citation(self, citation_data: Dict):
         with self.get_connection() as conn:
