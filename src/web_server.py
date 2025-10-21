@@ -38,21 +38,16 @@ def stats():
     try:
         db_manager = DatabaseManager(DB_CONFIG)
         
-        with db_manager.get_connection() as conn:
-            with conn.cursor() as cur:
-                # Get total citations count
-                cur.execute("SELECT COUNT(*) FROM citations")
-                total_citations = cur.fetchone()[0]
-                
-                # Get last successful citation
-                last_citation = db_manager.get_last_successful_citation()
-                
-                # Get recent activity
-                cur.execute("""
-                    SELECT COUNT(*) FROM citations 
-                    WHERE scraped_at > NOW() - INTERVAL '1 hour'
-                """)
-                recent_citations = cur.fetchone()[0]
+        # Get total citations count using Supabase client
+        total_citations_response = db_manager.supabase.from_('citations').select('count', count='exact').execute()
+        total_citations = total_citations_response.count if total_citations_response.count is not None else 0
+        
+        # Get last successful citation
+        last_citation = db_manager.get_last_successful_citation()
+        
+        # Get recent activity (citations scraped in last hour)
+        recent_citations_response = db_manager.supabase.from_('citations').select('count', count='exact').gte('scraped_at', 'now() - interval \'1 hour\'').execute()
+        recent_citations = recent_citations_response.count if recent_citations_response.count is not None else 0
                 
         # Get cloud storage stats
         cloud_storage = StorageFactory.create_storage_service()
