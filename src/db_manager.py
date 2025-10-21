@@ -19,6 +19,14 @@ class DatabaseManager:
             supabase_url = os.getenv('SUPABASE_URL')
             supabase_key = os.getenv('SUPABASE_ANON_KEY')
             
+            # Log the configuration (with masked key for security)
+            logger.info(f"Supabase URL: {supabase_url}")
+            if supabase_key:
+                masked_key = supabase_key[:8] + "..." + supabase_key[-4:] if len(supabase_key) > 12 else "***"
+                logger.info(f"Supabase Key: {masked_key}")
+            else:
+                logger.warning("Supabase Key: NOT SET")
+            
             if not supabase_url or not supabase_key:
                 logger.error("Missing SUPABASE_URL or SUPABASE_ANON_KEY environment variables")
                 raise ValueError("Supabase credentials not configured")
