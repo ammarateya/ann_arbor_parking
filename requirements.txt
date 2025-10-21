@@ -8,8 +8,8 @@ python-dotenv==1.0.1
 flask==3.0.0
 setuptools==75.6.0
 
-# Supabase client
-supabase==2.3.4
+# Supabase client (using stable version)
+supabase==2.0.2
 
 # Cloudflare R2 (S3-compatible)
 boto3==1.35.0
