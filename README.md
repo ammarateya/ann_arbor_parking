@@ -1,152 +1,89 @@
 # Ann Arbor Parking Citation Scraper
 
-An automated scraper that collects parking citations from Ann Arbor's citation portal, runs continuously on Render's free tier, and stores images with smart compression in cloud storage.
+A real-time parking citation scraper and API for Ann Arbor, Michigan.
 
-## 🚀 Quick Start
+## 🚀 Architecture
 
-1. **Deploy to Render**: Follow instructions in [docs/DEPLOYMENT_INSTRUCTIONS.md](docs/DEPLOYMENT_INSTRUCTIONS.md)
-2. **Choose Storage Provider**: Configure your preferred cloud storage
-3. **Configure Environment**: Set up database and email credentials
-4. **Monitor**: Check logs and receive email notifications
+- **Scraper**: Runs every 10 minutes via GitHub Actions (free for public repos)
+- **API**: Hosted on Render for health checks and statistics
+- **Database**: Supabase PostgreSQL
+- **Storage**: Cloudflare R2 for citation images
 
-## 📁 Project Structure
+## 📊 Features
+
+- **Real-time scraping** every 10 minutes
+- **OCR address extraction** for clean street addresses
+- **Image storage** with compression
+- **Email notifications** with citation summaries
+- **REST API** for health checks and statistics
+- **Bulk optimization** to avoid duplicate processing
+
+## 🔧 Setup
+
+### 1. Make Repository Public
+This enables free GitHub Actions (unlimited minutes for public repos).
+
+### 2. Add GitHub Secrets
+Go to **Settings** → **Secrets and variables** → **Actions** and add:
 
 ```
-├── src/                    # Core application code
-│   ├── main_combined.py   # Main scraper + web server
-│   ├── scraper.py         # Citation scraping logic
-│   ├── db_manager.py      # Database operations
-│   ├── email_notifier.py  # Email notifications
-│   ├── backblaze_storage.py # Backblaze B2 storage
-│   ├── cloud_storage.py   # Cloudflare R2 & Google Cloud
-│   ├── image_compressor.py # Image compression service
-│   ├── storage_factory.py # Storage provider factory
-│   └── web_server.py      # Health check endpoints
-├── scripts/               # Utility scripts
-├── docs/                  # Documentation and schemas
-├── logs/                  # Log files
-├── images/               # Downloaded citation images
-├── main.py              # Entry point
-├── requirements.txt     # Python dependencies
-├── render.yaml         # Render deployment config
-└── Dockerfile          # Container configuration
-```
-
-## ⚙️ Features
-
-- **Automated Scraping**: Runs every 10 minutes
-- **Smart Range**: Processes citations ±100 from last successful citation
-- **Image Compression**: Reduces storage by 60-80% with smart compression
-- **Multiple Storage Options**: Backblaze B2, Cloudflare R2, Google Cloud
-- **Email Notifications**: HTML reports sent to ammarat@umich.edu
-- **Database Storage**: Supabase PostgreSQL for persistent storage
-- **Health Monitoring**: Web endpoints for status checks
-- **Respectful Scraping**: Includes delays to be respectful to target server
-
-## 🗄️ Storage Options
-
-### 🏆 **Cloudflare R2 (RECOMMENDED)**
-- **Free Tier**: 10GB storage + 1M requests/month
-- **Pros**: No egress fees, S3-compatible, reliable
-- **Best For**: Production applications
-- **Setup**: Create R2 bucket, get API keys
-
-### 🎓 **Google Cloud Storage (Student Credits)**
-- **Free Tier**: $300 credits (~1.5TB storage)
-- **Pros**: Large free tier, reliable, good integration
-- **Best For**: Students with .edu email
-- **Setup**: Apply for student credits, create service account
-
-### 💾 **Backblaze B2**
-- **Free Tier**: 10GB storage
-- **Pros**: Simple setup, good performance
-- **Cons**: Limited free tier, egress fees
-- **Best For**: Small projects
-
-## 🗜️ Image Compression
-
-All images are automatically compressed to reduce storage costs:
-- **Resize**: Max 1200x1200 pixels
-- **Quality**: 85% JPEG quality
-- **Format**: Converted to JPEG for consistency
-- **Savings**: Typically 60-80% size reduction
-
-## 🔧 Configuration
-
-### Environment Variables
-
-```bash
-# Storage Provider (choose one)
-STORAGE_PROVIDER=cloudflare_r2  # Options: backblaze_b2, cloudflare_r2, google_cloud
-
-# Cloudflare R2 (RECOMMENDED)
-R2_ACCESS_KEY_ID=your_r2_access_key_id
-R2_SECRET_ACCESS_KEY=your_r2_secret_access_key
+DB_HOST=db.kctfygcpobxjgpivujiy.supabase.co
+DB_NAME=postgres
+DB_USER=postgres
+DB_PASSWORD=your_supabase_password
+DB_PORT=5432
+SUPABASE_URL=https://kctfygcpobxjgpivujiy.supabase.co
+SUPABASE_ANON_KEY=your_supabase_anon_key
+EMAIL_HOST=smtp.gmail.com
+EMAIL_PORT=587
+EMAIL_USER=ammarat@umich.edu
+EMAIL_PASSWORD=your_gmail_app_password
+NOTIFICATION_EMAIL=ammarat@umich.edu
+STORAGE_PROVIDER=cloudflare_r2
+R2_ACCESS_KEY_ID=your_r2_access_key
+R2_SECRET_ACCESS_KEY=your_r2_secret_key
 R2_ACCOUNT_ID=your_r2_account_id
 R2_BUCKET_NAME=parking-citations
-
-# Google Cloud Storage (Student credits)
-GCS_BUCKET_NAME=parking-citations
-GOOGLE_APPLICATION_CREDENTIALS=/path/to/service-account.json
-
-# Backblaze B2
-B2_APPLICATION_KEY_ID=your_b2_application_key_id
-B2_APPLICATION_KEY=your_b2_application_key
-B2_BUCKET_NAME=parking-citations
-
-# Image Compression Settings
+R2_PUBLIC_URL=https://your-domain.com
 IMAGE_MAX_WIDTH=1200
 IMAGE_MAX_HEIGHT=1200
 IMAGE_QUALITY=85
+IMAGE_FORMAT=JPEG
 ```
 
-## 📊 Monitoring
+### 3. Deploy API to Render
+The API will automatically deploy when you push to main branch.
 
-- **Health Check**: `GET /` - Service status
-- **Statistics**: `GET /stats` - Scraper and storage statistics
-- **Email Reports**: Automatic notifications after each run
+## 📡 API Endpoints
 
-## 💰 Cost Analysis
+- `GET /` - Health check
+- `GET /stats` - Scraper statistics and storage info
 
-### With Image Compression (Recommended):
-- **700MB → ~140MB** (80% reduction)
-- **10GB storage** = ~7,000 citations with images
-- **Cloudflare R2**: Free tier covers ~7,000 citations
-- **Google Cloud**: Student credits cover ~10,000+ citations
+## 🔄 GitHub Actions
 
-### Storage Providers Comparison:
-| Provider | Free Tier | Egress Fees | Best For |
-|----------|-----------|-------------|----------|
-| Cloudflare R2 | 10GB + 1M requests | None | Production |
-| Google Cloud | $300 credits | Yes | Students |
-| Backblaze B2 | 10GB | Yes | Small projects |
+The scraper runs automatically:
+- **Every 10 minutes** via cron schedule
+- **On push** to main branch (for testing)
+- **Manual trigger** available in GitHub Actions tab
 
-## 🛠️ Development
+## 📈 Performance
 
-For local development:
+- **Bulk citation lookup** - 1 query instead of 200+ per session
+- **Skip existing citations** - no duplicate processing
+- **Image compression** - optimized storage usage
+- **OCR optimization** - clean address extraction
 
-```bash
-pip install -r requirements.txt
-python main.py
-```
+## 🛠️ Tech Stack
 
-## 📚 Documentation
+- **Python 3.11**
+- **Supabase** (PostgreSQL + Python client)
+- **Cloudflare R2** (S3-compatible storage)
+- **GitHub Actions** (cron jobs)
+- **Render** (API hosting)
+- **Flask** (web framework)
+- **Pillow** (image processing)
+- **pytesseract** (OCR)
 
-- [Deployment Instructions](docs/DEPLOYMENT_INSTRUCTIONS.md)
-- [Database Schema](docs/schema.sql)
-- [Storage Setup Guide](docs/STORAGE_SETUP.md)
+## 📝 License
 
-## 🎯 Getting Started with Cloudflare R2
-
-1. **Create Account**: Sign up at [Cloudflare](https://dash.cloudflare.com/)
-2. **Enable R2**: Go to R2 Object Storage
-3. **Create Bucket**: Name it `parking-citations`
-4. **Get API Keys**: Create R2 Token with read/write permissions
-5. **Set Environment Variables**: Add R2 credentials to Render
-6. **Deploy**: Your scraper will automatically use R2!
-
-## 📄 License
-
-This project is for educational and research purposes.# Force fresh deployment Mon Oct 20 20:08:49 EDT 2025
-# Trigger deployment Mon Oct 20 20:13:24 EDT 2025
-# Test deployment Mon Oct 20 20:42:01 EDT 2025
+MIT License - Feel free to use for civic tech projects!
