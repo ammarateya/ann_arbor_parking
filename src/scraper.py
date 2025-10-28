@@ -239,12 +239,22 @@ class CitationScraper:
                     # Pattern with direction
                     number, direction, street = match.groups()
                     formatted_street = self.add_spaces_before_capitals(street.strip())
-                    return f"{number} {direction} {formatted_street}"
+                    # Clean up the address - remove newlines and extra whitespace
+                    address = f"{number} {direction} {formatted_street}"
+                    address = re.sub(r'\s+', ' ', address).strip()
+                    # Take only the first line (before any newline)
+                    address = address.split('\n')[0].strip()
+                    return address
                 elif len(match.groups()) == 2:
                     # Pattern without direction
                     number, street = match.groups()
                     formatted_street = self.add_spaces_before_capitals(street.strip())
-                    return f"{number} {formatted_street}"
+                    # Clean up the address - remove newlines and extra whitespace
+                    address = f"{number} {formatted_street}"
+                    address = re.sub(r'\s+', ' ', address).strip()
+                    # Take only the first line (before any newline)
+                    address = address.split('\n')[0].strip()
+                    return address
         
         return None
     
