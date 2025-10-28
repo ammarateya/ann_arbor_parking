@@ -18,6 +18,7 @@ class Geocoder:
     def geocode_address(self, address: str) -> Optional[Tuple[float, float]]:
         """
         Geocode an address and return (latitude, longitude) tuple.
+        Tries multiple variations if the first attempt fails.
         
         Args:
             address: Address string to geocode
@@ -27,41 +28,50 @@ class Geocoder:
         """
         if not address:
             return None
-            
-        try:
-            # Add delay to respect rate limits
-            time.sleep(self.delay)
-            
-            # Ensure Ann Arbor, MI is appended
-            if 'Ann Arbor' not in address:
-                search_address = f"{address}, Ann Arbor, MI"
-            else:
-                search_address = address
-            
-            params = {
-                'q': search_address,
-                'format': 'json',
-                'limit': 1,
-                'addressdetails': 0
-            }
-            
-            response = requests.get(self.base_url, params=params, headers=self.headers, timeout=30)
-            response.raise_for_status()
-            
-            data = response.json()
-            
-            if data and len(data) > 0:
-                lat = float(data[0]['lat'])
-                lon = float(data[0]['lon'])
-                logger.info(f"Geocoded '{address}' to ({lat}, {lon})")
-                return (lat, lon)
-            else:
-                logger.warning(f"No geocoding results for '{address}'")
-                return None
+        
+        # Prepare base address
+        if 'Ann Arbor' not in address:
+            base_address = f"{address}, Ann Arbor, MI"
+        else:
+            base_address = address
+        
+        # Try multiple variations
+        variations = [
+            base_address,  # Original
+            base_address.replace(' St ', ' Ave '),  # Try Ave instead of St
+            base_address.replace(' St ', ' St'),  # Try without space before St
+            base_address.replace('St ', 'Ave '),  # Try Ave instead of St
+        ]
+        
+        for search_address in variations:
+            try:
+                # Add delay to respect rate limits
+                time.sleep(self.delay)
                 
-        except Exception as e:
-            logger.error(f"Error geocoding '{address}': {e}")
-            return None
+                params = {
+                    'q': search_address,
+                    'format': 'json',
+                    'limit': 1,
+                    'addressdetails': 0
+                }
+                
+                response = requests.get(self.base_url, params=params, headers=self.headers, timeout=30)
+                response.raise_for_status()
+                
+                data = response.json()
+                
+                if data and len(data) > 0:
+                    lat = float(data[0]['lat'])
+                    lon = float(data[0]['lon'])
+                    logger.info(f"Geocoded '{address}' to ({lat}, {lon}) using variation: {search_address}")
+                    return (lat, lon)
+                
+            except Exception as e:
+                logger.debug(f"Error geocoding variation '{search_address}': {e}")
+                continue
+        
+        logger.warning(f"No geocoding results for '{address}' after trying {len(variations)} variations")
+        return None
     
     def geocode_and_update_citation(self, db_manager, citation_number: int, address: str) -> bool:
         """
