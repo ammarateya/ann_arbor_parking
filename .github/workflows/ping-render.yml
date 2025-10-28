@@ -1,0 +1,26 @@
+name: Ping Render Service
+
+on:
+  schedule:
+    # Run every hour to keep the service alive
+    - cron: '0 * * * *'
+  workflow_dispatch: # Allow manual trigger
+
+jobs:
+  ping:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Ping Render Service
+        run: |
+          echo "Pinging https://ann-arbor-parking.onrender.com/"
+          curl -f -s -o /dev/null -w "%{http_code}" https://ann-arbor-parking.onrender.com/ || echo "Ping failed"
+        
+      - name: Report Status
+        run: |
+          status=$(curl -s -o /dev/null -w "%{http_code}" https://ann-arbor-parking.onrender.com/)
+          if [ "$status" -ge 200 ] && [ "$status" -lt 400 ]; then
+            echo "✅ Service is responding with status $status"
+          else
+            echo "⚠️  Service returned status $status"
+          fi
+
