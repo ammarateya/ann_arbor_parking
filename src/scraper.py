@@ -208,8 +208,15 @@ class CitationScraper:
             custom_config = r'--oem 3 --psm 6 -c tessedit_char_whitelist=0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz.,- '
             text = pytesseract.image_to_string(image, config=custom_config)
             
-            # Extract address from text
-            return self.parse_address_from_ocr(text)
+            # Find the LOCATION line specifically to avoid extra text
+            location_line = None
+            for line in text.split('\n'):
+                if 'LOCATION' in line.upper():
+                    location_line = line
+                    break
+            
+            # Extract address from text (or just the LOCATION line if found)
+            return self.parse_address_from_ocr(location_line if location_line else text)
             
         except Exception as e:
             logging.debug(f"Error extracting address from receipt: {e}")
