@@ -197,18 +197,32 @@ class CitationScraper:
             if image.mode != 'RGB':
                 image = image.convert('RGB')
             
-            # Resize if too small
-            if image.width < 800 or image.height < 600:
-                ratio = max(800 / image.width, 600 / image.height)
-                new_width = int(image.width * ratio)
-                new_height = int(image.height * ratio)
-                image = image.resize((new_width, new_height), Image.Resampling.LANCZOS)
+            # Crop to LOCATION region (bottom-left area of receipt)
+            # Based on typical receipt layout, LOCATION is usually in the lower portion
+            original_width = image.width
+            original_height = image.height
             
-            # Extract text with OCR
-            custom_config = r'--oem 3 --psm 6 -c tessedit_char_whitelist=0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz.,- '
-            text = pytesseract.image_to_string(image, config=custom_config)
+            # Crop to approximately the lower 40% and left 50% where LOCATION typically appears
+            crop_left = 0
+            crop_top = int(original_height * 0.6)  # Start from 60% down
+            crop_right = int(original_width * 0.5)  # End at 50% width
+            crop_bottom = original_height
             
-            # Find the LOCATION line specifically to avoid extra text
+            # Create cropped image
+            cropped_image = image.crop((crop_left, crop_top, crop_right, crop_bottom))
+            
+            # Resize if too small for better OCR accuracy
+            if cropped_image.width < 800 or cropped_image.height < 600:
+                ratio = max(800 / cropped_image.width, 600 / cropped_image.height)
+                new_width = int(cropped_image.width * ratio)
+                new_height = int(cropped_image.height * ratio)
+                cropped_image = cropped_image.resize((new_width, new_height), Image.Resampling.LANCZOS)
+            
+            # Extract text with OCR on cropped region
+            custom_config = r'--oem 3 --psm 6'
+            text = pytesseract.image_to_string(cropped_image, config=custom_config)
+            
+            # Find the LOCATION line specifically
             location_line = None
             for line in text.split('\n'):
                 if 'LOCATION' in line.upper():
