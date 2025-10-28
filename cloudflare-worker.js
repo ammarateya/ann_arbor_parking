@@ -8,28 +8,41 @@ addEventListener("fetch", (event) => {
 async function handleRequest(request) {
   const url = new URL(request.url);
 
-  // Handle /a2-parking route - proxy to Render
-  if (url.pathname.startsWith("/a2-parking")) {
-    // Rewrite the path to remove /a2-parking prefix
-    const renderPath = url.pathname.replace("/a2-parking", "") || "/";
-    const renderUrl = `https://ann-arbor-parking.onrender.com${renderPath}${url.search}`;
-
-    // Forward the request to Render
-    const response = await fetch(renderUrl, {
-      method: request.method,
-      headers: request.headers,
-      body: request.body,
-    });
-
-    // Clone response to modify if needed
-    return new Response(response.body, {
-      status: response.status,
-      statusText: response.statusText,
-      headers: response.headers,
-    });
+  // Redirect /a2-parking to /a2-parking/ if no trailing slash
+  if (url.pathname === "/a2-parking") {
+    return Response.redirect(url + "/", 301);
   }
 
-  // For all other routes, pass through to your GitHub Pages site
-  // or return 404 if you want
-  return fetch(request);
+  // This Worker only handles /a2-parking routes (configured in Cloudflare Dashboard)
+  // Rewrite the path to remove /a2-parking prefix
+  let renderPath = url.pathname.replace("/a2-parking", "");
+
+  // Handle trailing slashes properly
+  if (renderPath === "") {
+    renderPath = "/";
+  }
+
+  const renderUrl = `https://ann-arbor-parking.onrender.com${renderPath}${url.search}`;
+
+  console.log(`Proxying ${url.pathname} to ${renderUrl}`);
+
+  // Forward the request to Render
+  const response = await fetch(renderUrl, {
+    method: request.method,
+    headers: request.headers,
+    body: request.body,
+  });
+
+  // Get response body to modify if needed
+  let body = await response.arrayBuffer();
+
+  // If HTML response, we might need to rewrite URLs (but for now just proxy as-is)
+  const headers = new Headers(response.headers);
+
+  // Return the response with proper headers
+  return new Response(body, {
+    status: response.status,
+    statusText: response.statusText,
+    headers: headers,
+  });
 }

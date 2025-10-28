@@ -85,11 +85,21 @@ wrangler publish
 1. In Cloudflare Dashboard → Select your domain `ammarateya.com` (not the Worker)
 2. Go to **Workers & Pages** tab (left sidebar)
 3. Click **"Add route"** button
-4. Route: `ammarateya.com/a2-parking/*`
+4. **CRITICAL - Route must be exactly this:** `ammarateya.com/a2-parking/*`
+   - NOT: `ammarateya.com/*` (this will break your main site!)
+   - Must include the `/a2-parking/` prefix and the `*` wildcard
 5. Worker: Select `a2-parking-worker`
 6. Click **"Save"**
 
-⚠️ **Without this step, the Worker won't work!**
+⚠️ **Route MUST be `ammarateya.com/a2-parking/*` with the wildcard!**
+
+### How to check your current routes:
+
+Go to Workers & Pages → Routes tab. You should see ONLY:
+
+- `ammarateya.com/a2-parking/*` → a2-parking-worker
+
+If you see `ammarateya.com/*`, DELETE it immediately - it will conflict with your main site!
 
 ## Step 5: Test!
 
