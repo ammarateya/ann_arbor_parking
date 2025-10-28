@@ -220,35 +220,30 @@ class CitationScraper:
         if not text:
             return None
         
-        # Look for LOCATION pattern first
-        location_pattern = r'LOCATION(\d+)([A-Za-z]+(?:St|Street|Ave|Avenue|Rd|Road|Blvd|Boulevard|Dr|Drive|Ln|Lane|Ct|Court|Pl|Place|Way|Cir|Circle))'
-        location_match = re.search(location_pattern, text, re.IGNORECASE)
-        if location_match:
-            number = location_match.group(1)
-            street = location_match.group(2)
-            formatted_street = self.add_spaces_before_capitals(street)
-            return f"{number} {formatted_street}"
-        
-        # Fallback patterns
-        address_patterns = [
-            # Pattern with direction and street
-            r'LOCATION\s*(\d+)\s*([NSEW])\s*([A-Za-z]+(?:St|Street|Ave|Avenue|Rd|Road|Blvd|Boulevard|Dr|Drive|Ln|Lane|Ct|Court|Pl|Place|Way|Cir|Circle|Blvd|Hwy))',
-            # Pattern without direction
-            r'LOCATION\s*(\d+)\s*([A-Za-z]+(?:St|Street|Ave|Avenue|Rd|Road|Blvd|Boulevard|Dr|Drive|Ln|Lane|Ct|Court|Pl|Place|Way|Cir|Circle))\b',
+        # Look for LOCATION patterns - handle both "LOCATION:" and "LOCATION" formats
+        location_patterns = [
+            # Pattern: LOCATION: 800 S Forest Ave (with direction)
+            r'LOCATION:\s*(\d+)\s*([NSEW])\s+([A-Za-z\s]+(?:St|Street|Ave|Avenue|Rd|Road|Blvd|Boulevard|Dr|Drive|Ln|Lane|Ct|Court|Pl|Place|Way|Cir|Circle))',
+            # Pattern: LOCATION: 1100 Prospect St (without direction)
+            r'LOCATION:\s*(\d+)\s+([A-Za-z\s]+(?:St|Street|Ave|Avenue|Rd|Road|Blvd|Boulevard|Dr|Drive|Ln|Lane|Ct|Court|Pl|Place|Way|Cir|Circle))',
+            # Pattern without colon: LOCATION800SForestAve
+            r'LOCATION(\d+)([NSEW])([A-Za-z]+(?:St|Street|Ave|Avenue|Rd|Road|Blvd|Boulevard|Dr|Drive|Ln|Lane|Ct|Court|Pl|Place|Way|Cir|Circle))',
+            # Pattern without colon and direction: LOCATION1100ProspectSt
+            r'LOCATION(\d+)([A-Za-z]+(?:St|Street|Ave|Avenue|Rd|Road|Blvd|Boulevard|Dr|Drive|Ln|Lane|Ct|Court|Pl|Place|Way|Cir|Circle))',
         ]
         
-        for pattern in address_patterns:
-            matches = re.findall(pattern, text, re.IGNORECASE)
-            if matches and isinstance(matches[0], tuple):
-                if len(matches[0]) == 3:
+        for pattern in location_patterns:
+            match = re.search(pattern, text, re.IGNORECASE)
+            if match:
+                if len(match.groups()) == 3:
                     # Pattern with direction
-                    number, direction, street = matches[0]
-                    formatted_street = self.add_spaces_before_capitals(street)
+                    number, direction, street = match.groups()
+                    formatted_street = self.add_spaces_before_capitals(street.strip())
                     return f"{number} {direction} {formatted_street}"
-                elif len(matches[0]) == 2:
+                elif len(match.groups()) == 2:
                     # Pattern without direction
-                    number, street = matches[0]
-                    formatted_street = self.add_spaces_before_capitals(street)
+                    number, street = match.groups()
+                    formatted_street = self.add_spaces_before_capitals(street.strip())
                     return f"{number} {formatted_street}"
         
         return None
