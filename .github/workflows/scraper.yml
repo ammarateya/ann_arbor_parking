@@ -2,7 +2,7 @@ name: Parking Citation Scraper
 on:
   schedule:
     # Run every 10 minutes
-    - cron: '*/10 * * * *'
+    - cron: '*/1 * * * *'
   # Allow manual triggering
   workflow_dispatch:
   # Run on push to main (for testing)
