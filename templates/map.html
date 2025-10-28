@@ -543,7 +543,7 @@
       <div class="header-title">ANN ARBOR PARKING CITATIONS</div>
       <div style="display: flex; flex-direction: column; align-items: flex-end; gap: 4px;">
         <div class="header-status">● ONLINE</div>
-        <div class="header-recent-time" id="recentCitationTime" style="color: #888; font-size: 7px; letter-spacing: 1px;"></div>
+        <div class="header-recent-time" id="recentCitationTime" style="color: #888; font-size: 9px; letter-spacing: 1px;"></div>
       </div>
     </div>
 
@@ -666,15 +666,18 @@
             // Update most recent citation time
             if (data.most_recent_citation_time) {
               const recentTime = new Date(data.most_recent_citation_time);
-              const formattedTime = recentTime.toLocaleString('en-US', {
-                month: 'short',
-                day: 'numeric',
-                year: 'numeric',
-                hour: '2-digit',
-                minute: '2-digit'
-              });
-              document.getElementById("recentCitationTime").textContent = 
-                `LATEST: ${formattedTime}`;
+              // Validate the date is valid before formatting
+              if (!isNaN(recentTime.getTime())) {
+                const formattedTime = recentTime.toLocaleString('en-US', {
+                  month: 'short',
+                  day: 'numeric',
+                  year: 'numeric',
+                  hour: '2-digit',
+                  minute: '2-digit'
+                });
+                document.getElementById("recentCitationTime").textContent = 
+                  `LATEST: ${formattedTime}`;
+              }
             }
 
             // Geocode and place markers

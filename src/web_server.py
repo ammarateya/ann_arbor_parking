@@ -83,7 +83,9 @@ def get_citations():
         # Find the most recent citation timestamp
         most_recent_time = None
         if citations_with_coords:
-            # Try to find the most recent issue_date
+            # Find the most recent issue_date
+            # Note: Supabase returns ISO 8601 formatted date strings which can be
+            # compared lexicographically for chronological ordering (YYYY-MM-DDTHH:MM:SS format)
             for citation in citations_with_coords:
                 issue_date = citation.get('issue_date')
                 if issue_date:
