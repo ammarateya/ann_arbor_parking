@@ -433,12 +433,91 @@
         font-size: 18px;
         font-weight: bold;
         text-shadow: 0 0 5px #00ff00;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        line-height: 1;
+        right: 5px;
+        top: 5px;
       }
 
       .leaflet-container a.leaflet-popup-close-button:hover {
         color: #0a0a0a;
         background: #00ff00;
         text-shadow: none;
+      }
+
+      /* Mobile responsive styles */
+      @media (max-width: 768px) {
+        .header-title {
+          font-size: 16px;
+        }
+
+        .stats-bar {
+          font-size: 10px;
+          padding: 8px 12px;
+          top: 50px;
+        }
+
+        .stat-item {
+          font-size: 11px;
+        }
+
+        .side-panel {
+          width: 100%;
+          position: fixed;
+          left: 0;
+          right: 0;
+          height: 60vh;
+          bottom: 0;
+          top: auto;
+          border-right: none;
+          border-top: 3px solid #00ff00;
+          z-index: 1001;
+        }
+
+        .side-panel.active {
+          display: block;
+        }
+
+        #map {
+          width: 100vw;
+          height: 100vh;
+          margin-left: 0;
+        }
+
+        .map-controls {
+          left: 10px;
+          bottom: 10px;
+          flex-direction: column;
+          gap: 8px;
+        }
+
+        .control-btn {
+          font-size: 10px;
+          padding: 8px 10px;
+        }
+
+        .leaflet-popup-content {
+          font-size: 12px;
+          padding: 10px;
+        }
+
+        .leaflet-popup-content strong {
+          font-size: 13px;
+        }
+
+        .info-item {
+          padding: 8px 0;
+        }
+
+        .info-label {
+          font-size: 9px;
+        }
+
+        .info-value {
+          font-size: 11px;
+        }
       }
     </style>
   </head>
@@ -550,10 +629,6 @@
 
             // Show message if no citations with coordinates
             if (citations.length === 0) {
-              console.log(
-                "No citations with coordinates found. Total:",
-                data.total
-              );
               if (data.total > 0) {
                 document.getElementById("loading").innerHTML = `
                    <div style="background: rgba(255, 149, 0, 0.9); padding: 20px 30px; border-radius: 16px; color: #fff; max-width: 500px; text-align: center;">
@@ -694,8 +769,6 @@
 
       // Place all markers
       async function placeMarkers() {
-        console.log("Placing markers for", citations.length, "citations");
-
         // Create markers for all citations
         citations.forEach((citation) => {
           const marker = createMarkerForCitation(citation);
@@ -703,8 +776,6 @@
             markers.push(marker);
           }
         });
-
-        console.log(`Placed ${markers.length} markers`);
       }
 
       // Focus map on markers
@@ -722,8 +793,12 @@
 
       // Show citation details in side panel
       function showCitationDetails(citation) {
+        const panel = document.getElementById("sidePanel");
         const title = document.getElementById("sidePanelTitle");
         const content = document.getElementById("sidePanelContent");
+
+        // Show the panel
+        panel.classList.add("active");
 
         title.textContent = `CITATION #${citation.citation_number}`;
 
