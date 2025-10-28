@@ -202,10 +202,10 @@ class CitationScraper:
             original_width = image.width
             original_height = image.height
             
-            # Crop to approximately the middle section (20%-70% from top) and left 60% where LOCATION appears
+            # Crop to approximately the middle section (20%-70% from top) and left 70% to capture long addresses
             crop_left = 0
             crop_top = int(original_height * 0.2)  # Start from 20% down
-            crop_right = int(original_width * 0.6)  # End at 60% width
+            crop_right = int(original_width * 0.7)  # End at 70% width (increased from 60% for longer streets)
             crop_bottom = int(original_height * 0.7)  # End at 70% from top
             
             # Create cropped image
