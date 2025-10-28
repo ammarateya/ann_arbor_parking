@@ -1,4 +1,4 @@
-# Step-by-Step: Add Cloudflare Worker for a2-parking
+i# Step-by-Step: Add Cloudflare Worker for a2-parking
 
 ## Step 1: Sign up / Log in to Cloudflare (Free)
 
@@ -80,13 +80,16 @@ wrangler init a2-parking-worker
 wrangler publish
 ```
 
-## Step 4: Add Custom Domain Route
+## Step 4: Add Custom Domain Route (REQUIRED!)
 
-1. In Cloudflare Dashboard → Workers & Pages → Your Worker
-2. Go to "Settings" tab
-3. Click "Add Custom Domain" (or "Routes" → "Add route")
-4. Enter: `ammarateya.com/a2-parking/*`
-5. Click "Save"
+1. In Cloudflare Dashboard → Select your domain `ammarateya.com` (not the Worker)
+2. Go to **Workers & Pages** tab (left sidebar)
+3. Click **"Add route"** button
+4. Route: `ammarateya.com/a2-parking/*`
+5. Worker: Select `a2-parking-worker`
+6. Click **"Save"**
+
+⚠️ **Without this step, the Worker won't work!**
 
 ## Step 5: Test!
 
