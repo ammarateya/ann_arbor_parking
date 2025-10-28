@@ -20,6 +20,8 @@ services:
         value: https://kctfygcpobxjgpivujiy.supabase.co
       - key: SUPABASE_ANON_KEY
         sync: false # Will be set manually in Render dashboard
+      - key: SUPABASE_SERVICE_ROLE_KEY
+        sync: false # Will be set manually in Render dashboard - REQUIRED for map access
       - key: EMAIL_HOST
         value: smtp.gmail.com
       - key: EMAIL_PORT

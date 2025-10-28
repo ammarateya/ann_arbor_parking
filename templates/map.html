@@ -518,6 +518,7 @@
       // Store citations data
       let citations = [];
       let markers = [];
+      let usedCoordinates = new Map(); // Track coordinates to avoid overlap
 
       // Load citations from API
       async function loadCitations() {
@@ -597,6 +598,28 @@
         }
       }
 
+      // Get offset for duplicate coordinates
+      function getOffsetCoordinates(lat, lon) {
+        const coordKey = `${lat.toFixed(6)},${lon.toFixed(6)}`;
+
+        if (!usedCoordinates.has(coordKey)) {
+          usedCoordinates.set(coordKey, 1);
+          return { lat, lon };
+        }
+
+        // If this coordinate is already used, add a small random offset
+        const count = usedCoordinates.get(coordKey);
+        usedCoordinates.set(coordKey, count + 1);
+
+        // Create a spiral offset: each duplicate gets a slightly larger radius
+        const angle = count * 137.5; // Golden angle for even distribution
+        const distance = 0.00005 * count; // ~5 meters per duplicate
+        const offsetLat = lat + Math.cos((angle * Math.PI) / 180) * distance;
+        const offsetLon = lon + Math.sin((angle * Math.PI) / 180) * distance;
+
+        return { lat: offsetLat, lon: offsetLon };
+      }
+
       // Create marker for citation with coordinates
       function createMarkerForCitation(citation) {
         // Check if citation has coordinates
@@ -608,8 +631,11 @@
           return null;
         }
 
-        const lat = parseFloat(citation.latitude);
-        const lon = parseFloat(citation.longitude);
+        const originalLat = parseFloat(citation.latitude);
+        const originalLon = parseFloat(citation.longitude);
+
+        // Get offset coordinates if duplicates exist
+        const { lat, lon } = getOffsetCoordinates(originalLat, originalLon);
 
         // Create custom icon - Minimal style
         const amount = parseFloat(citation.amount_due) || 0;
@@ -648,8 +674,8 @@
 
         // Add click handler - auto-focus and show side panel
         marker.on("click", () => {
-          // Auto-focus on marker
-          map.setView([lat, lon], 15);
+          // Auto-focus on original coordinates (not offset)
+          map.setView([originalLat, originalLon], 16);
 
           // Show side panel with citation details
           showCitationDetails(citation);
