@@ -197,16 +197,16 @@ class CitationScraper:
             if image.mode != 'RGB':
                 image = image.convert('RGB')
             
-            # Crop to LOCATION region (bottom-left area of receipt)
-            # Based on typical receipt layout, LOCATION is usually in the lower portion
+            # Crop to LOCATION region - targeting the middle-left area of receipt
+            # Based on typical receipt layout, LOCATION is in the middle portion, left side
             original_width = image.width
             original_height = image.height
             
-            # Crop to approximately the lower 40% and left 50% where LOCATION typically appears
+            # Crop to approximately the middle section (20%-70% from top) and left 60% where LOCATION appears
             crop_left = 0
-            crop_top = int(original_height * 0.6)  # Start from 60% down
-            crop_right = int(original_width * 0.5)  # End at 50% width
-            crop_bottom = original_height
+            crop_top = int(original_height * 0.2)  # Start from 20% down
+            crop_right = int(original_width * 0.6)  # End at 60% width
+            crop_bottom = int(original_height * 0.7)  # End at 70% from top
             
             # Create cropped image
             cropped_image = image.crop((crop_left, crop_top, crop_right, crop_bottom))
