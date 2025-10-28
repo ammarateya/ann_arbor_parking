@@ -5,6 +5,8 @@ services:
     plan: free
     buildCommand: pip install -r requirements.txt
     startCommand: python api_server.py
+    # Note: This service ONLY hosts the web application
+    # Scraping is handled by GitHub Actions (see .github/workflows/)
     envVars:
       - key: DB_HOST
         value: db.kctfygcpobxjgpivujiy.supabase.co
