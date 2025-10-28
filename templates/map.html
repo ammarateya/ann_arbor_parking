@@ -4,27 +4,42 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Ann Arbor Parking Citations Map</title>
-    
+
     <!-- Meta Tags for Rich Previews -->
-    <meta name="description" content="Interactive map of Ann Arbor parking citations" />
+    <meta
+      name="description"
+      content="Interactive map of Ann Arbor parking citations"
+    />
     <meta name="author" content="ammar ateya" />
-    
+
     <!-- Open Graph Tags -->
     <meta property="og:title" content="Ann Arbor Parking Citations Map" />
-    <meta property="og:description" content="Interactive map showing parking citations across Ann Arbor, MI" />
+    <meta
+      property="og:description"
+      content="Interactive map showing parking citations across Ann Arbor, MI"
+    />
     <meta property="og:type" content="website" />
     <meta property="og:url" content="https://ammarateya.com/a2-parking" />
-    <meta property="og:image" content="https://ammarateya.com/parking-icon.svg" />
-    
+    <meta
+      property="og:image"
+      content="https://ammarateya.com/icon.png"
+    />
+
     <!-- Twitter Card Tags -->
     <meta name="twitter:card" content="summary_large_image" />
     <meta name="twitter:title" content="Ann Arbor Parking Citations Map" />
-    <meta name="twitter:description" content="Interactive map showing parking citations across Ann Arbor, MI" />
-    <meta name="twitter:image" content="https://ammarateya.com/parking-icon.svg" />
-    
+    <meta
+      name="twitter:description"
+      content="Interactive map showing parking citations across Ann Arbor, MI"
+    />
+    <meta
+      name="twitter:image"
+      content="https://ammarateya.com/icon.png"
+    />
+
     <!-- Favicon -->
-    <link rel="icon" type="image/svg+xml" href="/parking-icon.svg" />
-    <link rel="apple-touch-icon" href="/parking-icon.svg" />
+    <link rel="icon" type="image/png" href="/icon.png" />
+    <link rel="apple-touch-icon" href="/icon.png" />
 
     <!-- Leaflet CSS -->
     <link
@@ -111,7 +126,9 @@
         box-shadow: 0 4px 20px rgba(0, 255, 0, 0.3);
       }
 
-      body.panel-open .header { left: 400px; }
+      body.panel-open .header {
+        left: 400px;
+      }
 
       .header-title {
         color: #00ff00;
@@ -153,7 +170,9 @@
         align-items: center;
       }
 
-      body.panel-open .stats-bar { left: 400px; }
+      body.panel-open .stats-bar {
+        left: 400px;
+      }
 
       .stat-item {
         text-align: left;
@@ -252,7 +271,9 @@
         box-shadow: 0 4px 20px rgba(0, 255, 0, 0.3);
       }
 
-      body.panel-open .map-controls { left: 450px; }
+      body.panel-open .map-controls {
+        left: 450px;
+      }
 
       .control-btn {
         background: #0a0a0a;
@@ -556,9 +577,22 @@
   <body>
     <!-- Side Panel -->
     <div class="side-panel" id="sidePanel">
-      <div class="side-panel-header" style="display:flex;align-items:center;justify-content:space-between;">
+      <div
+        class="side-panel-header"
+        style="
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+        "
+      >
         <div class="side-panel-title" id="sidePanelTitle">CITATION DETAILS</div>
-        <button class="control-btn" style="padding:4px 8px;font-size:10px;" onclick="closeSidePanel()">CLOSE</button>
+        <button
+          class="control-btn"
+          style="padding: 4px 8px; font-size: 10px"
+          onclick="closeSidePanel()"
+        >
+          CLOSE
+        </button>
       </div>
       <div class="side-panel-content" id="sidePanelContent">
         <div class="info-item">
@@ -574,9 +608,20 @@
 
     <div class="header">
       <div class="header-title">ANN ARBOR PARKING CITATIONS</div>
-      <div style="display: flex; flex-direction: column; align-items: flex-end; gap: 4px;">
+      <div
+        style="
+          display: flex;
+          flex-direction: column;
+          align-items: flex-end;
+          gap: 4px;
+        "
+      >
         <div class="header-status">● ONLINE</div>
-        <div class="header-recent-time" id="recentCitationTime" style="color: #888; font-size: 9px; letter-spacing: 1px;"></div>
+        <div
+          class="header-recent-time"
+          id="recentCitationTime"
+          style="color: #888; font-size: 9px; letter-spacing: 1px"
+        ></div>
       </div>
     </div>
 
@@ -614,9 +659,9 @@
 
     <script>
       function closeSidePanel() {
-        const panel = document.getElementById('sidePanel');
-        panel.classList.remove('active');
-        document.body.classList.remove('panel-open');
+        const panel = document.getElementById("sidePanel");
+        panel.classList.remove("active");
+        document.body.classList.remove("panel-open");
       }
       // Initialize map centered on Ann Arbor
       const map = L.map("map", {
@@ -710,44 +755,64 @@
               });
 
             // Compute today's stats in America/Detroit
-            const detroitTZ = 'America/Detroit';
-            const nowDetroit = new Date(new Intl.DateTimeFormat('en-US', { timeZone: detroitTZ }).format(new Date()));
-            const todayDetroitStr = new Intl.DateTimeFormat('en-CA', { timeZone: detroitTZ, year: 'numeric', month: '2-digit', day: '2-digit' }).format(new Date());
+            const detroitTZ = "America/Detroit";
+            const nowDetroit = new Date(
+              new Intl.DateTimeFormat("en-US", { timeZone: detroitTZ }).format(
+                new Date()
+              )
+            );
+            const todayDetroitStr = new Intl.DateTimeFormat("en-CA", {
+              timeZone: detroitTZ,
+              year: "numeric",
+              month: "2-digit",
+              day: "2-digit",
+            }).format(new Date());
 
             let countToday = 0;
             let amountToday = 0;
-            citations.forEach(c => {
+            citations.forEach((c) => {
               if (!c.issue_date) return;
               const d = new Date(c.issue_date);
-              const dStr = new Intl.DateTimeFormat('en-CA', { timeZone: detroitTZ, year: 'numeric', month: '2-digit', day: '2-digit' }).format(d);
+              const dStr = new Intl.DateTimeFormat("en-CA", {
+                timeZone: detroitTZ,
+                year: "numeric",
+                month: "2-digit",
+                day: "2-digit",
+              }).format(d);
               if (dStr === todayDetroitStr) {
                 countToday += 1;
-                amountToday += (parseFloat(c.amount_due) || 0);
+                amountToday += parseFloat(c.amount_due) || 0;
               }
             });
-            document.getElementById('totalCitationsToday').textContent = countToday.toLocaleString();
-            document.getElementById('totalAmountToday').textContent = "$" + amountToday.toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 0 });
+            document.getElementById("totalCitationsToday").textContent =
+              countToday.toLocaleString();
+            document.getElementById("totalAmountToday").textContent =
+              "$" +
+              amountToday.toLocaleString(undefined, {
+                minimumFractionDigits: 0,
+                maximumFractionDigits: 0,
+              });
 
             // Update most recent citation time (America/Detroit)
             if (data.most_recent_citation_time) {
               const recent = new Date(data.most_recent_citation_time);
-              
+
               if (!isNaN(recent.getTime())) {
                 // Format with timeZone: 'America/Detroit' converts UTC to Eastern Time
-                const formatter = new Intl.DateTimeFormat('en-US', {
-                  timeZone: 'America/Detroit',
-                  month: 'short', 
-                  day: 'numeric', 
-                  year: 'numeric', 
-                  hour: '2-digit', 
-                  minute: '2-digit',
-                  hour12: false
+                const formatter = new Intl.DateTimeFormat("en-US", {
+                  timeZone: "America/Detroit",
+                  month: "short",
+                  day: "numeric",
+                  year: "numeric",
+                  hour: "2-digit",
+                  minute: "2-digit",
+                  hour12: false,
                 });
                 const formattedTime = formatter.format(recent);
-                const el = document.getElementById('recentCitationTime');
+                const el = document.getElementById("recentCitationTime");
                 el.textContent = `LATEST: ${formattedTime}`;
-                el.style.cursor = 'pointer';
-                el.title = 'Jump to latest citation';
+                el.style.cursor = "pointer";
+                el.title = "Jump to latest citation";
                 el.onclick = () => focusLatestCitation();
               }
             }
@@ -913,7 +978,7 @@
 
         // Show the panel and shift layout
         panel.classList.add("active");
-        document.body.classList.add('panel-open');
+        document.body.classList.add("panel-open");
 
         title.textContent = `CITATION #${citation.citation_number}`;
 
