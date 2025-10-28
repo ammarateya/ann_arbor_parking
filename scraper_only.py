@@ -8,9 +8,14 @@ import schedule
 import time
 import logging
 import os
+import sys
 import threading
 import traceback
 from dotenv import load_dotenv
+
+# Add src directory to Python path
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), 'src'))
+
 from db_manager import DatabaseManager
 from scraper import CitationScraper
 from email_notifier import EmailNotifier
