@@ -231,15 +231,25 @@ class CitationScraper:
         
         # Fallback patterns
         address_patterns = [
-            r'\b(\d+)([A-Za-z]+(?:St|Street|Ave|Avenue|Rd|Road|Blvd|Boulevard|Dr|Drive|Ln|Lane|Ct|Court|Pl|Place|Way|Cir|Circle))\b',
+            # Pattern with direction and street
+            r'LOCATION\s*(\d+)\s*([NSEW])\s*([A-Za-z]+(?:St|Street|Ave|Avenue|Rd|Road|Blvd|Boulevard|Dr|Drive|Ln|Lane|Ct|Court|Pl|Place|Way|Cir|Circle|Blvd|Hwy))',
+            # Pattern without direction
+            r'LOCATION\s*(\d+)\s*([A-Za-z]+(?:St|Street|Ave|Avenue|Rd|Road|Blvd|Boulevard|Dr|Drive|Ln|Lane|Ct|Court|Pl|Place|Way|Cir|Circle))\b',
         ]
         
         for pattern in address_patterns:
             matches = re.findall(pattern, text, re.IGNORECASE)
             if matches and isinstance(matches[0], tuple):
-                number, street = matches[0]
-                formatted_street = self.add_spaces_before_capitals(street)
-                return f"{number} {formatted_street}"
+                if len(matches[0]) == 3:
+                    # Pattern with direction
+                    number, direction, street = matches[0]
+                    formatted_street = self.add_spaces_before_capitals(street)
+                    return f"{number} {direction} {formatted_street}"
+                elif len(matches[0]) == 2:
+                    # Pattern without direction
+                    number, street = matches[0]
+                    formatted_street = self.add_spaces_before_capitals(street)
+                    return f"{number} {formatted_street}"
         
         return None
     
