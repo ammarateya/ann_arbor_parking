@@ -73,18 +73,30 @@ def get_citations():
                     'status': 'error',
                     'error': 'Database query requires authentication. Please set SUPABASE_SERVICE_ROLE_KEY in your environment variables to bypass Row Level Security.',
                     'citations': [],
-                    'count': 0
+                    'count': 0,
+                    'most_recent_citation_time': None
                 }), 200  # Return 200 with empty data instead of error
         
         # Filter out citations without coordinates (they need to be geocoded on frontend)
         citations_with_coords = [c for c in citations if c.get('latitude') and c.get('longitude')]
+        
+        # Find the most recent citation timestamp
+        most_recent_time = None
+        if citations_with_coords:
+            # Try to find the most recent issue_date
+            for citation in citations_with_coords:
+                issue_date = citation.get('issue_date')
+                if issue_date:
+                    if most_recent_time is None or issue_date > most_recent_time:
+                        most_recent_time = issue_date
         
         # Group by location and return citations
         return jsonify({
             'status': 'success',
             'citations': citations_with_coords,
             'count': len(citations_with_coords),
-            'total': len(citations)
+            'total': len(citations),
+            'most_recent_citation_time': most_recent_time
         })
     except Exception as e:
         import traceback
