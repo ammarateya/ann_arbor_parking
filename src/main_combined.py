@@ -10,6 +10,7 @@ from scraper import CitationScraper
 from email_notifier import EmailNotifier
 from storage_factory import StorageFactory
 from web_server import app
+from geocoder import Geocoder
 
 # Configure verbose logging
 logging.basicConfig(
@@ -83,6 +84,9 @@ def ongoing_scraper_job():
         cloud_storage = StorageFactory.create_storage_service()
         logger.info(f"✓ Cloud storage initialized: {cloud_storage is not None}")
         
+        geocoder = Geocoder()
+        logger.info("✓ Geocoder initialized")
+        
     except Exception as e:
         logger.error(f"Failed to initialize components: {e}")
         logger.error(f"Traceback: {traceback.format_exc()}")
@@ -128,6 +132,15 @@ def ongoing_scraper_job():
                     logger.debug(f"Found citation {citation_num}, saving to database...")
                     db_manager.save_citation(result)
                     successful_citations.append(result)
+                    
+                    # Geocode address for map display
+                    if result.get('location'):
+                        try:
+                            logger.debug(f"Geocoding address for citation {citation_num}...")
+                            geocoder.geocode_and_update_citation(db_manager, citation_num, result['location'])
+                            logger.debug(f"✓ Geocoded citation {citation_num}")
+                        except Exception as e:
+                            logger.warning(f"Failed to geocode citation {citation_num}: {e}")
                     
                     # Upload images to cloud storage if available
                     if result.get('image_urls') and cloud_storage and cloud_storage.is_configured():
@@ -253,6 +266,11 @@ def main():
         logger.info("Testing email configuration...")
         email_notifier = EmailNotifier()
         logger.info(f"✓ Email notifier created")
+        
+        # Test geocoder
+        logger.info("Testing geocoder...")
+        geocoder = Geocoder()
+        logger.info("✓ Geocoder created")
         
         logger.info("All components initialized successfully!")
         

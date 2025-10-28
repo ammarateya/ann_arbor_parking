@@ -44,3 +44,16 @@ do $$ begin
   end if;
 end $$;
 
+-- Add geocoding columns for map display
+do $$ begin
+  if not exists (select 1 from information_schema.columns where table_name='citations' and column_name='latitude') then
+    alter table public.citations add column latitude double precision;
+  end if;
+  if not exists (select 1 from information_schema.columns where table_name='citations' and column_name='longitude') then
+    alter table public.citations add column longitude double precision;
+  end if;
+  if not exists (select 1 from information_schema.columns where table_name='citations' and column_name='geocoded_at') then
+    alter table public.citations add column geocoded_at timestamp with time zone;
+  end if;
+end $$;
+

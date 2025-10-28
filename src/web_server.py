@@ -1,9 +1,12 @@
-from flask import Flask, jsonify
+from flask import Flask, jsonify, render_template
 import os
+import logging
 from db_manager import DatabaseManager
 from storage_factory import StorageFactory
 
-app = Flask(__name__)
+logger = logging.getLogger(__name__)
+
+app = Flask(__name__, template_folder='../templates', static_folder='../static')
 
 DB_CONFIG = {
     'host': os.getenv('DB_HOST', 'localhost'),
@@ -14,6 +17,11 @@ DB_CONFIG = {
 }
 
 @app.route('/')
+def index():
+    """Main map page"""
+    return render_template('map.html')
+
+@app.route('/api/health')
 def health_check():
     """Health check endpoint for Render"""
     try:
@@ -30,6 +38,61 @@ def health_check():
         return jsonify({
             'status': 'error',
             'error': str(e)
+        }), 500
+
+@app.route('/api/citations')
+def get_citations():
+    """Get all citations with location data"""
+    try:
+        db_manager = DatabaseManager(DB_CONFIG)
+        
+        # Try to get all citations that have a location field
+        # Use postgrest syntax for row selection
+        try:
+            # First try with regular query
+            result = db_manager.supabase.table('citations').select('*').not_.is_('location', 'null').execute()
+            citations = result.data if result.data else []
+        except Exception as e:
+            # If that fails due to RLS, try a different approach
+            logger.warning(f"Query failed due to RLS or permissions: {e}")
+            
+            # Try with service role key if available
+            service_key = os.getenv('SUPABASE_SERVICE_ROLE_KEY')
+            if service_key:
+                from supabase import create_client
+                supabase_url = os.getenv('SUPABASE_URL')
+                if supabase_url:
+                    service_client = create_client(supabase_url, service_key)
+                    result = service_client.table('citations').select('*').not_.is_('location', 'null').execute()
+                    citations = result.data if result.data else []
+                else:
+                    citations = []
+            else:
+                # Fallback: return empty list with helpful error
+                return jsonify({
+                    'status': 'error',
+                    'error': 'Database query requires authentication. Please set SUPABASE_SERVICE_ROLE_KEY in your environment variables to bypass Row Level Security.',
+                    'citations': [],
+                    'count': 0
+                }), 200  # Return 200 with empty data instead of error
+        
+        # Filter out citations without coordinates (they need to be geocoded on frontend)
+        citations_with_coords = [c for c in citations if c.get('latitude') and c.get('longitude')]
+        
+        # Group by location and return citations
+        return jsonify({
+            'status': 'success',
+            'citations': citations_with_coords,
+            'count': len(citations_with_coords),
+            'total': len(citations)
+        })
+    except Exception as e:
+        import traceback
+        logger.error(f"Error in get_citations: {e}\n{traceback.format_exc()}")
+        return jsonify({
+            'status': 'error',
+            'error': str(e),
+            'tip': 'Check that SUPABASE_SERVICE_ROLE_KEY is set for reading data'
         }), 500
 
 @app.route('/stats')

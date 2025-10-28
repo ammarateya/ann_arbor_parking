@@ -1,0 +1,804 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Ann Arbor Parking Citations Map</title>
+
+    <!-- Leaflet CSS -->
+    <link
+      rel="stylesheet"
+      href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+    />
+
+    <style>
+      @import url("https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap");
+
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+
+      body {
+        font-family: "SF Mono", "Monaco", "Menlo", "Consolas", "Liberation Mono",
+          monospace;
+        background: #0a0a0a;
+        overflow: hidden;
+        height: 100vh;
+        width: 100vw;
+        position: relative;
+      }
+
+      /* Scan line effect */
+      body::before {
+        content: "";
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: repeating-linear-gradient(
+          0deg,
+          rgba(0, 255, 0, 0.03),
+          rgba(0, 255, 0, 0.03) 1px,
+          transparent 1px,
+          transparent 2px
+        );
+        pointer-events: none;
+        z-index: 9999;
+        animation: scan 8s linear infinite;
+      }
+
+      @keyframes scan {
+        0% {
+          transform: translateY(0);
+        }
+        100% {
+          transform: translateY(4px);
+        }
+      }
+
+      #map {
+        height: 100vh;
+        width: calc(100vw - 400px);
+        margin-left: 400px;
+        position: fixed;
+        z-index: 1;
+        transition: width 0.3s ease;
+      }
+
+      /* Header - Retro Terminal Style */
+      .header {
+        position: fixed;
+        top: 0;
+        left: 400px;
+        right: 0;
+        background: #0a0a0a;
+        border-bottom: 3px solid #00ff00;
+        z-index: 1000;
+        padding: 10px 20px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        font-family: "Press Start 2P", cursive;
+        box-shadow: 0 4px 20px rgba(0, 255, 0, 0.3);
+      }
+
+      .header-title {
+        color: #00ff00;
+        font-size: 10px;
+        text-shadow: 0 0 10px #00ff00;
+        letter-spacing: 2px;
+      }
+
+      .header-status {
+        color: #00ff00;
+        font-size: 8px;
+        animation: blink 1s infinite;
+      }
+
+      @keyframes blink {
+        0%,
+        50% {
+          opacity: 1;
+        }
+        51%,
+        100% {
+          opacity: 0.3;
+        }
+      }
+
+      /* Statistics bar - Circuit board style */
+      .stats-bar {
+        position: fixed;
+        top: 32px;
+        left: 400px;
+        right: 0;
+        background: #0a0a0a;
+        border-bottom: 2px solid #00ff00;
+        z-index: 999;
+        padding: 6px 20px;
+        display: flex;
+        gap: 40px;
+        justify-content: flex-start;
+        align-items: center;
+      }
+
+      .stat-item {
+        text-align: left;
+      }
+
+      .stat-value {
+        color: #00ff00;
+        font-size: 16px;
+        font-weight: bold;
+        display: block;
+        text-shadow: 0 0 5px #00ff00;
+      }
+
+      .stat-label {
+        color: #888;
+        font-size: 9px;
+        font-weight: 500;
+        text-transform: uppercase;
+        letter-spacing: 1px;
+        margin-top: 2px;
+      }
+
+      /* Side panel - Retro terminal */
+      .side-panel {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 400px;
+        height: 100vh;
+        background: #0a0a0a;
+        border-right: 3px solid #00ff00;
+        z-index: 1001;
+        overflow-y: auto;
+        box-shadow: 4px 0 20px rgba(0, 255, 0, 0.3);
+        display: none;
+      }
+
+      .side-panel.active {
+        display: block;
+      }
+
+      .side-panel-header {
+        padding: 15px;
+        border-bottom: 2px solid #00ff00;
+        background: #0a0a0a;
+        position: sticky;
+        top: 0;
+        z-index: 10;
+      }
+
+      .side-panel-title {
+        color: #00ff00;
+        font-size: 12px;
+        font-weight: bold;
+        text-transform: uppercase;
+        letter-spacing: 2px;
+      }
+
+      .side-panel-content {
+        padding: 15px;
+        color: #00ff00;
+        line-height: 1.8;
+      }
+
+      .info-item {
+        padding: 10px 0;
+        border-bottom: 1px solid rgba(0, 255, 0, 0.2);
+      }
+
+      .info-label {
+        color: #888;
+        font-size: 10px;
+        text-transform: uppercase;
+        letter-spacing: 1px;
+        margin-bottom: 5px;
+      }
+
+      .info-value {
+        color: #00ff00;
+        font-size: 12px;
+        font-weight: bold;
+        text-shadow: 0 0 5px rgba(0, 255, 0, 0.5);
+      }
+
+      /* Map controls */
+      .map-controls {
+        position: fixed;
+        bottom: 20px;
+        left: 450px;
+        background: rgba(10, 10, 10, 0.95);
+        border: 2px solid #00ff00;
+        padding: 10px;
+        display: flex;
+        gap: 8px;
+        z-index: 1000;
+        box-shadow: 0 4px 20px rgba(0, 255, 0, 0.3);
+      }
+
+      .control-btn {
+        background: #0a0a0a;
+        border: 2px solid #00ff00;
+        color: #00ff00;
+        font-size: 11px;
+        font-weight: bold;
+        padding: 8px 12px;
+        cursor: pointer;
+        transition: all 0.2s ease;
+        text-transform: uppercase;
+        letter-spacing: 1px;
+      }
+
+      .control-btn:hover {
+        background: #00ff00;
+        color: #0a0a0a;
+        text-shadow: none;
+      }
+
+      .control-btn.active {
+        background: #00ff00;
+        color: #0a0a0a;
+      }
+
+      /* Popup modal */
+      .modal {
+        display: none;
+        position: fixed;
+        bottom: 0;
+        left: 0;
+        right: 0;
+        background: rgba(0, 0, 0, 0.4);
+        z-index: 2000;
+        animation: fadeIn 0.3s ease;
+      }
+
+      .modal.active {
+        display: flex;
+        flex-direction: column;
+      }
+
+      .modal-content {
+        background: rgba(20, 20, 20, 0.95);
+        backdrop-filter: blur(40px);
+        -webkit-backdrop-filter: blur(40px);
+        border-radius: 28px 28px 0 0;
+        padding: 24px;
+        max-height: 70vh;
+        overflow-y: auto;
+        animation: slideUp 0.3s ease;
+      }
+
+      .modal-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 20px;
+        padding-bottom: 16px;
+        border-bottom: 0.5px solid rgba(255, 255, 255, 0.1);
+      }
+
+      .modal-title {
+        color: #fff;
+        font-size: 22px;
+        font-weight: 700;
+        letter-spacing: -0.5px;
+      }
+
+      .close-btn {
+        background: rgba(255, 255, 255, 0.1);
+        border: none;
+        color: #fff;
+        width: 32px;
+        height: 32px;
+        border-radius: 16px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+        font-size: 20px;
+        transition: all 0.2s ease;
+      }
+
+      .close-btn:hover {
+        background: rgba(255, 255, 255, 0.2);
+      }
+
+      .modal-body {
+        color: #fff;
+      }
+
+      .info-row {
+        padding: 12px 0;
+        border-bottom: 0.5px solid rgba(255, 255, 255, 0.1);
+      }
+
+      .info-row:last-child {
+        border-bottom: none;
+      }
+
+      .info-label {
+        color: rgba(255, 255, 255, 0.6);
+        font-size: 13px;
+        font-weight: 500;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        margin-bottom: 4px;
+      }
+
+      .info-value {
+        color: #fff;
+        font-size: 17px;
+        font-weight: 600;
+      }
+
+      /* Loading indicator */
+      .loading {
+        position: fixed;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        background: rgba(0, 0, 0, 0.8);
+        color: #fff;
+        padding: 20px 30px;
+        border-radius: 16px;
+        z-index: 3000;
+        font-size: 15px;
+        font-weight: 500;
+        backdrop-filter: blur(10px);
+        -webkit-backdrop-filter: blur(10px);
+      }
+
+      @keyframes fadeIn {
+        from {
+          opacity: 0;
+        }
+        to {
+          opacity: 1;
+        }
+      }
+
+      @keyframes slideUp {
+        from {
+          transform: translateY(100%);
+          opacity: 0;
+        }
+        to {
+          transform: translateY(0);
+          opacity: 1;
+        }
+      }
+
+      /* Custom marker styles - Minimal terminal dots */
+      .custom-marker {
+        width: 10px;
+        height: 10px;
+        cursor: pointer;
+        transition: all 0.2s ease;
+      }
+
+      .custom-marker:hover {
+        transform: scale(1.5);
+        box-shadow: 0 0 8px currentColor !important;
+      }
+
+      /* Custom popup style - Terminal aesthetic */
+      .leaflet-popup-content-wrapper {
+        background: #0a0a0a;
+        border: 2px solid #00ff00;
+        border-radius: 0;
+        color: #00ff00;
+        padding: 0;
+        box-shadow: 0 0 20px rgba(0, 255, 0, 0.5),
+          inset 0 0 20px rgba(0, 255, 0, 0.1);
+      }
+
+      .leaflet-popup-tip {
+        background: #0a0a0a;
+        border: 2px solid #00ff00;
+        border-top: none;
+      }
+
+      .leaflet-popup-content {
+        margin: 0;
+        padding: 12px 15px;
+        line-height: 1.6;
+        font-size: 11px;
+        font-weight: bold;
+        text-shadow: 0 0 5px rgba(0, 255, 0, 0.5);
+      }
+
+      .leaflet-popup-content strong {
+        color: #00ff00;
+        display: block;
+        margin-bottom: 6px;
+        font-size: 12px;
+        text-transform: uppercase;
+        letter-spacing: 1px;
+      }
+
+      .leaflet-popup-content br {
+        display: block;
+        margin: 4px 0;
+      }
+
+      .leaflet-container a.leaflet-popup-close-button {
+        color: #00ff00;
+        padding: 8px;
+        font-size: 18px;
+        font-weight: bold;
+        text-shadow: 0 0 5px #00ff00;
+      }
+
+      .leaflet-container a.leaflet-popup-close-button:hover {
+        color: #0a0a0a;
+        background: #00ff00;
+        text-shadow: none;
+      }
+    </style>
+  </head>
+  <body>
+    <!-- Side Panel -->
+    <div class="side-panel" id="sidePanel">
+      <div class="side-panel-header">
+        <div class="side-panel-title" id="sidePanelTitle">CITATION DETAILS</div>
+      </div>
+      <div class="side-panel-content" id="sidePanelContent">
+        <div class="info-item">
+          <div class="info-label">SELECT A MARKER</div>
+          <div class="info-value">
+            Click on a citation marker to view details
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div id="map"></div>
+
+    <div class="header">
+      <div class="header-title">ANN ARBOR PARKING CITATIONS</div>
+      <div class="header-status">● ONLINE</div>
+    </div>
+
+    <div class="stats-bar" id="statsBar">
+      <div class="stat-item">
+        <span class="stat-label">TOTAL CITATIONS</span>
+        <span class="stat-value" id="totalCitations">0</span>
+      </div>
+      <div class="stat-item">
+        <span class="stat-label">TOTAL AMOUNT</span>
+        <span class="stat-value" id="totalAmount">$0</span>
+      </div>
+    </div>
+
+    <div class="map-controls">
+      <button class="control-btn" onclick="focusMap()">FOCUS</button>
+      <button class="control-btn" onclick="resetView()">RESET</button>
+      <button class="control-btn" onclick="toggleTheme()" id="themeBtn">
+        LIGHT
+      </button>
+    </div>
+
+    <div class="loading" id="loading">LOADING CITATIONS...</div>
+
+    <!-- Leaflet JS -->
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
+    <script>
+      // Initialize map centered on Ann Arbor
+      const map = L.map("map", {
+        zoomControl: true,
+        zoom: 13,
+        center: [42.2808, -83.743],
+        preferCanvas: true,
+      });
+
+      let isDarkMode = true;
+      let currentTileLayer;
+
+      // Show side panel by default
+      document.getElementById("sidePanel").classList.add("active");
+
+      // Initialize with dark theme
+      currentTileLayer = L.tileLayer(
+        "https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png",
+        {
+          attribution:
+            '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> &copy; <a href="https://carto.com/attributions">CARTO</a>',
+          subdomains: "abcd",
+          maxZoom: 20,
+        }
+      ).addTo(map);
+
+      // Store citations data
+      let citations = [];
+      let markers = [];
+
+      // Load citations from API
+      async function loadCitations() {
+        try {
+          const response = await fetch("/api/citations");
+          const data = await response.json();
+
+          if (data.status === "success") {
+            citations = data.citations || [];
+
+            // Show error message if there's an auth issue
+            if (
+              data.error &&
+              (data.error.includes("authentication") ||
+                data.error.includes("SUPABASE_SERVICE_ROLE_KEY"))
+            ) {
+              document.getElementById("loading").innerHTML = `
+                 <div style="background: rgba(255, 59, 48, 0.9); padding: 20px 30px; border-radius: 16px; color: #fff; max-width: 500px; text-align: center;">
+                   <div style="font-size: 24px; margin-bottom: 10px;">🔒</div>
+                   <strong>Authentication Required</strong><br>
+                   <div style="margin-top: 10px; font-size: 13px;">
+                     Please add SUPABASE_SERVICE_ROLE_KEY to your environment variables.<br>
+                     See <code style="background: rgba(0,0,0,0.3); padding: 2px 6px; border-radius: 4px;">FIX_AUTH_ISSUE.md</code> for instructions.
+                   </div>
+                 </div>
+               `;
+              return;
+            }
+
+            // Show message if no citations with coordinates
+            if (citations.length === 0) {
+              console.log(
+                "No citations with coordinates found. Total:",
+                data.total
+              );
+              if (data.total > 0) {
+                document.getElementById("loading").innerHTML = `
+                   <div style="background: rgba(255, 149, 0, 0.9); padding: 20px 30px; border-radius: 16px; color: #fff; max-width: 500px; text-align: center;">
+                     <div style="font-size: 24px; margin-bottom: 10px;">📍</div>
+                     <strong>No Geocoded Citations</strong><br>
+                     <div style="margin-top: 10px; font-size: 13px;">
+                       Found ${data.total} citations but none have coordinates.<br>
+                       Run: <code style="background: rgba(0,0,0,0.3); padding: 2px 6px; border-radius: 4px;">python geocode_citations.py</code>
+                     </div>
+                   </div>
+                 `;
+                document.getElementById("totalCitations").textContent = "0";
+                document.getElementById("totalAmount").textContent = "$0";
+                return;
+              }
+            }
+
+            // Update stats
+            document.getElementById("totalCitations").textContent =
+              citations.length.toLocaleString();
+            const totalAmount = citations.reduce(
+              (sum, c) => sum + (parseFloat(c.amount_due) || 0),
+              0
+            );
+            document.getElementById("totalAmount").textContent =
+              "$" +
+              totalAmount.toLocaleString(undefined, {
+                minimumFractionDigits: 0,
+                maximumFractionDigits: 0,
+              });
+
+            // Geocode and place markers
+            await placeMarkers();
+
+            // Hide loading
+            document.getElementById("loading").style.display = "none";
+          }
+        } catch (error) {
+          console.error("Error loading citations:", error);
+          document.getElementById("loading").textContent =
+            "Error loading citations";
+        }
+      }
+
+      // Create marker for citation with coordinates
+      function createMarkerForCitation(citation) {
+        // Check if citation has coordinates
+        if (!citation.latitude || !citation.longitude) {
+          console.warn(
+            "Citation missing coordinates:",
+            citation.citation_number
+          );
+          return null;
+        }
+
+        const lat = parseFloat(citation.latitude);
+        const lon = parseFloat(citation.longitude);
+
+        // Create custom icon - Minimal style
+        const amount = parseFloat(citation.amount_due) || 0;
+        const color = getColorForAmount(citation.amount_due);
+        const size = amount >= 50 ? 12 : amount >= 30 ? 10 : 8;
+        const borderColor =
+          amount >= 50 ? "#ff0040" : amount >= 30 ? "#ff8000" : "#00ff00";
+
+        const customIcon = L.divIcon({
+          className: "custom-marker",
+          html: `<div style="width: 100%; height: 100%; background: ${color}; border: 1px solid ${borderColor};"></div>`,
+          iconSize: [size, size],
+          iconAnchor: [size / 2, size / 2],
+        });
+
+        // Create marker with retro terminal popup
+        const marker = L.marker([lat, lon], { icon: customIcon })
+          .bindPopup(
+            `
+                    <strong>▶ CITATION #${citation.citation_number}</strong><br>
+                    ──────────────────────<br>
+                    LOC: ${citation.location || "UNKNOWN"}<br>
+                    AMT: $${(parseFloat(citation.amount_due) || 0).toFixed(
+                      2
+                    )}<br>
+                    PLT: ${citation.plate_state || ""} ${
+              citation.plate_number || ""
+            }<br>
+                    ──────────────────────
+                `,
+            {
+              className: "terminal-popup",
+            }
+          )
+          .addTo(map);
+
+        // Add click handler - auto-focus and show side panel
+        marker.on("click", () => {
+          // Auto-focus on marker
+          map.setView([lat, lon], 15);
+
+          // Show side panel with citation details
+          showCitationDetails(citation);
+        });
+
+        return marker;
+      }
+
+      // Get color based on amount - Minimal opacity
+      function getColorForAmount(amount) {
+        const amt = parseFloat(amount) || 0;
+        if (amt >= 50) return "rgba(255, 0, 64, 0.7)"; // Red with opacity
+        if (amt >= 30) return "rgba(255, 128, 0, 0.7)"; // Orange with opacity
+        return "rgba(0, 255, 0, 0.7)"; // Green with opacity
+      }
+
+      // Place all markers
+      async function placeMarkers() {
+        console.log("Placing markers for", citations.length, "citations");
+
+        // Create markers for all citations
+        citations.forEach((citation) => {
+          const marker = createMarkerForCitation(citation);
+          if (marker) {
+            markers.push(marker);
+          }
+        });
+
+        console.log(`Placed ${markers.length} markers`);
+      }
+
+      // Focus map on markers
+      function focusMap() {
+        if (markers.length > 0) {
+          const group = new L.featureGroup(markers);
+          map.fitBounds(group.getBounds().pad(0.1));
+        }
+      }
+
+      // Reset view to Ann Arbor
+      function resetView() {
+        map.setView([42.2808, -83.743], 13);
+      }
+
+      // Show citation details in side panel
+      function showCitationDetails(citation) {
+        const title = document.getElementById("sidePanelTitle");
+        const content = document.getElementById("sidePanelContent");
+
+        title.textContent = `CITATION #${citation.citation_number}`;
+
+        content.innerHTML = `
+           <div class="info-item">
+             <div class="info-label">LOCATION</div>
+             <div class="info-value">${citation.location || "Unknown"}</div>
+           </div>
+           <div class="info-item">
+             <div class="info-label">ISSUE DATE</div>
+             <div class="info-value">${new Date(
+               citation.issue_date
+             ).toLocaleDateString()}</div>
+           </div>
+           <div class="info-item">
+             <div class="info-label">AMOUNT DUE</div>
+             <div class="info-value">$${(
+               parseFloat(citation.amount_due) || 0
+             ).toFixed(2)}</div>
+           </div>
+           <div class="info-item">
+             <div class="info-label">PLATE</div>
+             <div class="info-value">${citation.plate_state || ""} ${
+          citation.plate_number || ""
+        }</div>
+           </div>
+           ${
+             citation.violations && citation.violations.length > 0
+               ? `
+           <div class="info-item">
+             <div class="info-label">VIOLATIONS</div>
+             <div class="info-value">${
+               Array.isArray(citation.violations)
+                 ? citation.violations.join(", ")
+                 : citation.violations
+             }</div>
+           </div>
+           `
+               : ""
+           }
+           ${
+             citation.comments
+               ? `
+           <div class="info-item">
+             <div class="info-label">COMMENTS</div>
+             <div class="info-value">${citation.comments}</div>
+           </div>
+           `
+               : ""
+           }
+           ${
+             citation.more_info_url
+               ? `
+           <div class="info-item">
+             <div class="info-label"></div>
+             <div class="info-value"><a href="${citation.more_info_url}" target="_blank" style="color: #00ff00;">VIEW MORE INFO →</a></div>
+           </div>
+           `
+               : ""
+           }
+         `;
+      }
+
+      // Toggle between light and dark mode
+      function toggleTheme() {
+        isDarkMode = !isDarkMode;
+
+        // Remove current tile layer
+        map.removeLayer(currentTileLayer);
+
+        if (isDarkMode) {
+          // Dark theme
+          currentTileLayer = L.tileLayer(
+            "https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png",
+            {
+              attribution:
+                '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> &copy; <a href="https://carto.com/attributions">CARTO</a>',
+              subdomains: "abcd",
+              maxZoom: 20,
+            }
+          );
+          document.getElementById("themeBtn").textContent = "LIGHT";
+        } else {
+          // Light theme
+          currentTileLayer = L.tileLayer(
+            "https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png",
+            {
+              attribution:
+                '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> &copy; <a href="https://carto.com/attributions">CARTO</a>',
+              subdomains: "abcd",
+              maxZoom: 20,
+            }
+          );
+          document.getElementById("themeBtn").textContent = "DARK";
+        }
+
+        currentTileLayer.addTo(map);
+      }
+
+      // Load citations on page load
+      loadCitations();
+    </script>
+  </body>
+</html>
