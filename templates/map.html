@@ -61,18 +61,23 @@
 
       #map {
         height: 100vh;
-        width: calc(100vw - 400px);
-        margin-left: 400px;
+        width: 100vw;
+        margin-left: 0;
         position: fixed;
         z-index: 1;
-        transition: width 0.3s ease;
+        transition: width 0.3s ease, margin-left 0.3s ease;
+      }
+
+      body.panel-open #map {
+        width: calc(100vw - 400px);
+        margin-left: 400px;
       }
 
       /* Header - Retro Terminal Style */
       .header {
         position: fixed;
         top: 0;
-        left: 400px;
+        left: 0;
         right: 0;
         background: #0a0a0a;
         border-bottom: 3px solid #00ff00;
@@ -84,6 +89,8 @@
         font-family: "Press Start 2P", cursive;
         box-shadow: 0 4px 20px rgba(0, 255, 0, 0.3);
       }
+
+      body.panel-open .header { left: 400px; }
 
       .header-title {
         color: #00ff00;
@@ -112,18 +119,20 @@
       /* Statistics bar - Circuit board style */
       .stats-bar {
         position: fixed;
-        top: 32px;
-        left: 400px;
+        top: 36px;
+        left: 0;
         right: 0;
         background: #0a0a0a;
         border-bottom: 2px solid #00ff00;
         z-index: 999;
-        padding: 6px 20px;
+        padding: 12px 20px;
         display: flex;
         gap: 40px;
         justify-content: flex-start;
         align-items: center;
       }
+
+      body.panel-open .stats-bar { left: 400px; }
 
       .stat-item {
         text-align: left;
@@ -212,7 +221,7 @@
       .map-controls {
         position: fixed;
         bottom: 20px;
-        left: 450px;
+        left: 20px;
         background: rgba(10, 10, 10, 0.95);
         border: 2px solid #00ff00;
         padding: 10px;
@@ -221,6 +230,8 @@
         z-index: 1000;
         box-shadow: 0 4px 20px rgba(0, 255, 0, 0.3);
       }
+
+      body.panel-open .map-controls { left: 450px; }
 
       .control-btn {
         background: #0a0a0a;
@@ -524,8 +535,9 @@
   <body>
     <!-- Side Panel -->
     <div class="side-panel" id="sidePanel">
-      <div class="side-panel-header">
+      <div class="side-panel-header" style="display:flex;align-items:center;justify-content:space-between;">
         <div class="side-panel-title" id="sidePanelTitle">CITATION DETAILS</div>
+        <button class="control-btn" style="padding:4px 8px;font-size:10px;" onclick="closeSidePanel()">CLOSE</button>
       </div>
       <div class="side-panel-content" id="sidePanelContent">
         <div class="info-item">
@@ -556,6 +568,14 @@
         <span class="stat-label">TOTAL AMOUNT</span>
         <span class="stat-value" id="totalAmount">$0</span>
       </div>
+      <div class="stat-item">
+        <span class="stat-label">CITATIONS TODAY</span>
+        <span class="stat-value" id="totalCitationsToday">0</span>
+      </div>
+      <div class="stat-item">
+        <span class="stat-label">AMOUNT TODAY</span>
+        <span class="stat-value" id="totalAmountToday">$0</span>
+      </div>
     </div>
 
     <div class="map-controls">
@@ -572,6 +592,11 @@
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 
     <script>
+      function closeSidePanel() {
+        const panel = document.getElementById('sidePanel');
+        panel.classList.remove('active');
+        document.body.classList.remove('panel-open');
+      }
       // Initialize map centered on Ann Arbor
       const map = L.map("map", {
         zoomControl: true,
@@ -583,8 +608,7 @@
       let isDarkMode = true;
       let currentTileLayer;
 
-      // Show side panel by default
-      document.getElementById("sidePanel").classList.add("active");
+      // Side panel closed by default
 
       // Initialize with dark theme
       currentTileLayer = L.tileLayer(
@@ -600,6 +624,7 @@
       // Store citations data
       let citations = [];
       let markers = [];
+      const citationToMarker = new Map();
       let usedCoordinates = new Map(); // Track coordinates to avoid overlap
 
       // Load citations from API
@@ -663,20 +688,39 @@
                 maximumFractionDigits: 0,
               });
 
-            // Update most recent citation time
+            // Compute today's stats in America/Detroit
+            const detroitTZ = 'America/Detroit';
+            const nowDetroit = new Date(new Intl.DateTimeFormat('en-US', { timeZone: detroitTZ }).format(new Date()));
+            const todayDetroitStr = new Intl.DateTimeFormat('en-CA', { timeZone: detroitTZ, year: 'numeric', month: '2-digit', day: '2-digit' }).format(new Date());
+
+            let countToday = 0;
+            let amountToday = 0;
+            citations.forEach(c => {
+              if (!c.issue_date) return;
+              const d = new Date(c.issue_date);
+              const dStr = new Intl.DateTimeFormat('en-CA', { timeZone: detroitTZ, year: 'numeric', month: '2-digit', day: '2-digit' }).format(d);
+              if (dStr === todayDetroitStr) {
+                countToday += 1;
+                amountToday += (parseFloat(c.amount_due) || 0);
+              }
+            });
+            document.getElementById('totalCitationsToday').textContent = countToday.toLocaleString();
+            document.getElementById('totalAmountToday').textContent = "$" + amountToday.toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 0 });
+
+            // Update most recent citation time (America/Detroit)
             if (data.most_recent_citation_time) {
-              const recentTime = new Date(data.most_recent_citation_time);
-              // Validate the date is valid before formatting
-              if (!isNaN(recentTime.getTime())) {
-                const formattedTime = recentTime.toLocaleString('en-US', {
-                  month: 'short',
-                  day: 'numeric',
-                  year: 'numeric',
-                  hour: '2-digit',
-                  minute: '2-digit'
+              const recent = new Date(data.most_recent_citation_time);
+              if (!isNaN(recent.getTime())) {
+                const formatter = new Intl.DateTimeFormat('en-US', {
+                  timeZone: 'America/Detroit',
+                  month: 'short', day: 'numeric', year: 'numeric', hour: '2-digit', minute: '2-digit'
                 });
-                document.getElementById("recentCitationTime").textContent = 
-                  `LATEST: ${formattedTime}`;
+                const formattedTime = formatter.format(recent);
+                const el = document.getElementById('recentCitationTime');
+                el.textContent = `LATEST: ${formattedTime}`;
+                el.style.cursor = 'pointer';
+                el.title = 'Jump to latest citation';
+                el.onclick = () => focusLatestCitation();
               }
             }
 
@@ -767,6 +811,11 @@
           )
           .addTo(map);
 
+        // Keep reference to the marker by citation number
+        if (citation.citation_number) {
+          citationToMarker.set(String(citation.citation_number), marker);
+        }
+
         // Add click handler - auto-focus and show side panel
         marker.on("click", () => {
           // Auto-focus on original coordinates (not offset)
@@ -777,6 +826,23 @@
         });
 
         return marker;
+      }
+
+      // Focus and open the latest citation
+      function focusLatestCitation() {
+        if (!citations.length) return;
+        let latest = citations[0];
+        for (const c of citations) {
+          if (new Date(c.issue_date) > new Date(latest.issue_date)) latest = c;
+        }
+        const marker = citationToMarker.get(String(latest.citation_number));
+        if (marker) {
+          const lat = parseFloat(latest.latitude);
+          const lon = parseFloat(latest.longitude);
+          map.setView([lat, lon], 16);
+          marker.openPopup();
+          showCitationDetails(latest);
+        }
       }
 
       // Get color based on amount - Minimal opacity
@@ -817,8 +883,9 @@
         const title = document.getElementById("sidePanelTitle");
         const content = document.getElementById("sidePanelContent");
 
-        // Show the panel
+        // Show the panel and shift layout
         panel.classList.add("active");
+        document.body.classList.add('panel-open');
 
         title.textContent = `CITATION #${citation.citation_number}`;
 
