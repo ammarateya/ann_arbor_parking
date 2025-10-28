@@ -3,7 +3,7 @@
 ## Step 1: Sign up / Log in to Cloudflare (Free)
 
 1. Go to [cloudflare.com](https://cloudflare.com) and sign up (or log in)
-2. Click "Add a site" 
+2. Click "Add a site"
 3. Enter: `ammarateya.com`
 4. Cloudflare will scan your current DNS records and import them
 5. They'll give you 2 nameservers to update at your DNS provider
@@ -22,7 +22,7 @@ Your site keeps working! All your DNS records stay the same.
 ### Option A: Using Cloudflare Dashboard (Easiest)
 
 1. Go to [Workers & Pages](https://dash.cloudflare.com) in Cloudflare Dashboard
-2. Click "Create application" → "Create Worker"
+2. Click "Create application" → **"Create Worker"** (NOT "Create Worker Site")
 3. Name it: `a2-parking-worker`
 4. Click "Deploy"
 5. Click "Edit code" in the deployed Worker
@@ -35,27 +35,27 @@ addEventListener("fetch", (event) => {
 
 async function handleRequest(request) {
   const url = new URL(request.url);
-  
+
   // Handle /a2-parking route - proxy to Render
   if (url.pathname.startsWith("/a2-parking")) {
     // Rewrite the path to remove /a2-parking prefix
     const renderPath = url.pathname.replace("/a2-parking", "") || "/";
     const renderUrl = `https://ann-arbor-parking.onrender.com${renderPath}${url.search}`;
-    
+
     // Forward the request to Render
     const response = await fetch(renderUrl, {
       method: request.method,
       headers: request.headers,
       body: request.body,
     });
-    
+
     return new Response(response.body, {
       status: response.status,
       statusText: response.statusText,
       headers: response.headers,
     });
   }
-  
+
   // For all other routes, pass through
   return fetch(request);
 }
@@ -108,4 +108,3 @@ You should see your parking map app!
 ✅ All Cloudflare features (CDN, DDoS protection, etc.)
 
 **Total cost: $0**
-
