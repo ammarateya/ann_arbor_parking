@@ -2,8 +2,8 @@ name: Ping Render Service
 
 on:
   schedule:
-    # Run every hour to keep the service alive
-    - cron: "0 * * * *"
+    # Run every 2 minutes to keep the service alive
+    - cron: "*/2 * * * *"
   workflow_dispatch: # Allow manual trigger
 
 jobs:
