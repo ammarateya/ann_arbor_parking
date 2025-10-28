@@ -3,7 +3,7 @@ name: Ping Render Service
 on:
   schedule:
     # Run every hour to keep the service alive
-    - cron: '0 * * * *'
+    - cron: "0 * * * *"
   workflow_dispatch: # Allow manual trigger
 
 jobs:
@@ -14,7 +14,7 @@ jobs:
         run: |
           echo "Pinging https://ann-arbor-parking.onrender.com/"
           curl -f -s -o /dev/null -w "%{http_code}" https://ann-arbor-parking.onrender.com/ || echo "Ping failed"
-        
+
       - name: Report Status
         run: |
           status=$(curl -s -o /dev/null -w "%{http_code}" https://ann-arbor-parking.onrender.com/)
@@ -23,4 +23,3 @@ jobs:
           else
             echo "⚠️  Service returned status $status"
           fi
-

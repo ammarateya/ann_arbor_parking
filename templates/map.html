@@ -710,10 +710,17 @@
             // Update most recent citation time (America/Detroit)
             if (data.most_recent_citation_time) {
               const recent = new Date(data.most_recent_citation_time);
+              
               if (!isNaN(recent.getTime())) {
+                // Format with timeZone: 'America/Detroit' converts UTC to Eastern Time
                 const formatter = new Intl.DateTimeFormat('en-US', {
                   timeZone: 'America/Detroit',
-                  month: 'short', day: 'numeric', year: 'numeric', hour: '2-digit', minute: '2-digit'
+                  month: 'short', 
+                  day: 'numeric', 
+                  year: 'numeric', 
+                  hour: '2-digit', 
+                  minute: '2-digit',
+                  hour12: false
                 });
                 const formattedTime = formatter.format(recent);
                 const el = document.getElementById('recentCitationTime');
