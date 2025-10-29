@@ -269,6 +269,81 @@
         left: 450px;
       }
 
+      /* Legend styles */
+      .legend {
+        position: fixed;
+        bottom: 20px;
+        right: 20px;
+        background: rgba(10, 10, 10, 0.95);
+        border: 2px solid #00ff00;
+        padding: 12px;
+        z-index: 1000;
+        box-shadow: 0 4px 20px rgba(0, 255, 0, 0.3);
+        min-width: 180px;
+      }
+
+      body.panel-open .legend {
+        right: 420px;
+      }
+
+      .legend-header {
+        color: #00ff00;
+        font-size: 10px;
+        font-weight: bold;
+        text-transform: uppercase;
+        letter-spacing: 1px;
+        margin-bottom: 8px;
+        padding-bottom: 6px;
+        border-bottom: 1px solid rgba(0, 255, 0, 0.3);
+      }
+
+      .legend-item {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        margin: 8px 0;
+      }
+
+      .legend-marker {
+        width: 12px;
+        height: 12px;
+        border-radius: 0;
+      }
+
+      .legend-text {
+        color: #00ff00;
+        font-size: 11px;
+        font-weight: bold;
+        letter-spacing: 0.5px;
+      }
+
+      .legend-text span {
+        color: #00ff00;
+        text-shadow: 0 0 5px #00ff00;
+      }
+
+      @media (max-width: 768px) {
+        .legend {
+          bottom: 10px;
+          right: 10px;
+          padding: 10px;
+          min-width: 150px;
+        }
+
+        .legend-header {
+          font-size: 9px;
+        }
+
+        .legend-text {
+          font-size: 10px;
+        }
+
+        .legend-marker {
+          width: 10px;
+          height: 10px;
+        }
+      }
+
       .control-btn {
         background: #0a0a0a;
         border: 2px solid #00ff00;
@@ -645,6 +720,22 @@
       </button>
     </div>
 
+    <div class="legend">
+      <div class="legend-header">LEGEND</div>
+      <div class="legend-item">
+        <div class="legend-marker" style="background: rgba(255, 0, 64, 0.7); border: 1px solid #ff0040;"></div>
+        <span class="legend-text">>= $50: <span id="legendRed">0</span></span>
+      </div>
+      <div class="legend-item">
+        <div class="legend-marker" style="background: rgba(255, 128, 0, 0.7); border: 1px solid #ff8000;"></div>
+        <span class="legend-text">>= $30: <span id="legendOrange">0</span></span>
+      </div>
+      <div class="legend-item">
+        <div class="legend-marker" style="background: rgba(0, 255, 0, 0.7); border: 1px solid #00ff00;"></div>
+        <span class="legend-text">&lt; $30: <span id="legendGreen">0</span></span>
+      </div>
+    </div>
+
     <div class="loading" id="loading">LOADING CITATIONS...</div>
 
     <!-- Leaflet JS -->
@@ -694,6 +785,15 @@
 
           if (data.status === "success") {
             citations = data.citations || [];
+
+            // Log all citations at 700 Arbor St
+            const arborStCitations = citations.filter(
+              (c) => c.location && c.location.includes("700 Arbor St")
+            );
+            console.log(
+              `Found ${arborStCitations.length} citations at 700 Arbor St:`,
+              arborStCitations
+            );
 
             // Show error message if there's an auth issue
             if (
@@ -809,6 +909,27 @@
                 el.onclick = () => focusLatestCitation();
               }
             }
+
+            // Calculate legend counts
+            let redCount = 0; // >= $50
+            let orangeCount = 0; // >= $30
+            let greenCount = 0; // < $30
+
+            citations.forEach((citation) => {
+              const amount = parseFloat(citation.amount_due) || 0;
+              if (amount >= 50) {
+                redCount++;
+              } else if (amount >= 30) {
+                orangeCount++;
+              } else {
+                greenCount++;
+              }
+            });
+
+            // Update legend counts
+            document.getElementById("legendRed").textContent = redCount.toLocaleString();
+            document.getElementById("legendOrange").textContent = orangeCount.toLocaleString();
+            document.getElementById("legendGreen").textContent = greenCount.toLocaleString();
 
             // Geocode and place markers
             await placeMarkers();
