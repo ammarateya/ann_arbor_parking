@@ -1,7 +1,7 @@
 import os
 import json
 import logging
-from typing import Dict, Optional, List
+from typing import Dict, Optional, List, Tuple
 from supabase import create_client, Client
 
 logger = logging.getLogger(__name__)
@@ -169,3 +169,30 @@ class DatabaseManager:
         except Exception as e:
             logger.error(f"Failed to get storage stats: {e}")
             return {'total_images': 0, 'total_mb': 0, 'citations_with_images': 0}
+
+    def get_cached_coords_for_location(self, location: str) -> Optional[Tuple[float, float]]:
+        """Return (lat, lon) for a location if any citation has already been geocoded.
+
+        This is used to avoid repeated geocoding requests for identical location strings.
+        """
+        try:
+            result = (
+                self.supabase
+                .table('citations')
+                .select('latitude,longitude')
+                .eq('location', location)
+                .not_.is_('latitude', 'null')
+                .not_.is_('longitude', 'null')
+                .limit(1)
+                .execute()
+            )
+            if result.data:
+                row = result.data[0]
+                lat = row.get('latitude')
+                lon = row.get('longitude')
+                if lat is not None and lon is not None:
+                    return float(lat), float(lon)
+            return None
+        except Exception as e:
+            logger.error(f"Failed to check cached coords for location '{location}': {e}")
+            return None

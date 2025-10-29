@@ -21,6 +21,7 @@ from scraper import CitationScraper
 from email_notifier import EmailNotifier
 from storage_factory import StorageFactory
 from geocoder import Geocoder
+from nonstandard import resolve_alias
 
 # Configure verbose logging
 logging.basicConfig(
@@ -142,12 +143,38 @@ def ongoing_scraper_job():
                     db_manager.save_citation(result)
                     successful_citations.append(result)
                     
-                    # Geocode address for map display
+                    # Geocode address for map display with caching and nonstandard resolution
                     if result.get('location'):
+                        location_str = result['location']
                         try:
-                            logger.debug(f"Geocoding address for citation {citation_num}...")
-                            geocoder.geocode_and_update_citation(db_manager, citation_num, result['location'])
-                            logger.debug(f"✓ Geocoded citation {citation_num}")
+                            # 1) DB cache: reuse coords if location was already geocoded before
+                            cached = db_manager.get_cached_coords_for_location(location_str)
+                            if cached:
+                                lat, lon = cached
+                                db_manager.supabase.table('citations').update({
+                                    'latitude': lat,
+                                    'longitude': lon,
+                                    'geocoded_at': 'now()'
+                                }).eq('citation_number', citation_num).execute()
+                                logger.debug(f"✓ Reused cached coords for {citation_num} -> ({lat}, {lon})")
+                            else:
+                                # 2) Nonstandard alias mapping: coords or mapped address
+                                mapped_address, coords = resolve_alias(location_str)
+                                if coords:
+                                    lat, lon = coords
+                                    db_manager.supabase.table('citations').update({
+                                        'latitude': lat,
+                                        'longitude': lon,
+                                        'geocoded_at': 'now()'
+                                    }).eq('citation_number', citation_num).execute()
+                                    logger.debug(f"✓ Applied nonstandard coords for {citation_num} -> ({lat}, {lon})")
+                                elif mapped_address:
+                                    geocoder.geocode_and_update_citation(db_manager, citation_num, mapped_address)
+                                    logger.debug(f"✓ Geocoded via nonstandard mapping for {citation_num} -> '{mapped_address}'")
+                                else:
+                                    # 3) Fallback: geocode the raw location string
+                                    geocoder.geocode_and_update_citation(db_manager, citation_num, location_str)
+                                    logger.debug(f"✓ Geocoded citation {citation_num}")
                         except Exception as e:
                             logger.warning(f"Failed to geocode citation {citation_num}: {e}")
                     
