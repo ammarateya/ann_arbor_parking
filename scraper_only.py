@@ -146,8 +146,8 @@ def ongoing_scraper_job():
             ]
         )
 
-        # Process each range independently to avoid massive combined spans
-        for label, (start_range, end_range) in [("AA", aa_range), ("NC", nc_range)]:
+        def process_range(label: str, start_range: int, end_range: int, update_last_successful: bool) -> None:
+            nonlocal last_citation, total_processed, images_uploaded, skipped_existing
             logger.info(f"Fetching existing citations for {label} range {start_range}-{end_range}...")
             existing_citations = db_manager.get_existing_citation_numbers_in_range(start_range, end_range)
             logger.info(f"Found {len(existing_citations)} existing citations in {label} range. Will skip these.")
@@ -229,9 +229,9 @@ def ongoing_scraper_job():
                                 logger.error(f"Failed to upload images for citation {citation_num}: {e}")
                                 logger.error(f"Traceback: {traceback.format_exc()}")
 
-                        # Update last successful citation only for AA range, not NC
-                        if aa_range[0] <= citation_num <= aa_range[1] and citation_num > last_citation:
-                            logger.debug(f"Updating last successful citation (AA) to {citation_num}")
+                        # Optionally update last successful citation (AA only)
+                        if update_last_successful and citation_num > last_citation:
+                            logger.debug(f"Updating last successful citation to {citation_num}")
                             db_manager.update_last_successful_citation(citation_num)
                             last_citation = citation_num
 
@@ -247,6 +247,19 @@ def ongoing_scraper_job():
 
                 # Small delay between requests to be respectful (only after we made a request)
                 time.sleep(1)
+
+        # Explicitly run AA, then NC sequentially, isolating failures
+        try:
+            process_range("AA", aa_range[0], aa_range[1], update_last_successful=True)
+        except Exception as e:
+            logger.error(f"AA range processing failed: {e}")
+            logger.error(f"Traceback: {traceback.format_exc()}")
+
+        try:
+            process_range("NC", nc_range[0], nc_range[1], update_last_successful=False)
+        except Exception as e:
+            logger.error(f"NC range processing failed: {e}")
+            logger.error(f"Traceback: {traceback.format_exc()}")
             
     except Exception as e:
         error_msg = f"Critical error in scraper job: {str(e)}"
