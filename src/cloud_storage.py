@@ -15,15 +15,20 @@ class CloudflareR2Storage:
     """Cloudflare R2 storage service with image compression"""
     
     def __init__(self):
-        self.access_key_id = os.getenv('R2_ACCESS_KEY_ID')
-        self.secret_access_key = os.getenv('R2_SECRET_ACCESS_KEY')
+        self.access_key_id = (os.getenv('R2_ACCESS_KEY_ID') or '').strip()
+        self.secret_access_key = (os.getenv('R2_SECRET_ACCESS_KEY') or '').strip()
         self.bucket_name = os.getenv('R2_BUCKET_NAME', 'parking-citations')
-        self.account_id = os.getenv('R2_ACCOUNT_ID')
+        self.account_id = (os.getenv('R2_ACCOUNT_ID') or '').strip()
         self.public_url = os.getenv('R2_PUBLIC_URL')  # Custom domain or R2.dev URL
         
         self.s3_client = None
         self.compressor = ImageCompressor()
         
+        # Guard against accidental newlines in credentials (which cause invalid header errors)
+        for key_name, key_val in [('R2_ACCESS_KEY_ID', self.access_key_id), ('R2_SECRET_ACCESS_KEY', self.secret_access_key), ('R2_ACCOUNT_ID', self.account_id)]:
+            if '\n' in key_val or '\r' in key_val:
+                logger.error(f"Environment variable {key_name} contains newline characters; trimming may be required.")
+
         if self.access_key_id and self.secret_access_key and self.account_id:
             self._initialize_client()
         else:

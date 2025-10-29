@@ -10,6 +10,8 @@ import random
 from PIL import Image
 import io
 
+logger = logging.getLogger(__name__)
+
 
 class CitationScraper:
     def __init__(self):
@@ -25,12 +27,15 @@ class CitationScraper:
 
     def get_verification_token(self) -> Optional[str]:
         try:
-            response = self.session.get('https://annarbor.citationportal.com/')
+            start = time.time()
+            response = self.session.get('https://annarbor.citationportal.com/', timeout=30)
+            elapsed = (time.time() - start) * 1000
+            logger.debug(f"GET / (token) status={response.status_code} elapsed_ms={elapsed:.0f}")
             soup = BeautifulSoup(response.text, 'html.parser')
             token_input = soup.find('input', {'name': '__RequestVerificationToken'})
             return token_input['value'] if token_input else None
         except Exception as e:
-            logging.error(f"Error getting verification token: {e}")
+            logger.error(f"Error getting verification token: {e}")
             return None
 
     def search_citation(self, citation_number: str) -> Optional[Dict]:
@@ -47,13 +52,18 @@ class CitationScraper:
 
         try:
             # politeness: small random delay per request
-            time.sleep(random.uniform(0.4, 1.1))
+            delay = random.uniform(0.4, 1.1)
+            logger.debug(f"POST /Citation/Search delay_s={delay:.2f} citation={citation_number}")
+            time.sleep(delay)
 
+            start = time.time()
             response = self.session.post(
                 'https://annarbor.citationportal.com/Citation/Search',
                 data=search_data,
                 timeout=30
             )
+            elapsed = (time.time() - start) * 1000
+            logger.debug(f"POST /Citation/Search status={response.status_code} elapsed_ms={elapsed:.0f} citation={citation_number}")
             base = self.parse_search_results(response.text, citation_number)
             if base and base.get('more_info_url'):
                 details = self.fetch_details_page(base['more_info_url'])
@@ -61,7 +71,7 @@ class CitationScraper:
                     base.update(details)
             return base
         except Exception as e:
-            logging.error(f"Error searching citation {citation_number}: {e}")
+            logger.error(f"Error searching citation {citation_number}: {e}")
             return None
 
     def parse_search_results(self, html: str, citation_number: str) -> Optional[Dict]:
@@ -124,13 +134,18 @@ class CitationScraper:
 
     def fetch_details_page(self, url: str) -> Optional[Dict]:
         try:
-            time.sleep(random.uniform(0.4, 1.1))
+            delay = random.uniform(0.4, 1.1)
+            logger.debug(f"GET details delay_s={delay:.2f} url={url}")
+            time.sleep(delay)
+            start = time.time()
             resp = self.session.get(url, timeout=30)
+            elapsed = (time.time() - start) * 1000
+            logger.debug(f"GET details status={resp.status_code} elapsed_ms={elapsed:.0f} url={url}")
             if resp.status_code != 200:
                 return None
             return self.parse_details_page(resp.text)
         except Exception as e:
-            logging.error(f"Error fetching details page {url}: {e}")
+            logger.error(f"Error fetching details page {url}: {e}")
             return None
 
     def parse_details_page(self, html: str) -> Optional[Dict]:
@@ -188,9 +203,9 @@ class CitationScraper:
                 clean_address = self.extract_address_from_receipt(image_urls[-1])
                 if clean_address:
                     info['location'] = clean_address
-                    logging.info(f"Extracted clean address from OCR: {clean_address}")
+                    logger.info(f"Extracted clean address from OCR: {clean_address}")
             except Exception as e:
-                logging.warning(f"Failed to extract address from receipt image: {e}")
+                logger.warning(f"Failed to extract address from receipt image: {e}")
 
         return info
     
@@ -249,7 +264,7 @@ class CitationScraper:
             return self.parse_address_from_ocr(location_line if location_line else text)
             
         except Exception as e:
-            logging.debug(f"Error extracting address from receipt: {e}")
+            logger.debug(f"Error extracting address from receipt: {e}")
             return None
     
     def parse_address_from_ocr(self, text: str) -> Optional[str]:

@@ -23,12 +23,22 @@ from storage_factory import StorageFactory
 from geocoder import Geocoder
 from nonstandard import resolve_alias
 
-# Configure verbose logging
+# Configure verbose logging (configurable via LOG_LEVEL)
+log_level_name = os.getenv('LOG_LEVEL', 'DEBUG').upper()
+numeric_level = getattr(logging, log_level_name, logging.DEBUG)
 logging.basicConfig(
-    level=logging.INFO,
+    level=numeric_level,
     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
     handlers=[logging.StreamHandler()]
 )
+
+# Increase verbosity for HTTP clients used by dependencies (Supabase/httpx, requests/urllib3)
+logging.getLogger('httpx').setLevel(logging.DEBUG)
+logging.getLogger('httpcore').setLevel(logging.DEBUG)
+logging.getLogger('urllib3').setLevel(logging.DEBUG)
+logging.getLogger('botocore').setLevel(logging.INFO)
+logging.getLogger('boto3').setLevel(logging.INFO)
+
 logger = logging.getLogger(__name__)
 
 # Load environment variables from a .env file if present
@@ -151,6 +161,10 @@ def ongoing_scraper_job():
             logger.info(f"Fetching existing citations for {label} range {start_range}-{end_range}...")
             existing_citations = db_manager.get_existing_citation_numbers_in_range(start_range, end_range)
             logger.info(f"Found {len(existing_citations)} existing citations in {label} range. Will skip these.")
+            if existing_citations:
+                # Log a small sample to confirm values are as expected
+                sample = sorted(list(existing_citations))[:10]
+                logger.debug(f"Sample existing citations in {label}: {sample}")
 
             total_in_range = (end_range - start_range) + 1
             for idx, citation_num in enumerate(range(start_range, end_range + 1), start=1):
@@ -159,7 +173,7 @@ def ongoing_scraper_job():
                     logger.debug(f"Skipping citation {citation_num} - already exists in database")
                     skipped_existing += 1
                     # No network request made here, so do not sleep
-                    if idx % 50 == 0:
+                    if idx % 25 == 0:
                         logger.info(f"[{label}] Progress: {idx}/{total_in_range} in range; skipped so far: {skipped_existing}")
                     continue
 
