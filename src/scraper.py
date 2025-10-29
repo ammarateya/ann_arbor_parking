@@ -160,8 +160,16 @@ class CitationScraper:
                 if info_key == 'plate':
                     logging.debug(f"Skipping 'plate' field to avoid schema conflict")
                     continue
-                    
-                if info_key == 'amount_due':
+                
+                # Parse date fields (issue_date, due_date) to UTC instead of storing raw string
+                if info_key in ['issue_date', 'due_date', 'issued_date']:
+                    parsed_date = self.parse_date(text_val)
+                    if parsed_date:
+                        info[info_key] = parsed_date
+                    else:
+                        # If parsing fails, still store the raw value
+                        info[info_key] = text_val
+                elif info_key == 'amount_due':
                     info[info_key] = self.extract_amount(text_val)
                 else:
                     info[info_key] = text_val
