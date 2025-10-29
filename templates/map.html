@@ -151,7 +151,7 @@
       /* Statistics bar - Circuit board style */
       .stats-bar {
         position: fixed;
-        top: 36px;
+        top: 94px;
         left: 0;
         right: 0;
         background: #0a0a0a;
@@ -459,21 +459,131 @@
         font-weight: 600;
       }
 
-      /* Loading indicator */
+      /* Loading indicator - Flashing alarm style */
       .loading {
         position: fixed;
         top: 50%;
         left: 50%;
         transform: translate(-50%, -50%);
-        background: rgba(0, 0, 0, 0.8);
-        color: #fff;
+        background: rgba(10, 10, 10, 0.95);
+        color: #00ff00;
         padding: 20px 30px;
-        border-radius: 16px;
+        border: 3px solid #00ff00;
+        border-radius: 0;
         z-index: 3000;
         font-size: 15px;
+        font-weight: bold;
+        font-family: "Press Start 2P", cursive;
+        text-transform: uppercase;
+        letter-spacing: 2px;
+        text-shadow: 0 0 10px #00ff00;
+        box-shadow: 0 0 20px rgba(0, 255, 0, 0.5),
+          inset 0 0 20px rgba(0, 255, 0, 0.1);
+        animation: alarmFlash 0.5s infinite;
+      }
+
+      @keyframes alarmFlash {
+        0%,
+        50% {
+          border-color: #00ff00;
+          color: #00ff00;
+          text-shadow: 0 0 10px #00ff00;
+          box-shadow: 0 0 20px rgba(0, 255, 0, 0.5),
+            inset 0 0 20px rgba(0, 255, 0, 0.1);
+        }
+        51%,
+        100% {
+          border-color: #ff0040;
+          color: #ff0040;
+          text-shadow: 0 0 10px #ff0040;
+          box-shadow: 0 0 20px rgba(255, 0, 64, 0.5),
+            inset 0 0 20px rgba(255, 0, 64, 0.1);
+        }
+      }
+
+      /* Time filter bar */
+      .time-filter-bar {
+        position: fixed;
+        top: 48px;
+        left: 0;
+        right: 0;
+        background: #0a0a0a;
+        border-bottom: 2px solid #00ff00;
+        z-index: 998;
+        padding: 14px 20px 12px 20px;
+        display: flex;
+        gap: 12px;
+        justify-content: flex-start;
+        align-items: center;
+      }
+
+      body.panel-open .time-filter-bar {
+        left: 400px;
+      }
+
+      .time-filter-label {
+        color: #888;
+        font-size: 9px;
         font-weight: 500;
-        backdrop-filter: blur(10px);
-        -webkit-backdrop-filter: blur(10px);
+        text-transform: uppercase;
+        letter-spacing: 1px;
+        margin-right: 8px;
+      }
+
+      .time-filter-btn {
+        background: #0a0a0a;
+        border: 2px solid #00ff00;
+        color: #00ff00;
+        font-size: 10px;
+        font-weight: bold;
+        padding: 6px 12px;
+        cursor: pointer;
+        transition: all 0.2s ease;
+        text-transform: uppercase;
+        letter-spacing: 1px;
+        font-family: "Press Start 2P", cursive;
+      }
+
+      .time-filter-btn:hover {
+        background: #00ff00;
+        color: #0a0a0a;
+        text-shadow: none;
+        box-shadow: 0 0 10px rgba(0, 255, 0, 0.5);
+      }
+
+      .time-filter-btn.active {
+        background: #00ff00;
+        color: #0a0a0a;
+        box-shadow: 0 0 10px rgba(0, 255, 0, 0.5);
+      }
+
+      /* No results message - Flashing style */
+      .no-results-message {
+        position: fixed;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        background: rgba(10, 10, 10, 0.95);
+        color: #00ff00;
+        padding: 20px 30px;
+        border: 3px solid #00ff00;
+        border-radius: 0;
+        z-index: 3000;
+        font-size: 12px;
+        font-weight: bold;
+        font-family: "Press Start 2P", cursive;
+        text-transform: uppercase;
+        letter-spacing: 2px;
+        text-shadow: 0 0 10px #00ff00;
+        box-shadow: 0 0 20px rgba(0, 255, 0, 0.5),
+          inset 0 0 20px rgba(0, 255, 0, 0.1);
+        animation: alarmFlash 0.5s infinite;
+        display: none;
+        text-align: center;
+      }
+
+      .no-results-message.visible {
+        display: block;
       }
 
       @keyframes fadeIn {
@@ -575,10 +685,22 @@
           font-size: 16px;
         }
 
+        .time-filter-bar {
+          top: 62px;
+          padding: 10px 12px 10px 12px;
+          gap: 8px;
+          flex-wrap: wrap;
+        }
+
+        .time-filter-btn {
+          font-size: 8px;
+          padding: 4px 8px;
+        }
+
         .stats-bar {
           font-size: 10px;
           padding: 8px 12px;
-          top: 50px;
+          top: 116px;
         }
 
         .stat-item {
@@ -689,9 +811,53 @@
         <div
           class="header-recent-time"
           id="recentCitationTime"
-          style="color: #888; font-size: 9px; letter-spacing: 1px"
+          style="
+            color: #fff;
+            font-size: 10px;
+            letter-spacing: 0;
+            min-height: 14px;
+            white-space: nowrap;
+            font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas,
+              'Liberation Mono', 'Courier New', monospace;
+          "
         ></div>
       </div>
+    </div>
+
+    <div class="time-filter-bar" id="timeFilterBar">
+      <span class="time-filter-label">VIEW:</span>
+      <button
+        class="time-filter-btn"
+        onclick="filterByTime('all')"
+        id="filterAll"
+        data-time="all"
+      >
+        ALL
+      </button>
+      <button
+        class="time-filter-btn"
+        onclick="filterByTime('week')"
+        id="filterWeek"
+        data-time="week"
+      >
+        PAST WEEK
+      </button>
+      <button
+        class="time-filter-btn"
+        onclick="filterByTime('day')"
+        id="filterDay"
+        data-time="day"
+      >
+        PAST 24 HOURS
+      </button>
+      <button
+        class="time-filter-btn"
+        onclick="filterByTime('hour')"
+        id="filterHour"
+        data-time="hour"
+      >
+        PAST HOUR
+      </button>
     </div>
 
     <div class="stats-bar" id="statsBar">
@@ -714,12 +880,33 @@
     </div>
 
     <div class="map-controls">
-      <button class="control-btn" onclick="resetView()" id="resetBtn" title="Reset view" aria-label="Reset view">
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-          <path d="M12 6V3L8 7l4 4V8c2.757 0 5 2.243 5 5s-2.243 5-5 5-5-2.243-5-5H5c0 3.866 3.134 7 7 7s7-3.134 7-7-3.134-7-7-7z" fill="#00ff00"/>
+      <button
+        class="control-btn"
+        onclick="resetView()"
+        id="resetBtn"
+        title="Reset view"
+        aria-label="Reset view"
+      >
+        <svg
+          width="18"
+          height="18"
+          viewBox="0 0 24 24"
+          fill="none"
+          xmlns="http://www.w3.org/2000/svg"
+        >
+          <path
+            d="M12 6V3L8 7l4 4V8c2.757 0 5 2.243 5 5s-2.243 5-5 5-5-2.243-5-5H5c0 3.866 3.134 7 7 7s7-3.134 7-7-3.134-7-7-7z"
+            fill="#00ff00"
+          />
         </svg>
       </button>
-      <button class="control-btn" onclick="toggleTheme()" id="themeBtn" title="Toggle theme" aria-label="Toggle theme">
+      <button
+        class="control-btn"
+        onclick="toggleTheme()"
+        id="themeBtn"
+        title="Toggle theme"
+        aria-label="Toggle theme"
+      >
         <!-- icon set by script -->
       </button>
     </div>
@@ -754,6 +941,14 @@
     </div>
 
     <div class="loading" id="loading">LOADING CITATIONS...</div>
+
+    <div class="no-results-message" id="noResultsMessage">
+      <div>NONE FOUND</div>
+      <div
+        style="font-size: 10px; margin-top: 10px; opacity: 0.8"
+        id="noResultsInterval"
+      ></div>
+    </div>
 
     <!-- Leaflet JS -->
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
@@ -812,8 +1007,8 @@
       }
 
       // Set initial theme toggle icon (action: switch to light → sun)
-      (function initIcons(){
-        const themeBtn = document.getElementById('themeBtn');
+      (function initIcons() {
+        const themeBtn = document.getElementById("themeBtn");
         if (themeBtn) themeBtn.innerHTML = getSunIcon();
       })();
 
@@ -822,9 +1017,78 @@
       let markers = [];
       const citationToMarker = new Map();
       let usedCoordinates = new Map(); // Track coordinates to avoid overlap
+      let currentTimeFilter = "all"; // Track current time filter
+
+      // Header recent time: fixed-length scramble during load, gentle decode reveal
+      let recentScrambleTimer = null;
+      let recentScrambleTargetLength = null;
+      function startRecentScramble(targetLength) {
+        const el = document.getElementById("recentCitationTime");
+        if (!el) return;
+        if (recentScrambleTimer) clearInterval(recentScrambleTimer);
+        const chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789:, ";
+        recentScrambleTargetLength = targetLength || 22; // fallback length
+        recentScrambleTimer = setInterval(() => {
+          let s = "";
+          for (let i = 0; i < recentScrambleTargetLength; i++) {
+            s += chars[Math.floor(Math.random() * chars.length)];
+          }
+          el.textContent = s;
+        }, 70); // smooth, not jarring
+      }
+
+      function revealRecentTime(finalText) {
+        const el = document.getElementById("recentCitationTime");
+        if (!el) return;
+        if (recentScrambleTimer) {
+          clearInterval(recentScrambleTimer);
+          recentScrambleTimer = null;
+        }
+        const target = finalText;
+        const chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789:, ";
+        const currentScrambled = el.textContent; // keep the current scramble
+        const length = target.length;
+        // Ensure we have the right length array
+        let result =
+          currentScrambled.length === length
+            ? Array.from(currentScrambled)
+            : Array.from(
+                { length: length },
+                () => chars[Math.floor(Math.random() * chars.length)]
+              );
+        let index = 0;
+        const interval = setInterval(() => {
+          // Replace characters in place from left to right
+          if (index < length) {
+            result[index] = target[index];
+            index++;
+          }
+          // Keep scrambling the remaining characters
+          for (let i = index; i < length; i++) {
+            result[i] = chars[Math.floor(Math.random() * chars.length)];
+          }
+          el.textContent = result.join("");
+          if (index >= length) {
+            clearInterval(interval);
+            el.textContent = target;
+          }
+        }, 50);
+      }
 
       // Load citations from API
       async function loadCitations() {
+        // Estimate final length using the same formatter on current time
+        const estimateFormatter = new Intl.DateTimeFormat("en-US", {
+          timeZone: "America/Detroit",
+          month: "short",
+          day: "numeric",
+          year: "numeric",
+          hour: "numeric",
+          minute: "2-digit",
+          hour12: true,
+        });
+        const estimated = `LATEST: ${estimateFormatter.format(new Date())}`;
+        startRecentScramble(estimated.length);
         try {
           const response = await fetch("/api/citations");
           const data = await response.json();
@@ -943,16 +1207,18 @@
                   month: "short",
                   day: "numeric",
                   year: "numeric",
-                  hour: "2-digit",
+                  hour: "numeric",
                   minute: "2-digit",
-                  hour12: false,
+                  hour12: true,
                 });
                 const formattedTime = formatter.format(recent);
+                revealRecentTime(`LATEST: ${formattedTime}`);
                 const el = document.getElementById("recentCitationTime");
-                el.textContent = `LATEST: ${formattedTime}`;
-                el.style.cursor = "pointer";
-                el.title = "Jump to latest citation";
-                el.onclick = () => focusLatestCitation();
+                if (el) {
+                  el.style.cursor = "pointer";
+                  el.title = "Jump to latest citation";
+                  el.onclick = () => focusLatestCitation();
+                }
               }
             }
 
@@ -1152,9 +1418,15 @@
            </div>
            <div class="info-item">
              <div class="info-label">ISSUE DATE</div>
-             <div class="info-value">${new Date(
-               citation.issue_date
-             ).toLocaleDateString()}</div>
+             <div class="info-value">${new Intl.DateTimeFormat("en-US", {
+               timeZone: "America/Detroit",
+               month: "short",
+               day: "numeric",
+               year: "numeric",
+               hour: "numeric",
+               minute: "2-digit",
+               hour12: true,
+             }).format(new Date(citation.issue_date))}</div>
            </div>
            <div class="info-item">
              <div class="info-label">AMOUNT DUE</div>
@@ -1240,6 +1512,153 @@
 
         currentTileLayer.addTo(map);
       }
+
+      // Filter citations by time period
+      function filterByTime(period) {
+        currentTimeFilter = period;
+
+        // Update button states
+        document.querySelectorAll(".time-filter-btn").forEach((btn) => {
+          btn.classList.remove("active");
+          if (btn.dataset.time === period) {
+            btn.classList.add("active");
+          }
+        });
+
+        // Hide no results message initially
+        const noResultsMsg = document.getElementById("noResultsMessage");
+        noResultsMsg.classList.remove("visible");
+
+        // Calculate cutoff time in America/Detroit timezone
+        const detroitTZ = "America/Detroit";
+        const nowDetroit = new Date();
+
+        let cutoffTime;
+        if (period === "hour") {
+          cutoffTime = new Date(nowDetroit.getTime() - 60 * 60 * 1000);
+        } else if (period === "day") {
+          cutoffTime = new Date(nowDetroit.getTime() - 24 * 60 * 60 * 1000);
+        } else if (period === "week") {
+          cutoffTime = new Date(nowDetroit.getTime() - 7 * 24 * 60 * 60 * 1000);
+        } else {
+          cutoffTime = null; // Show all
+        }
+
+        // Filter and show/hide markers
+        let visibleCount = 0;
+        citations.forEach((citation) => {
+          if (!citation.citation_number) return;
+
+          const marker = citationToMarker.get(String(citation.citation_number));
+          if (!marker) return;
+
+          if (cutoffTime === null) {
+            // Show all
+            if (!map.hasLayer(marker)) {
+              marker.addTo(map);
+            }
+            visibleCount++;
+          } else {
+            // Check if citation issue_date is within the time period
+            if (citation.issue_date) {
+              const issueDate = new Date(citation.issue_date);
+              if (issueDate >= cutoffTime) {
+                if (!map.hasLayer(marker)) {
+                  marker.addTo(map);
+                }
+                visibleCount++;
+              } else {
+                if (map.hasLayer(marker)) {
+                  marker.removeFrom(map);
+                }
+              }
+            } else {
+              // No issue date, hide it
+              if (map.hasLayer(marker)) {
+                marker.removeFrom(map);
+              }
+            }
+          }
+        });
+
+        // Show no results message if no citations found
+        if (visibleCount === 0 && period !== "all") {
+          let intervalText = "";
+          if (period === "hour") {
+            intervalText = "NONE FOUND IN THE LAST HOUR";
+          } else if (period === "day") {
+            intervalText = "NONE FOUND IN THE LAST 24 HOURS";
+          } else if (period === "week") {
+            intervalText = "NONE FOUND IN THE LAST WEEK";
+          }
+          document.getElementById("noResultsInterval").textContent =
+            intervalText;
+          noResultsMsg.classList.add("visible");
+        } else {
+          noResultsMsg.classList.remove("visible");
+        }
+
+        // Update stats based on visible citations
+        updateStatsForFilter(period, cutoffTime);
+      }
+
+      // Update statistics for filtered citations
+      function updateStatsForFilter(period, cutoffTime) {
+        let filteredCitations = citations;
+
+        if (cutoffTime !== null) {
+          filteredCitations = citations.filter((c) => {
+            if (!c.issue_date) return false;
+            const issueDate = new Date(c.issue_date);
+            return issueDate >= cutoffTime;
+          });
+        }
+
+        // Update total citations and amount
+        document.getElementById("totalCitations").textContent =
+          filteredCitations.length.toLocaleString();
+        const totalAmount = filteredCitations.reduce(
+          (sum, c) => sum + (parseFloat(c.amount_due) || 0),
+          0
+        );
+        document.getElementById("totalAmount").textContent =
+          "$" +
+          totalAmount.toLocaleString(undefined, {
+            minimumFractionDigits: 0,
+            maximumFractionDigits: 0,
+          });
+
+        // Update legend counts for filtered citations
+        let redCount = 0;
+        let orangeCount = 0;
+        let greenCount = 0;
+
+        filteredCitations.forEach((citation) => {
+          const amount = parseFloat(citation.amount_due) || 0;
+          if (amount >= 50) {
+            redCount++;
+          } else if (amount >= 30) {
+            orangeCount++;
+          } else {
+            greenCount++;
+          }
+        });
+
+        document.getElementById("legendRed").textContent =
+          redCount.toLocaleString();
+        document.getElementById("legendOrange").textContent =
+          orangeCount.toLocaleString();
+        document.getElementById("legendGreen").textContent =
+          greenCount.toLocaleString();
+      }
+
+      // Initialize filter button - set "all" as active
+      (function initFilterButtons() {
+        const filterAllBtn = document.getElementById("filterAll");
+        if (filterAllBtn) {
+          filterAllBtn.classList.add("active");
+        }
+      })();
 
       // Load citations on page load
       loadCitations();
