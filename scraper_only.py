@@ -42,6 +42,26 @@ DB_CONFIG = {
     'port': os.getenv('DB_PORT', '5432'),
 }
 
+def write_github_actions_summary(title: str = "Parking Citation Scraper", body_lines: list[str] | None = None) -> None:
+    """If running inside GitHub Actions, write a markdown summary and a titled notice.
+
+    This improves visibility by adding a nice title and compact stats to the run summary.
+    """
+    try:
+        summary_path = os.getenv('GITHUB_STEP_SUMMARY')
+        if summary_path:
+            with open(summary_path, 'a', encoding='utf-8') as f:
+                f.write(f"\n## {title}\n\n")
+                if body_lines:
+                    for line in body_lines:
+                        f.write(f"- {line}\n")
+                f.write("\n")
+        # Emit a titled notice in the logs for quick visibility
+        print(f"::notice title={title}::Run started")
+    except Exception:
+        # Never fail the job because summary writing failed
+        pass
+
 def ongoing_scraper_job():
     """Run scraper job across two seeds with configurable ± range.
 
@@ -80,6 +100,7 @@ def ongoing_scraper_job():
     errors = []
     total_processed = 0
     images_uploaded = 0
+    skipped_existing = 0
     
     try:
         logger.info("Getting last successful citation...")
@@ -116,6 +137,15 @@ def ongoing_scraper_job():
             f"(overall {overall_start}..{overall_end})"
         )
 
+        # Add a GitHub Actions title and initial summary
+        write_github_actions_summary(
+            body_lines=[
+                f"AA range: {aa_range[0]}..{aa_range[1]}",
+                f"NC range: {nc_range[0]}..{nc_range[1]}",
+                f"Overall: {overall_start}..{overall_end}",
+            ]
+        )
+
         # Process each range independently to avoid massive combined spans
         for label, (start_range, end_range) in [("AA", aa_range), ("NC", nc_range)]:
             logger.info(f"Fetching existing citations for {label} range {start_range}-{end_range}...")
@@ -123,93 +153,94 @@ def ongoing_scraper_job():
             logger.info(f"Found {len(existing_citations)} existing citations in {label} range. Will skip these.")
 
             for citation_num in range(start_range, end_range + 1):
-            # Skip if citation already exists in database
-            if citation_num in existing_citations:
+                # Skip if citation already exists in database
+                if citation_num in existing_citations:
                     logger.debug(f"Skipping citation {citation_num} - already exists in database")
+                    skipped_existing += 1
                     continue
-                
-            try:
-                logger.debug(f"Processing citation {citation_num}...")
-                result = scraper.search_citation(str(citation_num))
-                total_processed += 1
-                
-                if result:
-                    logger.debug(f"Found citation {citation_num}, saving to database...")
-                    db_manager.save_citation(result)
-                    successful_citations.append(result)
-                    
-                    # Geocode address for map display with caching and nonstandard resolution
-                    if result.get('location'):
-                        location_str = result['location']
-                        try:
-                            # 1) DB cache: reuse coords if location was already geocoded before
-                            cached = db_manager.get_cached_coords_for_location(location_str)
-                            if cached:
-                                lat, lon = cached
-                                db_manager.supabase.table('citations').update({
-                                    'latitude': lat,
-                                    'longitude': lon,
-                                    'geocoded_at': 'now()'
-                                }).eq('citation_number', citation_num).execute()
-                                logger.debug(f"✓ Reused cached coords for {citation_num} -> ({lat}, {lon})")
-                            else:
-                                # 2) Nonstandard alias mapping: coords or mapped address
-                                mapped_address, coords = resolve_alias(location_str)
-                                if coords:
-                                    lat, lon = coords
+
+                try:
+                    logger.debug(f"Processing citation {citation_num}...")
+                    result = scraper.search_citation(str(citation_num))
+                    total_processed += 1
+
+                    if result:
+                        logger.debug(f"Found citation {citation_num}, saving to database...")
+                        db_manager.save_citation(result)
+                        successful_citations.append(result)
+
+                        # Geocode address for map display with caching and nonstandard resolution
+                        if result.get('location'):
+                            location_str = result['location']
+                            try:
+                                # 1) DB cache: reuse coords if location was already geocoded before
+                                cached = db_manager.get_cached_coords_for_location(location_str)
+                                if cached:
+                                    lat, lon = cached
                                     db_manager.supabase.table('citations').update({
                                         'latitude': lat,
                                         'longitude': lon,
                                         'geocoded_at': 'now()'
                                     }).eq('citation_number', citation_num).execute()
-                                    logger.debug(f"✓ Applied nonstandard coords for {citation_num} -> ({lat}, {lon})")
-                                elif mapped_address:
-                                    geocoder.geocode_and_update_citation(db_manager, citation_num, mapped_address)
-                                    logger.debug(f"✓ Geocoded via nonstandard mapping for {citation_num} -> '{mapped_address}'")
+                                    logger.debug(f"✓ Reused cached coords for {citation_num} -> ({lat}, {lon})")
                                 else:
-                                    # 3) Fallback: geocode the raw location string
-                                    geocoder.geocode_and_update_citation(db_manager, citation_num, location_str)
-                                    logger.debug(f"✓ Geocoded citation {citation_num}")
-                        except Exception as e:
-                            logger.warning(f"Failed to geocode citation {citation_num}: {e}")
-                    
-                    # Upload images to cloud storage if available
-                    if result.get('image_urls') and cloud_storage and cloud_storage.is_configured():
-                        try:
-                            logger.debug(f"Uploading images for citation {citation_num}...")
-                            uploaded_images = cloud_storage.upload_images_for_citation(
-                                result['image_urls'], 
-                                citation_num
-                            )
-                            
-                            # Save cloud storage image metadata to database
-                            for image_data in uploaded_images:
-                                image_data['original_url'] = result['image_urls'][uploaded_images.index(image_data)]
-                                db_manager.save_b2_image(citation_num, image_data)
-                                images_uploaded += 1
-                            
-                            logger.info(f"Uploaded {len(uploaded_images)} images for citation {citation_num}")
-                            
-                        except Exception as e:
-                            logger.error(f"Failed to upload images for citation {citation_num}: {e}")
-                            logger.error(f"Traceback: {traceback.format_exc()}")
-                    
-                    # Update last successful citation only for AA range, not NC
-                    if aa_range[0] <= citation_num <= aa_range[1] and citation_num > last_citation:
-                        logger.debug(f"Updating last successful citation (AA) to {citation_num}")
-                        db_manager.update_last_successful_citation(citation_num)
-                        last_citation = citation_num
-                    
-                    logger.info(f"✓ [{label}] Found and saved citation {citation_num}")
-                else:
-                    logger.debug(f"[{label}] No results for citation {citation_num}")
-                    
-            except Exception as e:
-                error_msg = f"Error processing citation {citation_num}: {str(e)}"
-                logger.error(error_msg)
-                logger.error(f"Traceback: {traceback.format_exc()}")
-                errors.append(error_msg)
-            
+                                    # 2) Nonstandard alias mapping: coords or mapped address
+                                    mapped_address, coords = resolve_alias(location_str)
+                                    if coords:
+                                        lat, lon = coords
+                                        db_manager.supabase.table('citations').update({
+                                            'latitude': lat,
+                                            'longitude': lon,
+                                            'geocoded_at': 'now()'
+                                        }).eq('citation_number', citation_num).execute()
+                                        logger.debug(f"✓ Applied nonstandard coords for {citation_num} -> ({lat}, {lon})")
+                                    elif mapped_address:
+                                        geocoder.geocode_and_update_citation(db_manager, citation_num, mapped_address)
+                                        logger.debug(f"✓ Geocoded via nonstandard mapping for {citation_num} -> '{mapped_address}'")
+                                    else:
+                                        # 3) Fallback: geocode the raw location string
+                                        geocoder.geocode_and_update_citation(db_manager, citation_num, location_str)
+                                        logger.debug(f"✓ Geocoded citation {citation_num}")
+                            except Exception as e:
+                                logger.warning(f"Failed to geocode citation {citation_num}: {e}")
+
+                        # Upload images to cloud storage if available
+                        if result.get('image_urls') and cloud_storage and cloud_storage.is_configured():
+                            try:
+                                logger.debug(f"Uploading images for citation {citation_num}...")
+                                uploaded_images = cloud_storage.upload_images_for_citation(
+                                    result['image_urls'],
+                                    citation_num
+                                )
+
+                                # Save cloud storage image metadata to database
+                                for image_data in uploaded_images:
+                                    image_data['original_url'] = result['image_urls'][uploaded_images.index(image_data)]
+                                    db_manager.save_b2_image(citation_num, image_data)
+                                    images_uploaded += 1
+
+                                logger.info(f"Uploaded {len(uploaded_images)} images for citation {citation_num}")
+
+                            except Exception as e:
+                                logger.error(f"Failed to upload images for citation {citation_num}: {e}")
+                                logger.error(f"Traceback: {traceback.format_exc()}")
+
+                        # Update last successful citation only for AA range, not NC
+                        if aa_range[0] <= citation_num <= aa_range[1] and citation_num > last_citation:
+                            logger.debug(f"Updating last successful citation (AA) to {citation_num}")
+                            db_manager.update_last_successful_citation(citation_num)
+                            last_citation = citation_num
+
+                        logger.info(f"✓ [{label}] Found and saved citation {citation_num}")
+                    else:
+                        logger.debug(f"[{label}] No results for citation {citation_num}")
+
+                except Exception as e:
+                    error_msg = f"Error processing citation {citation_num}: {str(e)}"
+                    logger.error(error_msg)
+                    logger.error(f"Traceback: {traceback.format_exc()}")
+                    errors.append(error_msg)
+
                 # Small delay between requests to be respectful
                 time.sleep(1)
             
@@ -231,8 +262,20 @@ def ongoing_scraper_job():
                 logger.error(f"Failed to send email notification: {e}")
                 logger.error(f"Traceback: {traceback.format_exc()}")
         
-        skipped_count = len(existing_citations)
-        logger.info(f"Scraper job completed. Processed: {total_processed}, Found: {len(successful_citations)}, Skipped (existing): {skipped_count}, Images uploaded: {images_uploaded}, Errors: {len(errors)}")
+        found_count = len(successful_citations)
+        errors_count = len(errors)
+        logger.info(f"Scraper job completed. Processed: {total_processed}, Found: {found_count}, Skipped (existing): {skipped_existing}, Images uploaded: {images_uploaded}, Errors: {errors_count}")
+
+        # Append final stats to GitHub Actions step summary
+        write_github_actions_summary(
+            body_lines=[
+                f"Processed: {total_processed}",
+                f"Found: {found_count}",
+                f"Skipped (existing): {skipped_existing}",
+                f"Images uploaded: {images_uploaded}",
+                f"Errors: {errors_count}",
+            ]
+        )
 
 
 if __name__ == "__main__":
