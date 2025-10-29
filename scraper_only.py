@@ -121,15 +121,23 @@ def ongoing_scraper_job():
 
         logger.info(f"Last successful citation: {last_citation}")
 
+        # Determine dynamic bases from DB with thresholds
+        aa_db_max = db_manager.get_max_citation_below(2_000_000)
+        nc_db_max = db_manager.get_max_citation_below(3_000_000)
+        logger.info(f"AA DB max <2,000,000: {aa_db_max}")
+        logger.info(f"NC DB max <3,000,000: {nc_db_max}")
+
         # Configure seeds and range size from environment
         try:
-            aa_seed = int(os.getenv('AA_BASE_SEED', str(last_citation)))
+            aa_seed_env = os.getenv('AA_BASE_SEED')
+            aa_seed = int(aa_seed_env) if aa_seed_env else (aa_db_max if aa_db_max is not None else last_citation)
         except ValueError:
-            aa_seed = last_citation
+            aa_seed = aa_db_max if aa_db_max is not None else last_citation
         try:
-            nc_seed = int(os.getenv('NC_BASE_SEED', '2081673'))
+            nc_seed_env = os.getenv('NC_BASE_SEED')
+            nc_seed = int(nc_seed_env) if nc_seed_env else (nc_db_max if nc_db_max is not None else 2081673)
         except ValueError:
-            nc_seed = 2081673
+            nc_seed = nc_db_max if nc_db_max is not None else 2081673
         try:
             range_size = int(os.getenv('SCRAPE_RANGE_SIZE', '50'))
         except ValueError:
@@ -157,7 +165,7 @@ def ongoing_scraper_job():
         )
 
         def process_range(label: str, start_range: int, end_range: int, update_last_successful: bool) -> None:
-            nonlocal last_citation, total_processed, images_uploaded, skipped_existing
+            nonlocal last_citation, total_processed, images_uploaded, skipped_existing, aa_db_max
             logger.info(f"Fetching existing citations for {label} range {start_range}-{end_range}...")
             existing_citations = db_manager.get_existing_citation_numbers_in_range(start_range, end_range)
             logger.info(f"Found {len(existing_citations)} existing citations in {label} range. Will skip these.")
@@ -243,11 +251,10 @@ def ongoing_scraper_job():
                                 logger.error(f"Failed to upload images for citation {citation_num}: {e}")
                                 logger.error(f"Traceback: {traceback.format_exc()}")
 
-                        # Optionally update last successful citation (AA only)
-                        if update_last_successful and citation_num > last_citation:
-                            logger.debug(f"Updating last successful citation to {citation_num}")
-                            db_manager.update_last_successful_citation(citation_num)
-                            last_citation = citation_num
+                        # Update AA base only when under 2,000,000; NC base auto-derives from DB next run
+                        if label == "AA" and citation_num < 2_000_000:
+                            if aa_db_max is None or citation_num > aa_db_max:
+                                aa_db_max = citation_num
 
                         logger.info(f"✓ [{label}] Found and saved citation {citation_num}")
                     else:
