@@ -80,7 +80,7 @@ def ongoing_scraper_job():
       - North Campus seed: NC_BASE_SEED env var (defaults to 2081673)
 
     Range size:
-      - SCRAPE_RANGE_SIZE env var (defaults to 200)
+      - SCRAPE_RANGE_SIZE env var (defaults to 50)
     """
     logger.info("Starting ongoing scraper job...")
     
@@ -131,9 +131,9 @@ def ongoing_scraper_job():
         except ValueError:
             nc_seed = 2081673
         try:
-            range_size = int(os.getenv('SCRAPE_RANGE_SIZE', '200'))
+            range_size = int(os.getenv('SCRAPE_RANGE_SIZE', '50'))
         except ValueError:
-            range_size = 200
+            range_size = 50
 
         aa_range = (aa_seed - range_size, aa_seed + range_size)
         nc_range = (nc_seed - range_size, nc_seed + range_size)
