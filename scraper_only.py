@@ -116,22 +116,17 @@ def ongoing_scraper_job():
             f"(overall {overall_start}..{overall_end})"
         )
 
-        # Fetch existing citations once for the overall span; we'll filter per-target when iterating
-        logger.info("Fetching existing citations in overall range to optimize processing...")
-        existing_citations = db_manager.get_existing_citation_numbers_in_range(overall_start, overall_end)
-        logger.info(f"Found {len(existing_citations)} existing citations in overall range. Will skip these.")
+        # Process each range independently to avoid massive combined spans
+        for label, (start_range, end_range) in [("AA", aa_range), ("NC", nc_range)]:
+            logger.info(f"Fetching existing citations for {label} range {start_range}-{end_range}...")
+            existing_citations = db_manager.get_existing_citation_numbers_in_range(start_range, end_range)
+            logger.info(f"Found {len(existing_citations)} existing citations in {label} range. Will skip these.")
 
-        # Build unique target list covering both ranges
-        target_numbers = []
-        for start_range, end_range in ranges:
-            target_numbers.extend(range(start_range, end_range + 1))
-        target_numbers = sorted(set(target_numbers))
-
-        for citation_num in target_numbers:
+            for citation_num in range(start_range, end_range + 1):
             # Skip if citation already exists in database
             if citation_num in existing_citations:
-                logger.debug(f"Skipping citation {citation_num} - already exists in database")
-                continue
+                    logger.debug(f"Skipping citation {citation_num} - already exists in database")
+                    continue
                 
             try:
                 logger.debug(f"Processing citation {citation_num}...")
@@ -205,9 +200,9 @@ def ongoing_scraper_job():
                         db_manager.update_last_successful_citation(citation_num)
                         last_citation = citation_num
                     
-                    logger.info(f"✓ Found and saved citation {citation_num}")
+                    logger.info(f"✓ [{label}] Found and saved citation {citation_num}")
                 else:
-                    logger.debug(f"No results for citation {citation_num}")
+                    logger.debug(f"[{label}] No results for citation {citation_num}")
                     
             except Exception as e:
                 error_msg = f"Error processing citation {citation_num}: {str(e)}"
@@ -215,8 +210,8 @@ def ongoing_scraper_job():
                 logger.error(f"Traceback: {traceback.format_exc()}")
                 errors.append(error_msg)
             
-            # Small delay between requests to be respectful
-            time.sleep(1)
+                # Small delay between requests to be respectful
+                time.sleep(1)
             
     except Exception as e:
         error_msg = f"Critical error in scraper job: {str(e)}"
