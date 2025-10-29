@@ -3,6 +3,7 @@ from bs4 import BeautifulSoup
 import re
 import logging
 from datetime import datetime
+from zoneinfo import ZoneInfo
 from typing import Optional, Dict, List
 import time
 import random
@@ -107,10 +108,17 @@ class CitationScraper:
             return f"https://annarbor.citationportal.com{first_link['href']}"
         return None
 
-    def parse_date(self, date_str: str) -> Optional[datetime]:
+    def parse_date(self, date_str: str) -> Optional[str]:
         try:
             date_str = re.sub(r'<br\s*/?>', ' ', date_str).strip()
-            return datetime.strptime(date_str, '%m/%d/%Y %I:%M %p')
+            # Parse naive local time (portal shows Eastern local time)
+            naive_local = datetime.strptime(date_str, '%m/%d/%Y %I:%M %p')
+            # Localize to America/Detroit (handles EST/EDT automatically)
+            eastern = ZoneInfo('America/Detroit')
+            localized = naive_local.replace(tzinfo=eastern)
+            # Convert to UTC and return ISO string (e.g., 2025-10-29T15:04:05+00:00)
+            utc_time = localized.astimezone(ZoneInfo('UTC'))
+            return utc_time.isoformat()
         except Exception:
             return None
 
