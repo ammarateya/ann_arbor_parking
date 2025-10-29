@@ -1625,15 +1625,6 @@
           if (data.status === "success") {
             citations = data.citations || [];
 
-            // Log all citations at 700 Arbor St
-            const arborStCitations = citations.filter(
-              (c) => c.location && c.location.includes("700 Arbor St")
-            );
-            console.log(
-              `Found ${arborStCitations.length} citations at 700 Arbor St:`,
-              arborStCitations
-            );
-
             // Show error message if there's an auth issue
             if (
               data.error &&
