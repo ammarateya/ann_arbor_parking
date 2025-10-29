@@ -103,16 +103,15 @@ def ongoing_scraper_job():
         except ValueError:
             range_size = 200
 
-        ranges = [
-            (aa_seed - range_size, aa_seed + range_size),
-            (nc_seed - range_size, nc_seed + range_size),
-        ]
+        aa_range = (aa_seed - range_size, aa_seed + range_size)
+        nc_range = (nc_seed - range_size, nc_seed + range_size)
+        ranges = [aa_range, nc_range]
 
         overall_start = min(start for start, _ in ranges)
         overall_end = max(end for _, end in ranges)
 
         logger.info(
-            f"Processing dual ranges: AA[{ranges[0][0]}..{ranges[0][1]}], NC[{ranges[1][0]}..{ranges[1][1]}] "
+            f"Processing dual ranges: AA[{aa_range[0]}..{aa_range[1]}], NC[{nc_range[0]}..{nc_range[1]}] "
             f"(overall {overall_start}..{overall_end})"
         )
 
@@ -173,9 +172,9 @@ def ongoing_scraper_job():
                             logger.error(f"Failed to upload images for citation {citation_num}: {e}")
                             logger.error(f"Traceback: {traceback.format_exc()}")
                     
-                    # Update last successful citation if this is higher than current
-                    if citation_num > last_citation:
-                        logger.debug(f"Updating last successful citation to {citation_num}")
+                    # Update last successful citation only for AA range, not NC
+                    if aa_range[0] <= citation_num <= aa_range[1] and citation_num > last_citation:
+                        logger.debug(f"Updating last successful citation (AA) to {citation_num}")
                         db_manager.update_last_successful_citation(citation_num)
                         last_citation = citation_num
                     
