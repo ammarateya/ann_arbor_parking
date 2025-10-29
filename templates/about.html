@@ -1,0 +1,224 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>About - Ann Arbor Parking Citations</title>
+    <meta
+      name="description"
+      content="How the Ann Arbor parking citation scraper works"
+    />
+    <style>
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+
+      body {
+        font-family: "SF Mono", "Monaco", "Menlo", "Consolas", "Liberation Mono",
+          monospace;
+        background: #0a0a0a;
+        color: #00ff00;
+        line-height: 1.6;
+        padding: 40px 20px;
+        max-width: 900px;
+        margin: 0 auto;
+      }
+
+      .header {
+        margin-bottom: 40px;
+        padding-bottom: 20px;
+        border-bottom: 2px solid #00ff00;
+      }
+
+      h1 {
+        font-size: 24px;
+        color: #00ff00;
+        text-shadow: 0 0 10px #00ff00;
+        margin-bottom: 10px;
+      }
+
+      .back-link {
+        display: inline-block;
+        margin-bottom: 20px;
+        color: #00ff00;
+        text-decoration: none;
+        border: 1px solid #00ff00;
+        padding: 8px 16px;
+        transition: all 0.2s;
+      }
+
+      .back-link:hover {
+        background: #00ff00;
+        color: #0a0a0a;
+      }
+
+      .content {
+        margin-bottom: 40px;
+      }
+
+      p {
+        margin-bottom: 20px;
+        font-size: 14px;
+      }
+
+      .methodology {
+        background: rgba(0, 255, 0, 0.05);
+        border: 1px solid #00ff00;
+        padding: 20px;
+        margin: 30px 0;
+      }
+
+      .methodology h2 {
+        font-size: 18px;
+        margin-bottom: 15px;
+        color: #00ff00;
+      }
+
+      .methodology p {
+        color: #ffffff;
+      }
+
+      .methodology ul {
+        list-style: none;
+        padding-left: 0;
+      }
+
+      .methodology li {
+        margin-bottom: 10px;
+        padding-left: 20px;
+        position: relative;
+        font-size: 14px;
+        color: #ffffff;
+      }
+
+      .methodology li:before {
+        content: "▶";
+        position: absolute;
+        left: 0;
+        color: #ffffff;
+      }
+
+      .receipt-image {
+        margin: 30px 0;
+        text-align: center;
+      }
+
+      .receipt-image img {
+        max-width: 400px;
+        width: 100%;
+        border: 2px solid #00ff00;
+        box-shadow: 0 0 20px rgba(0, 255, 0, 0.3);
+      }
+
+      .receipt-image figcaption {
+        margin-top: 10px;
+        font-size: 12px;
+        color: #888;
+        font-style: italic;
+      }
+
+      code {
+        background: rgba(0, 255, 0, 0.1);
+        padding: 2px 6px;
+        border: 1px solid #00ff00;
+        font-size: 13px;
+      }
+
+      @media (max-width: 768px) {
+        body {
+          padding: 20px 15px;
+        }
+
+        h1 {
+          font-size: 20px;
+        }
+
+        p {
+          font-size: 13px;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="header">
+      <a href="/" class="back-link">← Back to Map</a>
+      <h1>About This Project</h1>
+    </div>
+
+    <div class="content">
+      <p>
+        This map displays parking citations issued in Ann Arbor, Michigan. The
+        data is collected through automated scraping of the city's public
+        parking citation portal.
+      </p>
+
+      <div class="methodology">
+        <h2>How It Works</h2>
+        <p>
+          The citation numbers in Ann Arbor's system increment sequentially by
+          1. This means I can scrape the data at any moment by:
+        </p>
+        <ul>
+          <li>
+            Starting from a known citation number and incrementing to find new
+            citations
+          </li>
+          <li>
+            The system doesn't require authentication or special access—the
+            citations are publicly accessible
+          </li>
+          <li>
+            Each citation contains location data, violation details, amount due,
+            and other relevant information
+          </li>
+          <li>
+            The scraper runs automatically every couple minutes to capture new
+            citations as they're issued
+          </li>
+        </ul>
+      </div>
+
+      <p>
+        Below is an example of what a citation receipt looks like when accessed
+        through the portal:
+      </p>
+
+      <figure class="receipt-image">
+        <img
+          src="https://annarbor.citationportal.com/Citation/Image?CitationId=43dc0a4e-d6b4-f011-8e59-001dd8b724b7&MediaId=a37de9f0-d6b4-f011-8e59-001dd8b724b7"
+          alt="Example parking citation receipt"
+        />
+        <figcaption>
+          Sample parking citation receipt from Ann Arbor's public portal
+        </figcaption>
+      </figure>
+
+      <p>
+        The scraped data includes location information which is then geocoded to
+        display citations on this interactive map. Citation images are stored
+        and compressed for efficient access. OCR (Optical Character Recognition)
+        is used to extract text from citation images when needed, allowing for
+        automated processing of the data contained in the receipts.
+      </p>
+
+      <p>
+        This project is open-source and available for educational purposes. The
+        methodology demonstrates how sequential ID systems can make public data
+        more accessible.
+      </p>
+    </div>
+
+    <div
+      style="
+        text-align: center;
+        margin-top: 40px;
+        padding-top: 30px;
+        border-top: 2px solid #00ff00;
+      "
+    >
+      <a href="/" class="back-link">← Back to Map</a>
+    </div>
+  </body>
+</html>

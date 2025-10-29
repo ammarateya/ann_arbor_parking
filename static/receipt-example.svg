@@ -1,0 +1,38 @@
+<svg width="600" height="800" xmlns="http://www.w3.org/2000/svg">
+  <!-- Background -->
+  <rect width="600" height="800" fill="white" stroke="black" stroke-width="2"/>
+  
+  <!-- Header -->
+  <text x="300" y="50" font-family="Arial, sans-serif" font-size="20" font-weight="bold" text-anchor="middle" fill="black">PARKING CITATION</text>
+  <text x="300" y="80" font-family="Arial, sans-serif" font-size="16" text-anchor="middle" fill="black">City of Ann Arbor</text>
+  
+  <!-- Line separator -->
+  <line x1="20" y1="100" x2="580" y2="100" stroke="black" stroke-width="1"/>
+  
+  <!-- Citation details -->
+  <text x="30" y="130" font-family="Arial, sans-serif" font-size="14" fill="black">Citation Number:</text>
+  <text x="300" y="130" font-family="Arial, sans-serif" font-size="14" font-weight="bold" fill="black">123456789</text>
+  
+  <text x="30" y="160" font-family="Arial, sans-serif" font-size="14" fill="black">Issue Date:</text>
+  <text x="300" y="160" font-family="Arial, sans-serif" font-size="14" fill="black">01/15/2024 10:30 AM</text>
+  
+  <text x="30" y="190" font-family="Arial, sans-serif" font-size="14" fill="black">Location:</text>
+  <text x="300" y="190" font-family="Arial, sans-serif" font-size="14" fill="black">Main St &amp; Liberty St</text>
+  
+  <text x="30" y="240" font-family="Arial, sans-serif" font-size="14" fill="black">Violation:</text>
+  <text x="300" y="240" font-family="Arial, sans-serif" font-size="14" fill="black">Overtime Parking</text>
+  
+  <text x="30" y="270" font-family="Arial, sans-serif" font-size="14" fill="black">Amount Due:</text>
+  <text x="300" y="270" font-family="Arial, sans-serif" font-size="16" font-weight="bold" fill="black">$50.00</text>
+  
+  <text x="30" y="320" font-family="Arial, sans-serif" font-size="14" fill="black">Plate:</text>
+  <text x="300" y="320" font-family="Arial, sans-serif" font-size="14" fill="black">MI ABC-1234</text>
+  
+  <text x="30" y="370" font-family="Arial, sans-serif" font-size="12" fill="black">More information available at:</text>
+  <text x="30" y="400" font-family="Arial, sans-serif" font-size="12" fill="#0066cc">ann-arbor-parking-portal.gov</text>
+  
+  <!-- Bottom line -->
+  <line x1="20" y1="750" x2="580" y2="750" stroke="black" stroke-width="1"/>
+  <text x="300" y="780" font-family="Arial, sans-serif" font-size="14" text-anchor="middle" fill="black">Thank you</text>
+</svg>
+

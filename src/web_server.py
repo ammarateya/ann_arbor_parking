@@ -21,6 +21,12 @@ def index():
     """Main map page"""
     return render_template('map.html')
 
+@app.route('/about/')
+@app.route('/about')
+def about():
+    """About page explaining the scraping methodology"""
+    return render_template('about.html')
+
 @app.route('/api/health')
 def health_check():
     """Health check endpoint for Render"""
