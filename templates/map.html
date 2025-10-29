@@ -714,25 +714,42 @@
     </div>
 
     <div class="map-controls">
-      <button class="control-btn" onclick="resetView()">RESET</button>
-      <button class="control-btn" onclick="toggleTheme()" id="themeBtn">
-        LIGHT
+      <button class="control-btn" onclick="resetView()" id="resetBtn" title="Reset view" aria-label="Reset view">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <path d="M12 6V3L8 7l4 4V8c2.757 0 5 2.243 5 5s-2.243 5-5 5-5-2.243-5-5H5c0 3.866 3.134 7 7 7s7-3.134 7-7-3.134-7-7-7z" fill="#00ff00"/>
+        </svg>
+      </button>
+      <button class="control-btn" onclick="toggleTheme()" id="themeBtn" title="Toggle theme" aria-label="Toggle theme">
+        <!-- icon set by script -->
       </button>
     </div>
 
     <div class="legend">
       <div class="legend-header">LEGEND</div>
       <div class="legend-item">
-        <div class="legend-marker" style="background: rgba(255, 0, 64, 0.7); border: 1px solid #ff0040;"></div>
+        <div
+          class="legend-marker"
+          style="background: rgba(255, 0, 64, 0.7); border: 1px solid #ff0040"
+        ></div>
         <span class="legend-text">>= $50: <span id="legendRed">0</span></span>
       </div>
       <div class="legend-item">
-        <div class="legend-marker" style="background: rgba(255, 128, 0, 0.7); border: 1px solid #ff8000;"></div>
-        <span class="legend-text">>= $30: <span id="legendOrange">0</span></span>
+        <div
+          class="legend-marker"
+          style="background: rgba(255, 128, 0, 0.7); border: 1px solid #ff8000"
+        ></div>
+        <span class="legend-text"
+          >>= $30: <span id="legendOrange">0</span></span
+        >
       </div>
       <div class="legend-item">
-        <div class="legend-marker" style="background: rgba(0, 255, 0, 0.7); border: 1px solid #00ff00;"></div>
-        <span class="legend-text">&lt; $30: <span id="legendGreen">0</span></span>
+        <div
+          class="legend-marker"
+          style="background: rgba(0, 255, 0, 0.7); border: 1px solid #00ff00"
+        ></div>
+        <span class="legend-text"
+          >&lt; $30: <span id="legendGreen">0</span></span
+        >
       </div>
     </div>
 
@@ -770,6 +787,35 @@
           maxZoom: 20,
         }
       ).addTo(map);
+
+      // Icon helpers
+      function getSunIcon() {
+        return '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">\
+          <circle cx="12" cy="12" r="4" fill="#00ff00"/>\
+          <g stroke="#00ff00" stroke-width="2">\
+            <line x1="12" y1="1" x2="12" y2="4"/>\
+            <line x1="12" y1="20" x2="12" y2="23"/>\
+            <line x1="1" y1="12" x2="4" y2="12"/>\
+            <line x1="20" y1="12" x2="23" y2="12"/>\
+            <line x1="4.22" y1="4.22" x2="6.34" y2="6.34"/>\
+            <line x1="17.66" y1="17.66" x2="19.78" y2="19.78"/>\
+            <line x1="4.22" y1="19.78" x2="6.34" y2="17.66"/>\
+            <line x1="17.66" y1="6.34" x2="19.78" y2="4.22"/>\
+          </g>\
+        </svg>';
+      }
+
+      function getMoonIcon() {
+        return '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">\
+          <path d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z" fill="#00ff00"/>\
+        </svg>';
+      }
+
+      // Set initial theme toggle icon (action: switch to light → sun)
+      (function initIcons(){
+        const themeBtn = document.getElementById('themeBtn');
+        if (themeBtn) themeBtn.innerHTML = getSunIcon();
+      })();
 
       // Store citations data
       let citations = [];
@@ -927,9 +973,12 @@
             });
 
             // Update legend counts
-            document.getElementById("legendRed").textContent = redCount.toLocaleString();
-            document.getElementById("legendOrange").textContent = orangeCount.toLocaleString();
-            document.getElementById("legendGreen").textContent = greenCount.toLocaleString();
+            document.getElementById("legendRed").textContent =
+              redCount.toLocaleString();
+            document.getElementById("legendOrange").textContent =
+              orangeCount.toLocaleString();
+            document.getElementById("legendGreen").textContent =
+              greenCount.toLocaleString();
 
             // Geocode and place markers
             await placeMarkers();
@@ -1174,7 +1223,7 @@
               maxZoom: 20,
             }
           );
-          document.getElementById("themeBtn").textContent = "LIGHT";
+          document.getElementById("themeBtn").innerHTML = getSunIcon();
         } else {
           // Light theme
           currentTileLayer = L.tileLayer(
@@ -1186,7 +1235,7 @@
               maxZoom: 20,
             }
           );
-          document.getElementById("themeBtn").textContent = "DARK";
+          document.getElementById("themeBtn").innerHTML = getMoonIcon();
         }
 
         currentTileLayer.addTo(map);
