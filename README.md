@@ -76,10 +76,21 @@ The API will automatically deploy when you push to main branch.
 - `GET /api/citations` - Map data
 - `GET /api/search` - Search by plate, citation, or location
 - `GET /stats` - Scraper statistics and storage info
-- `POST /api/subscribe` - Body: `{ plate_state, plate_number, email? , webhook_url? }`
-- `POST /api/unsubscribe` - Body: `{ plate_state, plate_number, email? , webhook_url? }`
+- `POST /api/subscribe` - Body: plate OR location plus contact
+  - Plate: `{ plate_state, plate_number, email? , webhook_url? }`
+  - Location: `{ center_lat, center_lon, radius_m, email? , webhook_url? }`
+- `POST /api/unsubscribe` - Body mirrors subscribe
 
 At least one of `email` or `webhook_url` is required.
+
+### Gmail API (optional, if SMTP doesn’t work)
+
+- Install extras (already in `requirements.txt`): `google-api-python-client`, `google-auth`, `google-auth-oauthlib`.
+- Create OAuth client (Desktop) and generate a token file with scope `gmail.send`.
+- Set env vars:
+  - `FROM_EMAIL` (sender address)
+  - `GMAIL_TOKEN_FILE` (default `gmail_token.json`)
+    The app will try SMTP first; if not configured, it will fall back to Gmail API.
 
 ## 🔄 GitHub Actions
 

@@ -292,14 +292,13 @@ def stats():
 
 @app.route('/api/subscribe', methods=['POST'])
 def subscribe():
-    """Create or upsert a subscription to notifications by plate.
+    """Create or upsert a subscription to notifications.
 
-    JSON body:
-      - plate_state (required)
-      - plate_number (required)
-      - email (optional)
-      - webhook_url (optional)
-    One of email or webhook_url must be provided.
+    Supports two modes:
+      - Plate: { plate_state, plate_number }
+      - Location: { center_lat, center_lon, radius_m }
+
+    JSON body must include one of the above groups, plus at least one of: email or webhook_url.
     """
     try:
         payload = request.get_json(force=True, silent=False) or {}
@@ -307,21 +306,34 @@ def subscribe():
         plate_number = (payload.get('plate_number') or '').strip()
         email = (payload.get('email') or '').strip() or None
         webhook_url = (payload.get('webhook_url') or '').strip() or None
-
-        if not plate_state or not plate_number:
-            return jsonify({'status': 'error', 'error': 'plate_state and plate_number are required'}), 400
         if not email and not webhook_url:
             return jsonify({'status': 'error', 'error': 'email or webhook_url is required'}), 400
 
         db_manager = DatabaseManager(DB_CONFIG)
-        result = db_manager.add_subscription(plate_state, plate_number, email=email, webhook_url=webhook_url)
-        return jsonify({'status': 'success', 'subscription': result.get('data')}), 200
+        # Plate subscription
+        if plate_state and plate_number:
+            result = db_manager.add_subscription(plate_state, plate_number, email=email, webhook_url=webhook_url)
+            return jsonify({'status': 'success', 'subscription': result.get('data')}), 200
+
+        # Location subscription
+        try:
+            center_lat = float(payload.get('center_lat')) if payload.get('center_lat') is not None else None
+            center_lon = float(payload.get('center_lon')) if payload.get('center_lon') is not None else None
+            radius_m = float(payload.get('radius_m')) if payload.get('radius_m') is not None else None
+        except ValueError:
+            return jsonify({'status': 'error', 'error': 'center_lat, center_lon, and radius_m must be numbers'}), 400
+
+        if center_lat is not None and center_lon is not None and radius_m is not None:
+            result = db_manager.add_location_subscription(center_lat, center_lon, radius_m, email=email, webhook_url=webhook_url)
+            return jsonify({'status': 'success', 'subscription': result.get('data')}), 200
+
+        return jsonify({'status': 'error', 'error': 'provide either plate_state+plate_number or center_lat+center_lon+radius_m'}), 400
     except Exception as e:
         return jsonify({'status': 'error', 'error': str(e)}), 500
 
 @app.route('/api/unsubscribe', methods=['POST'])
 def unsubscribe():
-    """Deactivate a subscription matching the plate and contact."""
+    """Deactivate a subscription matching the plate or location and contact."""
     try:
         payload = request.get_json(force=True, silent=False) or {}
         plate_state = (payload.get('plate_state') or '').strip().upper()
@@ -329,14 +341,26 @@ def unsubscribe():
         email = (payload.get('email') or '').strip() or None
         webhook_url = (payload.get('webhook_url') or '').strip() or None
 
-        if not plate_state or not plate_number:
-            return jsonify({'status': 'error', 'error': 'plate_state and plate_number are required'}), 400
         if not email and not webhook_url:
             return jsonify({'status': 'error', 'error': 'email or webhook_url is required'}), 400
 
         db_manager = DatabaseManager(DB_CONFIG)
-        result = db_manager.deactivate_subscription(plate_state, plate_number, email=email, webhook_url=webhook_url)
-        return jsonify({'status': 'success', 'unsubscribed': result.get('data')}), 200
+        if plate_state and plate_number:
+            result = db_manager.deactivate_subscription(plate_state, plate_number, email=email, webhook_url=webhook_url)
+            return jsonify({'status': 'success', 'unsubscribed': result.get('data')}), 200
+
+        try:
+            center_lat = float(payload.get('center_lat')) if payload.get('center_lat') is not None else None
+            center_lon = float(payload.get('center_lon')) if payload.get('center_lon') is not None else None
+            radius_m = float(payload.get('radius_m')) if payload.get('radius_m') is not None else None
+        except ValueError:
+            return jsonify({'status': 'error', 'error': 'center_lat, center_lon, and radius_m must be numbers'}), 400
+
+        if center_lat is not None and center_lon is not None and radius_m is not None:
+            result = db_manager.deactivate_location_subscription(center_lat, center_lon, radius_m, email=email, webhook_url=webhook_url)
+            return jsonify({'status': 'success', 'unsubscribed': result.get('data')}), 200
+
+        return jsonify({'status': 'error', 'error': 'provide either plate_state+plate_number or center_lat+center_lon+radius_m'}), 400
     except Exception as e:
         return jsonify({'status': 'error', 'error': str(e)}), 500
 

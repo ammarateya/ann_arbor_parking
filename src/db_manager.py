@@ -257,6 +257,96 @@ class DatabaseManager:
             logger.error(f"Failed to find subscriptions for plate {plate_state} {plate_number}: {e}")
             return []
 
+    def add_location_subscription(self, center_lat: float, center_lon: float, radius_m: float, email: Optional[str] = None, webhook_url: Optional[str] = None) -> Dict:
+        """Create a location-based subscription."""
+        if not email and not webhook_url:
+            raise ValueError("Either email or webhook_url must be provided")
+        if radius_m <= 0 or radius_m > 100000:
+            raise ValueError("radius_m must be between 1 and 100000 meters")
+        try:
+            payload = {
+                'sub_type': 'location',
+                'center_lat': center_lat,
+                'center_lon': center_lon,
+                'radius_m': radius_m,
+                'email': email,
+                'webhook_url': webhook_url,
+                'is_active': True,
+            }
+            result = self.supabase.table('subscriptions').insert(payload).execute()
+            return {'status': 'success', 'data': result.data}
+        except Exception as e:
+            logger.error(f"Failed to add location subscription: {e}")
+            raise
+
+    def deactivate_location_subscription(self, center_lat: float, center_lon: float, radius_m: float, email: Optional[str] = None, webhook_url: Optional[str] = None) -> Dict:
+        """Deactivate location-based subscriptions matching provided params and contact."""
+        if not email and not webhook_url:
+            raise ValueError("Either email or webhook_url must be provided")
+        try:
+            query = (
+                self.supabase
+                .table('subscriptions')
+                .update({'is_active': False})
+                .eq('sub_type', 'location')
+                .eq('center_lat', center_lat)
+                .eq('center_lon', center_lon)
+                .eq('radius_m', radius_m)
+                .eq('is_active', True)
+            )
+            if email:
+                query = query.eq('email', email)
+            if webhook_url:
+                query = query.eq('webhook_url', webhook_url)
+            result = query.execute()
+            return {'status': 'success', 'data': result.data}
+        except Exception as e:
+            logger.error(f"Failed to deactivate location subscription: {e}")
+            raise
+
+    def find_active_location_subscriptions_for_point(self, lat: float, lon: float) -> List[Dict]:
+        """Return active location subscriptions whose radius covers the provided point.
+
+        Note: We filter coarse candidates in SQL-like fashion in app by reading subs of type 'location',
+        then apply precise haversine distance here.
+        """
+        try:
+            result = (
+                self.supabase
+                .table('subscriptions')
+                .select('*')
+                .eq('sub_type', 'location')
+                .eq('is_active', True)
+                .not_.is_('center_lat', 'null')
+                .not_.is_('center_lon', 'null')
+                .not_.is_('radius_m', 'null')
+                .execute()
+            )
+            subs = result.data or []
+        except Exception as e:
+            logger.error(f"Failed to load location subscriptions: {e}")
+            return []
+
+        import math
+        def haversine_m(lat1, lon1, lat2, lon2):
+            R = 6371000.0
+            phi1 = math.radians(lat1)
+            phi2 = math.radians(lat2)
+            dphi = math.radians(lat2 - lat1)
+            dlambda = math.radians(lon2 - lon1)
+            a = math.sin(dphi/2)**2 + math.cos(phi1) * math.cos(phi2) * math.sin(dlambda/2)**2
+            return 2 * R * math.asin(math.sqrt(a))
+
+        matched = []
+        for s in subs:
+            try:
+                d = haversine_m(lat, lon, float(s['center_lat']), float(s['center_lon']))
+                if d <= float(s['radius_m']):
+                    matched.append(s)
+            except Exception:
+                continue
+        return matched
+
     def get_cached_coords_for_location(self, location: str) -> Optional[Tuple[float, float]]:
         """Return (lat, lon) for a location if any citation has already been geocoded.
 

@@ -5,6 +5,15 @@ from email.mime.multipart import MIMEMultipart
 from typing import List, Dict
 import os
 from datetime import datetime
+import base64
+from email.message import EmailMessage
+
+try:
+    from google.oauth2.credentials import Credentials
+    from googleapiclient.discovery import build
+except Exception:
+    Credentials = None
+    build = None
 
 
 class EmailNotifier:
@@ -14,6 +23,9 @@ class EmailNotifier:
         self.email_user = os.getenv('EMAIL_USER')
         self.email_password = os.getenv('EMAIL_PASSWORD')
         self.notification_email = os.getenv('NOTIFICATION_EMAIL', 'ammarat@umich.edu')
+        # Gmail API fallback config
+        self.gmail_token_file = os.getenv('GMAIL_TOKEN_FILE', 'gmail_token.json')
+        self.gmail_from_email = os.getenv('FROM_EMAIL', self.email_user or 'no-reply@example.com')
         
     def send_notification(self, successful_citations: List[Dict], total_processed: int, errors: List[str] = None, images_uploaded: int = 0):
         """Send email notification about scraper run results"""
@@ -77,7 +89,7 @@ class EmailNotifier:
                     <td>{citation.get('location', 'N/A')}</td>
                     <td>{citation.get('plate_state', 'N/A')} {citation.get('plate_number', 'N/A')}</td>
                     <td>{citation.get('issue_date', 'N/A')}</td>
-                    <td>${citation.get('amount_due', 'N/A')}</td>
+                    <td>${{citation.get('amount_due', 'N/A')}}</td>
                     <td><a href="{citation.get('more_info_url', '#')}">View Details</a></td>
                 </tr>
                 """
@@ -101,17 +113,25 @@ class EmailNotifier:
         
         return html
 
-    def send_ticket_alert(self, to_email: str, citation: Dict) -> bool:
-        """Send a single ticket alert to a subscriber."""
-        if not self.email_user or not self.email_password:
-            logging.warning("Email credentials not configured, skipping subscriber email")
-            return False
+    def send_ticket_alert(self, to_email: str, citation: Dict, context: Dict | None = None) -> bool:
+        """Send a single ticket alert to a subscriber.
+
+        context may include:
+          - type: 'plate' | 'location'
+          - plate_state, plate_number (for type='plate')
+          - center_lat, center_lon, radius_m (for type='location')
+        """
         try:
             msg = MIMEMultipart()
-            msg['From'] = self.email_user
+            msg['From'] = self.gmail_from_email if not (self.email_user and self.email_password) else self.email_user
             msg['To'] = to_email
             subject_citation = citation.get('citation_number', 'New Citation')
-            msg['Subject'] = f"Parking Ticket Alert: Citation {subject_citation}"
+            subject_prefix = "Parking Ticket Alert"
+            if context and context.get('type') == 'plate':
+                subject_prefix = "Plate Alert"
+            elif context and context.get('type') == 'location':
+                subject_prefix = "Location Alert"
+            msg['Subject'] = f"{subject_prefix}: Citation {subject_citation}"
 
             details_url = citation.get('more_info_url', '#')
             amount_due = citation.get('amount_due')
@@ -120,10 +140,19 @@ class EmailNotifier:
             issue_date = citation.get('issue_date', 'Unknown')
             location = citation.get('location', 'Unknown')
 
+            header_line = "Your vehicle may have received a parking ticket"
+            if context and context.get('type') == 'plate':
+                header_line = f"You subscribed for plate {plate}. We just found a matching ticket."
+            elif context and context.get('type') == 'location':
+                clat = context.get('center_lat')
+                clon = context.get('center_lon')
+                rad = context.get('radius_m')
+                header_line = f"You subscribed for a {rad} m radius around ({clat}, {clon}). A citation appeared in that area."
+
             body = f"""
             <html>
             <body>
-                <h2>Your vehicle may have received a parking ticket</h2>
+                <h2>{header_line}</h2>
                 <ul>
                     <li><strong>Plate</strong>: {plate}</li>
                     <li><strong>Citation</strong>: {subject_citation}</li>
@@ -132,18 +161,48 @@ class EmailNotifier:
                     <li><strong>Location</strong>: {location}</li>
                 </ul>
                 <p><a href="{details_url}">View details</a></p>
-                <p style="color:#666">You received this because you subscribed on the ticket map.</p>
+                <p style="color:#666">You're receiving this because you subscribed on the ticket map.</p>
             </body>
             </html>
             """
             msg.attach(MIMEText(body, 'html'))
 
-            with smtplib.SMTP(self.smtp_host, self.smtp_port) as server:
-                server.starttls()
-                server.login(self.email_user, self.email_password)
-                server.send_message(msg)
-            logging.info(f"Sent ticket alert to {to_email}")
-            return True
+            # Prefer SMTP if configured
+            if self.email_user and self.email_password:
+                with smtplib.SMTP(self.smtp_host, self.smtp_port) as server:
+                    server.starttls()
+                    server.login(self.email_user, self.email_password)
+                    server.send_message(msg)
+                logging.info(f"Sent ticket alert via SMTP to {to_email}")
+                return True
+
+            # Gmail API fallback if token and libs present
+            if Credentials and build and os.path.exists(self.gmail_token_file):
+                try:
+                    creds = Credentials.from_authorized_user_file(
+                        self.gmail_token_file,
+                        scopes=['https://www.googleapis.com/auth/gmail.send']
+                    )
+                    service = build('gmail', 'v1', credentials=creds)
+                    em = EmailMessage()
+                    em['To'] = to_email
+                    em['From'] = self.gmail_from_email
+                    em['Subject'] = msg['Subject']
+                    # reuse HTML body
+                    html_body = msg.get_payload()[0].get_payload()
+                    em.set_content('This email requires HTML')
+                    em.add_alternative(html_body, subtype='html')
+
+                    raw = base64.urlsafe_b64encode(em.as_bytes()).decode()
+                    service.users().messages().send(userId='me', body={'raw': raw}).execute()
+                    logging.info(f"Sent ticket alert via Gmail API to {to_email}")
+                    return True
+                except Exception as ge:
+                    logging.error(f"Gmail API send failed: {ge}")
+                    return False
+
+            logging.warning("No SMTP or Gmail API configured; skipping email")
+            return False
         except Exception as e:
             logging.error(f"Failed to send ticket alert to {to_email}: {e}")
             return False

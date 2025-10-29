@@ -1125,6 +1125,102 @@
         <button class="time-filter-btn" id="searchBtn">GO</button>
         <button class="time-filter-btn" id="clearSearchBtn">CLEAR</button>
       </div>
+      <button
+        class="control-btn"
+        id="notifyToggleBtn"
+        title="Notifications"
+        aria-label="Notifications"
+      >
+        <!-- bell icon set by script -->
+      </button>
+      <div
+        id="notifyPanel"
+        style="
+          display: none;
+          background: #0a0a0a;
+          border: 2px solid #00ff00;
+          padding: 8px;
+          gap: 6px;
+          align-items: flex-start;
+          flex-direction: column;
+        "
+      >
+        <div style="display: flex; gap: 8px; align-items: center">
+          <span class="time-filter-label">SUBSCRIBE:</span>
+          <span class="select-wrap">
+            <select id="notifyMode" class="select-control">
+              <option value="plate">PLATE</option>
+              <option value="location">LOCATION</option>
+            </select>
+          </span>
+        </div>
+        <div
+          id="notifyPlate"
+          style="display: flex; gap: 6px; align-items: center"
+        >
+          <input
+            id="notifyPlateState"
+            placeholder="MI"
+            maxlength="2"
+            class="search-input"
+            style="width: 56px; text-transform: uppercase"
+          />
+          <input
+            id="notifyPlateNumber"
+            placeholder="GOBLUE"
+            class="search-input"
+            style="min-width: 120px; width: 140px"
+          />
+        </div>
+        <div
+          id="notifyLocation"
+          style="display: none; gap: 6px; align-items: center; flex-wrap: wrap"
+        >
+          <button
+            class="time-filter-btn"
+            id="notifyPickCenterBtn"
+            title="Pick center on map"
+          >
+            PICK
+          </button>
+          <input
+            id="notifyRadiusMeters"
+            type="number"
+            min="10"
+            max="100000"
+            value="250"
+            step="10"
+            class="search-input"
+            style="width: 100px"
+          />
+          <span class="time-filter-label">RADIUS (m)</span>
+          <span
+            id="notifyPickedText"
+            style="color: #888; font-size: 10px; margin-left: 6px"
+            >center: none</span
+          >
+        </div>
+        <div
+          style="display: flex; gap: 6px; align-items: center; flex-wrap: wrap"
+        >
+          <input
+            id="notifyEmail"
+            placeholder="Email (optional)"
+            class="search-input"
+            style="min-width: 200px"
+          />
+          <input
+            id="notifyWebhook"
+            placeholder="Webhook URL (optional)"
+            class="search-input"
+            style="min-width: 220px"
+          />
+          <button class="time-filter-btn" id="notifySubmitBtn">
+            SUBSCRIBE
+          </button>
+        </div>
+        <div id="notifyMsg" style="font-size: 10px; color: #888"></div>
+      </div>
     </div>
 
     <!-- Location search hint overlay -->
@@ -1250,12 +1346,21 @@
         </svg>';
       }
 
+      function getBellIcon() {
+        return '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">\
+          <path d="M12 22a2 2 0 002-2H10a2 2 0 002 2z" fill="#00ff00"/>\
+          <path d="M18 16v-5a6 6 0 10-12 0v5l-2 2h16l-2-2z" stroke="#00ff00" stroke-width="2" fill="none"/>\
+        </svg>';
+      }
+
       // Set initial theme toggle icon (action: switch to light → sun)
       (function initIcons() {
         const themeBtn = document.getElementById("themeBtn");
         if (themeBtn) themeBtn.innerHTML = getSunIcon();
         const searchBtn = document.getElementById("searchToggleBtn");
         if (searchBtn) searchBtn.innerHTML = getSearchIcon();
+        const notifyBtn = document.getElementById("notifyToggleBtn");
+        if (notifyBtn) notifyBtn.innerHTML = getBellIcon();
       })();
 
       // Store citations data
@@ -2186,6 +2291,190 @@
 
       // Load citations on page load
       loadCitations();
+
+      // Notifications UI (bell)
+      (function initNotifyUI() {
+        const toggleBtn = document.getElementById("notifyToggleBtn");
+        const panel = document.getElementById("notifyPanel");
+        const modeEl = document.getElementById("notifyMode");
+        const plateRow = document.getElementById("notifyPlate");
+        const locRow = document.getElementById("notifyLocation");
+        const pickBtn = document.getElementById("notifyPickCenterBtn");
+        const radiusEl = document.getElementById("notifyRadiusMeters");
+        const pickedText = document.getElementById("notifyPickedText");
+        const submitBtn = document.getElementById("notifySubmitBtn");
+        const msg = document.getElementById("notifyMsg");
+        const searchPanel = document.getElementById("searchPanel");
+        const searchHint = document.getElementById("searchHint");
+        let pendingPickNotify = false;
+        let notifyCircle = null;
+
+        // Add a subtle subscribe tip if not present
+        if (panel && !document.getElementById("notifyTip")) {
+          const tip = document.createElement("div");
+          tip.id = "notifyTip";
+          tip.style.cssText =
+            "margin-top:6px; padding:8px; border:1px dashed #00ff00; color:#00ff00; font-size:10px; background:rgba(0,255,0,0.05)";
+          tip.textContent =
+            "Tip: Subscribe by plate, or pick a center & radius to get alerts for that area.";
+          panel.appendChild(tip);
+        }
+
+        function updateNotifyInputs() {
+          const mode = modeEl.value;
+          plateRow.style.display = mode === "plate" ? "flex" : "none";
+          locRow.style.display = mode === "location" ? "flex" : "none";
+          msg.textContent = "";
+
+          // Visual cue for location notifications
+          if (mode === "location") {
+            if (searchHint) searchHint.style.bottom = "180px"; // move up to avoid overlap
+            const r = parseFloat(radiusEl.value || "0");
+            if (searchCenter && !isNaN(r) && r > 0) {
+              if (notifyCircle) map.removeLayer(notifyCircle);
+              notifyCircle = L.circle([searchCenter.lat, searchCenter.lon], {
+                radius: r,
+                color: "#00ffff",
+                dashArray: "6 6",
+              }).addTo(map);
+            }
+          } else {
+            if (searchHint) searchHint.style.bottom = "100px";
+            if (notifyCircle) {
+              map.removeLayer(notifyCircle);
+              notifyCircle = null;
+            }
+          }
+        }
+        modeEl.addEventListener("change", updateNotifyInputs);
+        updateNotifyInputs();
+
+        if (toggleBtn && panel) {
+          toggleBtn.addEventListener("click", () => {
+            const opening = panel.style.display === "none";
+            panel.style.display = opening ? "flex" : "none";
+            if (opening) {
+              // Close search panel for clean UX
+              if (searchPanel) searchPanel.style.display = "none";
+              // Reset any active search state
+              isSearchActive = false;
+              if (searchCircle) {
+                map.removeLayer(searchCircle);
+                searchCircle = null;
+              }
+              showOnlyMarkers(citations);
+              updateNotifyInputs();
+            } else {
+              msg.textContent = "";
+              if (searchHint) searchHint.style.bottom = "100px";
+              if (notifyCircle) {
+                map.removeLayer(notifyCircle);
+                notifyCircle = null;
+              }
+            }
+          });
+        }
+
+        pickBtn.addEventListener("click", () => {
+          pendingPickNotify = true;
+          pickedText.textContent = "tap map to set center";
+          if (searchHint) searchHint.style.bottom = "180px";
+          if (map && map._container) map._container.style.cursor = "crosshair";
+        });
+
+        map.on("click", (e) => {
+          if (!pendingPickNotify) return;
+          pendingPickNotify = false;
+          searchCenter = { lat: e.latlng.lat, lon: e.latlng.lng };
+          pickedText.textContent = `center: ${searchCenter.lat.toFixed(
+            5
+          )}, ${searchCenter.lon.toFixed(5)}`;
+          // Draw/update cyan preview circle
+          const r = parseFloat(radiusEl.value || "0");
+          if (notifyCircle) map.removeLayer(notifyCircle);
+          if (!isNaN(r) && r > 0) {
+            notifyCircle = L.circle([searchCenter.lat, searchCenter.lon], {
+              radius: r,
+              color: "#00ffff",
+              dashArray: "6 6",
+            }).addTo(map);
+          }
+          if (map && map._container) map._container.style.cursor = "";
+        });
+
+        // Live update preview when radius changes in notify panel
+        radiusEl.addEventListener("input", () => {
+          const r = parseFloat(radiusEl.value || "0");
+          if (notifyCircle && !isNaN(r)) notifyCircle.setRadius(r);
+        });
+
+        submitBtn.addEventListener("click", async () => {
+          msg.style.color = "#888";
+          msg.textContent = "";
+          const email = (
+            document.getElementById("notifyEmail").value || ""
+          ).trim();
+          const webhook_url = (
+            document.getElementById("notifyWebhook").value || ""
+          ).trim();
+          if (!email && !webhook_url) {
+            msg.style.color = "#ff8080";
+            msg.textContent = "Provide email or webhook URL";
+            return;
+          }
+          const mode = modeEl.value;
+          let payload = {
+            email: email || undefined,
+            webhook_url: webhook_url || undefined,
+          };
+          if (mode === "plate") {
+            const st = (document.getElementById("notifyPlateState").value || "")
+              .trim()
+              .toUpperCase();
+            const pn = (
+              document.getElementById("notifyPlateNumber").value || ""
+            ).trim();
+            if (!st || !pn) {
+              msg.style.color = "#ff8080";
+              msg.textContent = "Enter plate state and number";
+              return;
+            }
+            payload.plate_state = st;
+            payload.plate_number = pn;
+          } else {
+            const r = parseFloat(radiusEl.value || "0");
+            if (!searchCenter || isNaN(r) || r <= 0) {
+              msg.style.color = "#ff8080";
+              msg.textContent = "Pick a center and set a positive radius";
+              return;
+            }
+            payload.center_lat = searchCenter.lat;
+            payload.center_lon = searchCenter.lon;
+            payload.radius_m = r;
+          }
+          try {
+            const resp = await fetch("/api/subscribe", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify(payload),
+            });
+            const data = await resp.json().catch(() => ({}));
+            if (resp.ok) {
+              msg.style.color = "#80ff80";
+              msg.textContent =
+                mode === "plate"
+                  ? "Subscribed: you'll get alerts when this plate is ticketed."
+                  : "Subscribed: you'll get alerts for tickets in this area.";
+            } else {
+              msg.style.color = "#ff8080";
+              msg.textContent = data.error || "Failed to subscribe";
+            }
+          } catch (err) {
+            msg.style.color = "#ff8080";
+            msg.textContent = "Network error";
+          }
+        });
+      })();
     </script>
   </body>
 </html>

@@ -26,3 +26,8 @@ opencv-python==4.10.0.84
 numpy==2.1.2
 
 
+# Gmail API (optional fallback to send email without SMTP)
+google-api-python-client==2.149.0
+google-auth==2.35.0
+google-auth-oauthlib==1.2.1
+

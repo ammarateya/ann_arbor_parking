@@ -72,3 +72,21 @@ create table if not exists public.subscriptions (
 
 create index if not exists idx_subscriptions_plate on public.subscriptions (plate_state, plate_number) where is_active;
 
+-- Extend subscriptions to support location-based alerts
+do $$ begin
+  if not exists (select 1 from information_schema.columns where table_name='subscriptions' and column_name='sub_type') then
+    alter table public.subscriptions add column sub_type text default 'plate';
+  end if;
+  if not exists (select 1 from information_schema.columns where table_name='subscriptions' and column_name='center_lat') then
+    alter table public.subscriptions add column center_lat double precision;
+  end if;
+  if not exists (select 1 from information_schema.columns where table_name='subscriptions' and column_name='center_lon') then
+    alter table public.subscriptions add column center_lon double precision;
+  end if;
+  if not exists (select 1 from information_schema.columns where table_name='subscriptions' and column_name='radius_m') then
+    alter table public.subscriptions add column radius_m double precision;
+  end if;
+end $$;
+
+create index if not exists idx_subscriptions_location on public.subscriptions (is_active, sub_type);
+

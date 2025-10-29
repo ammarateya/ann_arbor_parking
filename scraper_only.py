@@ -208,11 +208,44 @@ def ongoing_scraper_job():
                                 logger.info(f"Found {len(subs)} subscriber(s) for {result.get('plate_state')} {result.get('plate_number')}")
                             for sub in subs:
                                 if sub.get('email'):
-                                    email_notifier.send_ticket_alert(sub['email'], result)
+                                    email_notifier.send_ticket_alert(
+                                        sub['email'],
+                                        result,
+                                        context={
+                                            'type': 'plate',
+                                            'plate_state': result.get('plate_state'),
+                                            'plate_number': result.get('plate_number'),
+                                        },
+                                    )
                                 if sub.get('webhook_url'):
                                     webhook_notifier.send_ticket_alert(sub['webhook_url'], result)
                         except Exception as e:
                             logger.error(f"Failed notifying subscribers for {citation_num}: {e}")
+
+                        # Notify subscribers for matching location
+                        try:
+                            if result.get('latitude') and result.get('longitude'):
+                                lat = float(result.get('latitude'))
+                                lon = float(result.get('longitude'))
+                                loc_subs = db_manager.find_active_location_subscriptions_for_point(lat, lon)
+                                if loc_subs:
+                                    logger.info(f"Found {len(loc_subs)} location subscriber(s) for citation {citation_num}")
+                                for sub in loc_subs:
+                                    if sub.get('email'):
+                                        email_notifier.send_ticket_alert(
+                                            sub['email'],
+                                            result,
+                                            context={
+                                                'type': 'location',
+                                                'center_lat': sub.get('center_lat'),
+                                                'center_lon': sub.get('center_lon'),
+                                                'radius_m': sub.get('radius_m'),
+                                            },
+                                        )
+                                    if sub.get('webhook_url'):
+                                        webhook_notifier.send_ticket_alert(sub['webhook_url'], result)
+                        except Exception as e:
+                            logger.error(f"Failed notifying location subscribers for {citation_num}: {e}")
 
                         # Geocode address for map display with caching and nonstandard resolution
                         if result.get('location'):
