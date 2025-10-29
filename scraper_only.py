@@ -152,11 +152,15 @@ def ongoing_scraper_job():
             existing_citations = db_manager.get_existing_citation_numbers_in_range(start_range, end_range)
             logger.info(f"Found {len(existing_citations)} existing citations in {label} range. Will skip these.")
 
-            for citation_num in range(start_range, end_range + 1):
+            total_in_range = (end_range - start_range) + 1
+            for idx, citation_num in enumerate(range(start_range, end_range + 1), start=1):
                 # Skip if citation already exists in database
                 if citation_num in existing_citations:
                     logger.debug(f"Skipping citation {citation_num} - already exists in database")
                     skipped_existing += 1
+                    # No network request made here, so do not sleep
+                    if idx % 50 == 0:
+                        logger.info(f"[{label}] Progress: {idx}/{total_in_range} in range; skipped so far: {skipped_existing}")
                     continue
 
                 try:
@@ -241,7 +245,7 @@ def ongoing_scraper_job():
                     logger.error(f"Traceback: {traceback.format_exc()}")
                     errors.append(error_msg)
 
-                # Small delay between requests to be respectful
+                # Small delay between requests to be respectful (only after we made a request)
                 time.sleep(1)
             
     except Exception as e:
