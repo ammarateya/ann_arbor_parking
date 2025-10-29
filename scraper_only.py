@@ -42,7 +42,15 @@ DB_CONFIG = {
 }
 
 def ongoing_scraper_job():
-    """Run scraper job with ±100 range from last successful citation"""
+    """Run scraper job across two seeds with configurable ± range.
+
+    Seeds:
+      - Ann Arbor seed: AA_BASE_SEED env var (defaults to last successful citation)
+      - North Campus seed: NC_BASE_SEED env var (defaults to 2081673)
+
+    Range size:
+      - SCRAPE_RANGE_SIZE env var (defaults to 200)
+    """
     logger.info("Starting ongoing scraper job...")
     
     try:
@@ -77,22 +85,49 @@ def ongoing_scraper_job():
         last_citation = db_manager.get_last_successful_citation()
         if not last_citation:
             logger.error("No last successful citation found.")
-            return
-        
+            return 
+
         logger.info(f"Last successful citation: {last_citation}")
-        
-        # Use ±100 range as requested
-        start_range = last_citation - 100
-        end_range = last_citation + 100
-        
-        logger.info(f"Processing citations from {start_range} to {end_range} (last successful: {last_citation})")
-        
-        # Get all existing citation numbers in this range to avoid duplicate processing
-        logger.info("Fetching existing citations in range to optimize processing...")
-        existing_citations = db_manager.get_existing_citation_numbers_in_range(start_range, end_range)
-        logger.info(f"Found {len(existing_citations)} existing citations in range. Will skip these.")
-        
-        for citation_num in range(start_range, end_range + 1):
+
+        # Configure seeds and range size from environment
+        try:
+            aa_seed = int(os.getenv('AA_BASE_SEED', str(last_citation)))
+        except ValueError:
+            aa_seed = last_citation
+        try:
+            nc_seed = int(os.getenv('NC_BASE_SEED', '2081673'))
+        except ValueError:
+            nc_seed = 2081673
+        try:
+            range_size = int(os.getenv('SCRAPE_RANGE_SIZE', '200'))
+        except ValueError:
+            range_size = 200
+
+        ranges = [
+            (aa_seed - range_size, aa_seed + range_size),
+            (nc_seed - range_size, nc_seed + range_size),
+        ]
+
+        overall_start = min(start for start, _ in ranges)
+        overall_end = max(end for _, end in ranges)
+
+        logger.info(
+            f"Processing dual ranges: AA[{ranges[0][0]}..{ranges[0][1]}], NC[{ranges[1][0]}..{ranges[1][1]}] "
+            f"(overall {overall_start}..{overall_end})"
+        )
+
+        # Fetch existing citations once for the overall span; we'll filter per-target when iterating
+        logger.info("Fetching existing citations in overall range to optimize processing...")
+        existing_citations = db_manager.get_existing_citation_numbers_in_range(overall_start, overall_end)
+        logger.info(f"Found {len(existing_citations)} existing citations in overall range. Will skip these.")
+
+        # Build unique target list covering both ranges
+        target_numbers = []
+        for start_range, end_range in ranges:
+            target_numbers.extend(range(start_range, end_range + 1))
+        target_numbers = sorted(set(target_numbers))
+
+        for citation_num in target_numbers:
             # Skip if citation already exists in database
             if citation_num in existing_citations:
                 logger.debug(f"Skipping citation {citation_num} - already exists in database")
