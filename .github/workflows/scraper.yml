@@ -68,6 +68,6 @@ jobs:
 
           # Scraper seeds and range (optional; defaults already work without these)
           # AA_BASE_SEED defaults to last successful citation in DB when unset
-           AA_BASE_SEED: ${{ secrets.AA_BASE_SEED }}
+          AA_BASE_SEED: ${{ secrets.AA_BASE_SEED }}
           NC_BASE_SEED: "2081673"
           SCRAPE_RANGE_SIZE: "200"
