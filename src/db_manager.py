@@ -189,6 +189,74 @@ class DatabaseManager:
             logger.error(f"Failed to get storage stats: {e}")
             return {'total_images': 0, 'total_mb': 0, 'citations_with_images': 0}
 
+    # Subscriptions
+    def add_subscription(self, plate_state: str, plate_number: str, email: Optional[str] = None, webhook_url: Optional[str] = None) -> Dict:
+        """Create or upsert a subscription for the given plate and contact.
+
+        Either email or webhook_url must be provided.
+        """
+        if not email and not webhook_url:
+            raise ValueError("Either email or webhook_url must be provided")
+        try:
+            payload = {
+                'plate_state': plate_state.upper(),
+                'plate_number': plate_number,
+                'email': email,
+                'webhook_url': webhook_url,
+                'is_active': True,
+            }
+            # Upsert by composite unique key
+            result = (
+                self.supabase
+                .table('subscriptions')
+                .upsert(payload, on_conflict='plate_state,plate_number,email,webhook_url')
+                .execute()
+            )
+            return {'status': 'success', 'data': result.data}
+        except Exception as e:
+            logger.error(f"Failed to add subscription: {e}")
+            raise
+
+    def deactivate_subscription(self, plate_state: str, plate_number: str, email: Optional[str] = None, webhook_url: Optional[str] = None) -> Dict:
+        """Deactivate a subscription matching the plate and contact."""
+        if not email and not webhook_url:
+            raise ValueError("Either email or webhook_url must be provided")
+        try:
+            query = (
+                self.supabase
+                .table('subscriptions')
+                .update({'is_active': False})
+                .eq('plate_state', plate_state.upper())
+                .eq('plate_number', plate_number)
+                .eq('is_active', True)
+            )
+            if email:
+                query = query.eq('email', email)
+            if webhook_url:
+                query = query.eq('webhook_url', webhook_url)
+            result = query.execute()
+            return {'status': 'success', 'data': result.data}
+        except Exception as e:
+            logger.error(f"Failed to deactivate subscription: {e}")
+            raise
+
+    def find_active_subscriptions_for_plate(self, plate_state: str, plate_number: str) -> List[Dict]:
+        """Return active subscriptions for a given plate."""
+        try:
+            result = (
+                self.supabase
+                .table('subscriptions')
+                .select('*')
+                .eq('plate_state', plate_state.upper())
+                .eq('plate_number', plate_number)
+                .eq('is_active', True)
+                .execute()
+            )
+            return result.data or []
+        except Exception as e:
+            logger.error(f"Failed to find subscriptions for plate {plate_state} {plate_number}: {e}")
+            return []
+
     def get_cached_coords_for_location(self, location: str) -> Optional[Tuple[float, float]]:
         """Return (lat, lon) for a location if any citation has already been geocoded.
 

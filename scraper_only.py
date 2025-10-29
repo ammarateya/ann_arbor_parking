@@ -19,6 +19,7 @@ sys.path.insert(0, os.path.join(os.path.dirname(__file__), 'src'))
 from db_manager import DatabaseManager
 from scraper import CitationScraper
 from email_notifier import EmailNotifier
+from webhook_notifier import WebhookNotifier
 from storage_factory import StorageFactory
 from geocoder import Geocoder
 from nonstandard import resolve_alias
@@ -94,6 +95,8 @@ def ongoing_scraper_job():
         
         email_notifier = EmailNotifier()
         logger.info("✓ EmailNotifier initialized")
+        webhook_notifier = WebhookNotifier()
+        logger.info("✓ WebhookNotifier initialized")
         
         cloud_storage = StorageFactory.create_storage_service()
         logger.info(f"✓ Cloud storage initialized: {cloud_storage is not None}")
@@ -194,6 +197,22 @@ def ongoing_scraper_job():
                         logger.debug(f"Found citation {citation_num}, saving to database...")
                         db_manager.save_citation(result)
                         successful_citations.append(result)
+
+                        # Notify subscribers for matching plate
+                        try:
+                            subs = db_manager.find_active_subscriptions_for_plate(
+                                result.get('plate_state', ''),
+                                result.get('plate_number', '')
+                            )
+                            if subs:
+                                logger.info(f"Found {len(subs)} subscriber(s) for {result.get('plate_state')} {result.get('plate_number')}")
+                            for sub in subs:
+                                if sub.get('email'):
+                                    email_notifier.send_ticket_alert(sub['email'], result)
+                                if sub.get('webhook_url'):
+                                    webhook_notifier.send_ticket_alert(sub['webhook_url'], result)
+                        except Exception as e:
+                            logger.error(f"Failed notifying subscribers for {citation_num}: {e}")
 
                         # Geocode address for map display with caching and nonstandard resolution
                         if result.get('location'):

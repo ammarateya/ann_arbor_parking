@@ -347,8 +347,9 @@
         min-width: 180px;
       }
 
+      /* Keep legend docked right even when side panel is open */
       body.panel-open .legend {
-        right: 420px;
+        right: 20px;
       }
 
       .legend-header {
@@ -431,6 +432,66 @@
       .control-btn.active {
         background: #00ff00;
         color: #0a0a0a;
+      }
+
+      /* Search dropdown/select styling */
+      .select-control {
+        background: #0a0a0a;
+        border: 2px solid #00ff00;
+        color: #00ff00;
+        font-size: 10px;
+        font-weight: bold;
+        padding: 6px 12px;
+        text-transform: uppercase;
+        letter-spacing: 1px;
+        font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas,
+          "Liberation Mono", "Courier New", monospace;
+        -webkit-appearance: none;
+        -moz-appearance: none;
+        appearance: none;
+      }
+
+      .search-input {
+        background: #0a0a0a;
+        border: 2px solid #00ff00;
+        color: #00ff00;
+        padding: 6px 8px;
+        font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas,
+          "Liberation Mono", "Courier New", monospace;
+        font-size: 11px;
+        letter-spacing: 0.5px;
+      }
+
+      .search-input::placeholder {
+        color: #00ff00;
+        opacity: 0.45;
+        font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas,
+          "Liberation Mono", "Courier New", monospace;
+        letter-spacing: 0.5px;
+      }
+
+      .search-input.highlight {
+        box-shadow: 0 0 10px rgba(0, 255, 0, 0.5);
+      }
+
+      /* Dropdown chevron indicator */
+      .select-wrap {
+        position: relative;
+        display: inline-block;
+      }
+      .select-wrap:after {
+        content: "▾";
+        position: absolute;
+        right: 8px;
+        top: 50%;
+        transform: translateY(-50%);
+        color: #00ff00;
+        pointer-events: none;
+        font-weight: bold;
+        text-shadow: 0 0 5px rgba(0, 255, 0, 0.5);
+      }
+      .select-control {
+        padding-right: 28px; /* room for chevron */
       }
 
       /* Popup modal */
@@ -894,6 +955,8 @@
       <span>How does this work?</span>
     </a>
 
+    <!-- search bar removed; replaced by map-controls search toggle -->
+
     <div class="time-filter-bar" id="timeFilterBar">
       <span class="time-filter-label">VIEW:</span>
       <button
@@ -979,6 +1042,110 @@
       >
         <!-- icon set by script -->
       </button>
+      <button
+        class="control-btn"
+        id="searchToggleBtn"
+        title="Search"
+        aria-label="Search"
+      >
+        <!-- icon set by script -->
+      </button>
+      <div
+        id="searchPanel"
+        style="
+          display: none;
+          background: #0a0a0a;
+          border: 2px solid #00ff00;
+          padding: 8px;
+          gap: 6px;
+          align-items: center;
+        "
+      >
+        <span class="select-wrap">
+          <select id="searchMode" class="select-control">
+            <option value="plate">PLATE</option>
+            <option value="citation">CITATION #</option>
+            <option value="location">LOCATION</option>
+          </select>
+        </span>
+        <span
+          id="plateInputs"
+          style="display: inline-flex; gap: 6px; align-items: center"
+        >
+          <input
+            id="searchPlateState"
+            placeholder="MI"
+            maxlength="2"
+            class="search-input"
+            style="width: 56px; text-transform: uppercase"
+          />
+          <input
+            id="searchPlateNumber"
+            placeholder="GOBLUE"
+            class="search-input"
+            style="min-width: 120px; width: 140px"
+          />
+        </span>
+        <span id="citationInputs" style="display: none">
+          <input
+            id="searchCitationNumber"
+            placeholder="CITATION #"
+            class="search-input"
+            style="min-width: 160px"
+          />
+        </span>
+        <span
+          id="locationInputs"
+          style="display: none; align-items: center; gap: 6px"
+        >
+          <button
+            class="time-filter-btn"
+            id="pickLocationBtn"
+            title="Pick center on map"
+          >
+            PICK
+          </button>
+          <input
+            id="searchRadiusMeters"
+            type="number"
+            min="10"
+            max="100000"
+            value="250"
+            step="10"
+            class="search-input"
+            style="width: 100px"
+          />
+          <span class="time-filter-label">RADIUS (m)</span>
+          <span
+            id="searchPickedLocationText"
+            style="color: #888; font-size: 10px; margin-left: 6px"
+            >center: none</span
+          >
+        </span>
+        <button class="time-filter-btn" id="searchBtn">GO</button>
+        <button class="time-filter-btn" id="clearSearchBtn">CLEAR</button>
+      </div>
+    </div>
+
+    <!-- Location search hint overlay -->
+    <div
+      id="searchHint"
+      style="
+        display: none;
+        position: fixed;
+        bottom: 100px;
+        left: 20px;
+        background: rgba(10, 10, 10, 0.95);
+        border: 2px solid #00ff00;
+        padding: 10px 12px;
+        color: #00ff00;
+        z-index: 1200;
+        box-shadow: 0 4px 20px rgba(0, 255, 0, 0.3);
+        font-weight: bold;
+        font-size: 11px;
+      "
+    >
+      CLICK MAP TO SET CENTER • ADJUST RADIUS • PRESS GO
     </div>
 
     <div class="legend">
@@ -1076,10 +1243,19 @@
         </svg>';
       }
 
+      function getSearchIcon() {
+        return '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">\
+          <circle cx="11" cy="11" r="7" stroke="#00ff00" stroke-width="2" fill="none"/>\
+          <line x1="16.5" y1="16.5" x2="22" y2="22" stroke="#00ff00" stroke-width="2"/>\
+        </svg>';
+      }
+
       // Set initial theme toggle icon (action: switch to light → sun)
       (function initIcons() {
         const themeBtn = document.getElementById("themeBtn");
         if (themeBtn) themeBtn.innerHTML = getSunIcon();
+        const searchBtn = document.getElementById("searchToggleBtn");
+        if (searchBtn) searchBtn.innerHTML = getSearchIcon();
       })();
 
       // Store citations data
@@ -1088,6 +1264,289 @@
       const citationToMarker = new Map();
       let usedCoordinates = new Map(); // Track coordinates to avoid overlap
       let currentTimeFilter = "all"; // Track current time filter
+      let isSearchActive = false;
+      let searchCenter = null; // {lat, lon}
+      let searchCircle = null;
+      let pendingPick = false;
+
+      // Search UI logic
+      (function initSearchUI() {
+        const toggleBtn = document.getElementById("searchToggleBtn");
+        const panel = document.getElementById("searchPanel");
+        const hint = document.getElementById("searchHint");
+        const modeEl = document.getElementById("searchMode");
+        const plateInputs = document.getElementById("plateInputs");
+        const citationInputs = document.getElementById("citationInputs");
+        const locationInputs = document.getElementById("locationInputs");
+        const pickBtn = document.getElementById("pickLocationBtn");
+        const searchBtn = document.getElementById("searchBtn");
+        const clearBtn = document.getElementById("clearSearchBtn");
+        const radiusEl = document.getElementById("searchRadiusMeters");
+        let previousFilter = currentTimeFilter;
+
+        if (toggleBtn && panel) {
+          toggleBtn.addEventListener("click", () => {
+            const opening = panel.style.display === "none";
+            panel.style.display = opening ? "flex" : "none";
+            if (!opening) {
+              // Collapsing: restore previous view
+              isSearchActive = false;
+              if (searchCircle) {
+                map.removeLayer(searchCircle);
+                searchCircle = null;
+              }
+              showOnlyMarkers(citations);
+              filterByTime(previousFilter);
+              if (hint) hint.style.display = "none";
+            } else {
+              previousFilter = currentTimeFilter;
+            }
+          });
+        }
+
+        function updateInputs() {
+          const mode = modeEl.value;
+          plateInputs.style.display = mode === "plate" ? "inline-flex" : "none";
+          citationInputs.style.display =
+            mode === "citation" ? "inline" : "none";
+          locationInputs.style.display =
+            mode === "location" ? "inline-flex" : "none";
+          if (mode === "location" && hint) {
+            hint.style.display = "block";
+            if (radiusEl) radiusEl.classList.add("highlight");
+          } else if (hint) {
+            hint.style.display = "none";
+            if (radiusEl) radiusEl.classList.remove("highlight");
+          }
+        }
+
+        modeEl.addEventListener("change", updateInputs);
+        updateInputs();
+
+        pickBtn.addEventListener("click", () => {
+          pendingPick = true;
+          document.getElementById("searchPickedLocationText").textContent =
+            "tap map to set center";
+          if (hint) hint.style.display = "block";
+          if (map && map._container) map._container.style.cursor = "crosshair";
+        });
+
+        map.on("click", (e) => {
+          if (!pendingPick) return;
+          pendingPick = false;
+          searchCenter = { lat: e.latlng.lat, lon: e.latlng.lng };
+          document.getElementById(
+            "searchPickedLocationText"
+          ).textContent = `center: ${searchCenter.lat.toFixed(
+            5
+          )}, ${searchCenter.lon.toFixed(5)}`;
+          const radiusM = parseFloat(
+            document.getElementById("searchRadiusMeters").value || "0"
+          );
+          if (searchCircle) {
+            map.removeLayer(searchCircle);
+          }
+          if (radiusM > 0) {
+            searchCircle = L.circle([searchCenter.lat, searchCenter.lon], {
+              radius: radiusM,
+              color: "#00ff00",
+            }).addTo(map);
+          }
+          if (hint) hint.style.display = "none";
+          if (map && map._container) map._container.style.cursor = "";
+          // Auto-run location search after picking center
+          (async () => {
+            try {
+              const mode = "location";
+              let url = "/api/search?mode=" + mode;
+              const radiusM = parseFloat(radiusEl.value || "0");
+              url += `&lat=${encodeURIComponent(
+                searchCenter.lat
+              )}&lon=${encodeURIComponent(
+                searchCenter.lon
+              )}&radius_m=${encodeURIComponent(radiusM)}`;
+              const resp = await fetch(url);
+              const data = await resp.json();
+              if (data.status !== "success") return;
+              isSearchActive = true;
+              const results = data.citations || [];
+              showOnlyMarkers(results);
+              if (!results.length) {
+                const noResultsMsg =
+                  document.getElementById("noResultsMessage");
+                const intervalEl = document.getElementById("noResultsInterval");
+                if (intervalEl) intervalEl.textContent = "NO MATCHES FOUND";
+                if (noResultsMsg) noResultsMsg.classList.add("visible");
+                return;
+              }
+              if (results.length === 1) {
+                const only = results[0];
+                const marker = citationToMarker.get(
+                  String(only.citation_number)
+                );
+                if (marker && only.latitude && only.longitude) {
+                  const lat = parseFloat(only.latitude);
+                  const lon = parseFloat(only.longitude);
+                  map.setView([lat, lon], 16);
+                  marker.openPopup();
+                  showCitationDetails(only);
+                }
+              } else {
+                const noResultsMsg =
+                  document.getElementById("noResultsMessage");
+                if (noResultsMsg) noResultsMsg.classList.remove("visible");
+              }
+            } catch (err) {
+              console.error("search error", err);
+            }
+          })();
+        });
+
+        // Live update circle when radius changes
+        radiusEl.addEventListener("input", () => {
+          const val = parseFloat(radiusEl.value || "0");
+          if (searchCircle && !isNaN(val)) {
+            searchCircle.setRadius(val);
+          }
+        });
+
+        searchBtn.addEventListener("click", async () => {
+          // Reuse the same logic as auto-search
+          const mode = modeEl.value;
+          try {
+            let url = "/api/search?mode=" + encodeURIComponent(mode);
+            if (mode === "plate") {
+              const state = (
+                document.getElementById("searchPlateState").value || ""
+              ).trim();
+              const number = (
+                document.getElementById("searchPlateNumber").value || ""
+              ).trim();
+              if (!state || !number) return;
+              url += `&plate_state=${encodeURIComponent(
+                state
+              )}&plate_number=${encodeURIComponent(number)}`;
+            } else if (mode === "citation") {
+              const cnum = (
+                document.getElementById("searchCitationNumber").value || ""
+              ).trim();
+              if (!cnum) return;
+              url += `&citation_number=${encodeURIComponent(cnum)}`;
+            } else if (mode === "location") {
+              const radiusM = parseFloat(radiusEl.value || "0");
+              if (!searchCenter) return;
+              url += `&lat=${encodeURIComponent(
+                searchCenter.lat
+              )}&lon=${encodeURIComponent(
+                searchCenter.lon
+              )}&radius_m=${encodeURIComponent(radiusM)}`;
+            }
+
+            const resp = await fetch(url);
+            const data = await resp.json();
+            if (data.status !== "success") return;
+
+            isSearchActive = true;
+            const results = data.citations || [];
+            showOnlyMarkers(results);
+
+            if (!results.length) {
+              const noResultsMsg = document.getElementById("noResultsMessage");
+              const intervalEl = document.getElementById("noResultsInterval");
+              if (intervalEl) intervalEl.textContent = "NO MATCHES FOUND";
+              if (noResultsMsg) noResultsMsg.classList.add("visible");
+              return;
+            }
+
+            if (results.length === 1) {
+              const only = results[0];
+              const marker = citationToMarker.get(String(only.citation_number));
+              if (marker && only.latitude && only.longitude) {
+                const lat = parseFloat(only.latitude);
+                const lon = parseFloat(only.longitude);
+                map.setView([lat, lon], 16);
+                marker.openPopup();
+                showCitationDetails(only);
+              }
+            } else {
+              const noResultsMsg = document.getElementById("noResultsMessage");
+              if (noResultsMsg) noResultsMsg.classList.remove("visible");
+            }
+          } catch (err) {
+            console.error("search error", err);
+          }
+        });
+
+        clearBtn.addEventListener("click", () => {
+          isSearchActive = false;
+          if (searchCircle) {
+            map.removeLayer(searchCircle);
+            searchCircle = null;
+          }
+          // Reset to full dataset
+          showOnlyMarkers(citations);
+          filterByTime(previousFilter);
+          if (panel) panel.style.display = "none";
+          if (hint) hint.style.display = "none";
+          const noResultsMsg = document.getElementById("noResultsMessage");
+          if (noResultsMsg) noResultsMsg.classList.remove("visible");
+        });
+      })();
+
+      function clearAllMarkers() {
+        markers.forEach((m) => {
+          if (map.hasLayer(m)) m.removeFrom(map);
+        });
+        markers = [];
+        citationToMarker.clear();
+        usedCoordinates = new Map();
+      }
+
+      function showOnlyMarkers(list) {
+        clearAllMarkers();
+        list.forEach((c) => {
+          const m = createMarkerForCitation(c);
+          if (m) markers.push(m);
+        });
+        focusMap();
+
+        // Update stats and legend based on the provided list (search results)
+        try {
+          // Total citations and total amount
+          const totalCount = list.length;
+          document.getElementById("totalCitations").textContent =
+            totalCount.toLocaleString();
+          const totalAmount = list.reduce(
+            (sum, c) => sum + (parseFloat(c.amount_due) || 0),
+            0
+          );
+          document.getElementById("totalAmount").textContent =
+            "$" +
+            totalAmount.toLocaleString(undefined, {
+              minimumFractionDigits: 0,
+              maximumFractionDigits: 0,
+            });
+
+          // Legend buckets
+          let redCount = 0; // >= $50
+          let orangeCount = 0; // >= $30
+          let greenCount = 0; // < $30
+          list.forEach((citation) => {
+            const amount = parseFloat(citation.amount_due) || 0;
+            if (amount >= 50) redCount++;
+            else if (amount >= 30) orangeCount++;
+            else greenCount++;
+          });
+          document.getElementById("legendRed").textContent =
+            redCount.toLocaleString();
+          document.getElementById("legendOrange").textContent =
+            orangeCount.toLocaleString();
+          document.getElementById("legendGreen").textContent =
+            greenCount.toLocaleString();
+        } catch (_) {
+          // no-op if elements not found
+        }
+      }
 
       // Header recent time: fixed-length scramble during load, gentle decode reveal
       let recentScrambleTimer = null;
@@ -1585,6 +2044,10 @@
 
       // Filter citations by time period
       function filterByTime(period) {
+        if (isSearchActive) {
+          // Ignore time filter while search is active
+          return;
+        }
         currentTimeFilter = period;
 
         // Update button states

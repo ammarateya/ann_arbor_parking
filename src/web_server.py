@@ -1,8 +1,9 @@
-from flask import Flask, jsonify, render_template
+from flask import Flask, jsonify, render_template, request
 import os
 import logging
 from db_manager import DatabaseManager
 from storage_factory import StorageFactory
+from email_notifier import EmailNotifier
 
 logger = logging.getLogger(__name__)
 
@@ -115,6 +116,138 @@ def get_citations():
             'tip': 'Check that SUPABASE_SERVICE_ROLE_KEY is set for reading data'
         }), 500
 
+@app.route('/api/search')
+def search_citations():
+    """Search citations by plate+state, citation number, or by location radius.
+
+    Query params (any one mode):
+      - mode=plate & plate_state=MI & plate_number=ABC123
+      - mode=citation & citation_number=12345678
+      - mode=location & lat=42.28 & lon=-83.74 & radius_m=500
+
+    Notes:
+      - Uses Supabase PostgREST filters (parameterized under the hood) to avoid injection.
+      - For location, first filters by bounding box, then applies accurate haversine distance in Python.
+    """
+    try:
+        mode = (request.args.get('mode') or '').strip().lower()
+        db_manager = DatabaseManager(DB_CONFIG)
+
+        citations = []
+
+        if mode == 'plate':
+            plate_state = (request.args.get('plate_state') or '').strip().upper()
+            plate_number = (request.args.get('plate_number') or '').strip()
+            if not plate_state or not plate_number:
+                return jsonify({'status': 'error', 'error': 'plate_state and plate_number are required'}), 400
+
+            # Case-insensitive match for plate_number; exact for state
+            query = db_manager.supabase.table('citations').select('*')
+            query = query.eq('plate_state', plate_state).ilike('plate_number', plate_number)
+            result = query.execute()
+            citations = result.data or []
+
+        elif mode == 'citation':
+            citation_number = request.args.get('citation_number')
+            if not citation_number:
+                return jsonify({'status': 'error', 'error': 'citation_number is required'}), 400
+            try:
+                citation_number_int = int(str(citation_number).strip())
+            except ValueError:
+                return jsonify({'status': 'error', 'error': 'citation_number must be an integer'}), 400
+
+            result = (
+                db_manager
+                .supabase
+                .table('citations')
+                .select('*')
+                .eq('citation_number', citation_number_int)
+                .execute()
+            )
+            citations = result.data or []
+
+        elif mode == 'location':
+            try:
+                lat = float(request.args.get('lat', ''))
+                lon = float(request.args.get('lon', ''))
+                radius_m = float(request.args.get('radius_m', ''))
+            except ValueError:
+                return jsonify({'status': 'error', 'error': 'lat, lon, and radius_m must be numbers'}), 400
+
+            if radius_m <= 0 or radius_m > 100000:
+                return jsonify({'status': 'error', 'error': 'radius_m must be between 1 and 100000 meters'}), 400
+
+            # Compute simple bounding box to narrow results
+            # 1 degree latitude ~ 111,000 meters; longitude scaled by cos(latitude)
+            deg_lat = radius_m / 111000.0
+            import math
+            deg_lon = radius_m / (111000.0 * max(math.cos(math.radians(lat)), 1e-6))
+
+            min_lat = lat - deg_lat
+            max_lat = lat + deg_lat
+            min_lon = lon - deg_lon
+            max_lon = lon + deg_lon
+
+            # Filter by bbox and presence of coordinates
+            bbox_result = (
+                db_manager
+                .supabase
+                .table('citations')
+                .select('*')
+                .not_.is_('latitude', 'null')
+                .not_.is_('longitude', 'null')
+                .gte('latitude', min_lat)
+                .lte('latitude', max_lat)
+                .gte('longitude', min_lon)
+                .lte('longitude', max_lon)
+                .execute()
+            )
+            candidates = bbox_result.data or []
+
+            # Precise filter using haversine distance
+            def haversine_m(lat1, lon1, lat2, lon2):
+                R = 6371000.0
+                phi1 = math.radians(lat1)
+                phi2 = math.radians(lat2)
+                dphi = math.radians(lat2 - lat1)
+                dlambda = math.radians(lon2 - lon1)
+                a = math.sin(dphi/2)**2 + math.cos(phi1) * math.cos(phi2) * math.sin(dlambda/2)**2
+                return 2 * R * math.asin(math.sqrt(a))
+
+            citations = []
+            for c in candidates:
+                try:
+                    clat = float(c.get('latitude'))
+                    clon = float(c.get('longitude'))
+                except (TypeError, ValueError):
+                    continue
+                if haversine_m(lat, lon, clat, clon) <= radius_m:
+                    citations.append(c)
+
+        else:
+            return jsonify({'status': 'error', 'error': 'invalid mode'}), 400
+
+        # Only include rows with valid coordinates for map display consistency
+        citations_with_coords = [c for c in citations if c.get('latitude') and c.get('longitude')]
+
+        # Determine most recent issue date
+        most_recent_time = None
+        for c in citations_with_coords:
+            d = c.get('issue_date')
+            if d and (most_recent_time is None or d > most_recent_time):
+                most_recent_time = d
+
+        return jsonify({
+            'status': 'success',
+            'citations': citations_with_coords,
+            'count': len(citations_with_coords),
+            'most_recent_citation_time': most_recent_time
+        })
+    except Exception as e:
+        import traceback
+        logger.error(f"Error in search_citations: {e}\n{traceback.format_exc()}")
+        return jsonify({'status': 'error', 'error': str(e)}), 500
+
 @app.route('/stats')
 def stats():
     """Get scraper statistics"""
@@ -156,6 +289,56 @@ def stats():
             'status': 'error',
             'error': str(e)
         }), 500
+
+@app.route('/api/subscribe', methods=['POST'])
+def subscribe():
+    """Create or upsert a subscription to notifications by plate.
+
+    JSON body:
+      - plate_state (required)
+      - plate_number (required)
+      - email (optional)
+      - webhook_url (optional)
+    One of email or webhook_url must be provided.
+    """
+    try:
+        payload = request.get_json(force=True, silent=False) or {}
+        plate_state = (payload.get('plate_state') or '').strip().upper()
+        plate_number = (payload.get('plate_number') or '').strip()
+        email = (payload.get('email') or '').strip() or None
+        webhook_url = (payload.get('webhook_url') or '').strip() or None
+
+        if not plate_state or not plate_number:
+            return jsonify({'status': 'error', 'error': 'plate_state and plate_number are required'}), 400
+        if not email and not webhook_url:
+            return jsonify({'status': 'error', 'error': 'email or webhook_url is required'}), 400
+
+        db_manager = DatabaseManager(DB_CONFIG)
+        result = db_manager.add_subscription(plate_state, plate_number, email=email, webhook_url=webhook_url)
+        return jsonify({'status': 'success', 'subscription': result.get('data')}), 200
+    except Exception as e:
+        return jsonify({'status': 'error', 'error': str(e)}), 500
+
+@app.route('/api/unsubscribe', methods=['POST'])
+def unsubscribe():
+    """Deactivate a subscription matching the plate and contact."""
+    try:
+        payload = request.get_json(force=True, silent=False) or {}
+        plate_state = (payload.get('plate_state') or '').strip().upper()
+        plate_number = (payload.get('plate_number') or '').strip()
+        email = (payload.get('email') or '').strip() or None
+        webhook_url = (payload.get('webhook_url') or '').strip() or None
+
+        if not plate_state or not plate_number:
+            return jsonify({'status': 'error', 'error': 'plate_state and plate_number are required'}), 400
+        if not email and not webhook_url:
+            return jsonify({'status': 'error', 'error': 'email or webhook_url is required'}), 400
+
+        db_manager = DatabaseManager(DB_CONFIG)
+        result = db_manager.deactivate_subscription(plate_state, plate_number, email=email, webhook_url=webhook_url)
+        return jsonify({'status': 'success', 'unsubscribed': result.get('data')}), 200
+    except Exception as e:
+        return jsonify({'status': 'error', 'error': str(e)}), 500
 
 if __name__ == '__main__':
     port = int(os.environ.get('PORT', 5000))

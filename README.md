@@ -14,16 +14,18 @@ A real-time parking citation scraper and API for Ann Arbor, Michigan.
 - **Real-time scraping** every 10 minutes
 - **OCR address extraction** for clean street addresses
 - **Image storage** with compression
-- **Email notifications** with citation summaries
+- **Subscriber notifications**: email and/or webhook when your plate appears
 - **REST API** for health checks and statistics
 - **Bulk optimization** to avoid duplicate processing
 
 ## 🔧 Setup
 
 ### 1. Make Repository Public
+
 This enables free GitHub Actions (unlimited minutes for public repos).
 
 ### 2. Add GitHub Secrets
+
 Go to **Settings** → **Secrets and variables** → **Actions** and add:
 
 ```
@@ -51,17 +53,38 @@ IMAGE_QUALITY=85
 IMAGE_FORMAT=JPEG
 ```
 
+### Email/Webhook Alerts
+
+- The scraper checks for matching active subscriptions when saving a new citation and sends:
+  - An individual email (if `EMAIL_*` env vars are configured)
+  - A JSON POST to the provided `webhook_url`
+
+Notes:
+
+- For subscriber emails, the app uses the same SMTP credentials as the daily report. Set `EMAIL_*` accordingly.
+- Apply DB changes for subscriptions by running the SQL in `docs/alter_schema_ocr.sql` on your Supabase database (idempotent).
+
 ### 3. Deploy API to Render
+
 The API will automatically deploy when you push to main branch.
 
 ## 📡 API Endpoints
 
-- `GET /` - Health check
+- `GET /` - Map UI
+- `GET /about` - About
+- `GET /api/health` - Health
+- `GET /api/citations` - Map data
+- `GET /api/search` - Search by plate, citation, or location
 - `GET /stats` - Scraper statistics and storage info
+- `POST /api/subscribe` - Body: `{ plate_state, plate_number, email? , webhook_url? }`
+- `POST /api/unsubscribe` - Body: `{ plate_state, plate_number, email? , webhook_url? }`
+
+At least one of `email` or `webhook_url` is required.
 
 ## 🔄 GitHub Actions
 
 The scraper runs automatically:
+
 - **Every 10 minutes** via cron schedule
 - **On push** to main branch (for testing)
 - **Manual trigger** available in GitHub Actions tab

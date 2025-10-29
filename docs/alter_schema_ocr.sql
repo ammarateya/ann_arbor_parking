@@ -57,3 +57,18 @@ do $$ begin
   end if;
 end $$;
 
+-- Subscriptions for notifications (email and/or webhook) by plate
+create table if not exists public.subscriptions (
+  id                bigserial primary key,
+  plate_state       text not null,
+  plate_number      text not null,
+  email             text,
+  webhook_url       text,
+  is_active         boolean not null default true,
+  created_at        timestamp with time zone default now(),
+  constraint subscriptions_contact_check check (email is not null or webhook_url is not null),
+  unique (plate_state, plate_number, coalesce(email,''), coalesce(webhook_url,''))
+);
+
+create index if not exists idx_subscriptions_plate on public.subscriptions (plate_state, plate_number) where is_active;
+

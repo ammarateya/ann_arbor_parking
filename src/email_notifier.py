@@ -100,3 +100,50 @@ class EmailNotifier:
         """
         
         return html
+
+    def send_ticket_alert(self, to_email: str, citation: Dict) -> bool:
+        """Send a single ticket alert to a subscriber."""
+        if not self.email_user or not self.email_password:
+            logging.warning("Email credentials not configured, skipping subscriber email")
+            return False
+        try:
+            msg = MIMEMultipart()
+            msg['From'] = self.email_user
+            msg['To'] = to_email
+            subject_citation = citation.get('citation_number', 'New Citation')
+            msg['Subject'] = f"Parking Ticket Alert: Citation {subject_citation}"
+
+            details_url = citation.get('more_info_url', '#')
+            amount_due = citation.get('amount_due')
+            amount_str = f"${amount_due}" if amount_due is not None else "Unknown"
+            plate = f"{citation.get('plate_state','')} {citation.get('plate_number','')}".strip()
+            issue_date = citation.get('issue_date', 'Unknown')
+            location = citation.get('location', 'Unknown')
+
+            body = f"""
+            <html>
+            <body>
+                <h2>Your vehicle may have received a parking ticket</h2>
+                <ul>
+                    <li><strong>Plate</strong>: {plate}</li>
+                    <li><strong>Citation</strong>: {subject_citation}</li>
+                    <li><strong>Issued</strong>: {issue_date}</li>
+                    <li><strong>Amount Due</strong>: {amount_str}</li>
+                    <li><strong>Location</strong>: {location}</li>
+                </ul>
+                <p><a href="{details_url}">View details</a></p>
+                <p style="color:#666">You received this because you subscribed on the ticket map.</p>
+            </body>
+            </html>
+            """
+            msg.attach(MIMEText(body, 'html'))
+
+            with smtplib.SMTP(self.smtp_host, self.smtp_port) as server:
+                server.starttls()
+                server.login(self.email_user, self.email_password)
+                server.send_message(msg)
+            logging.info(f"Sent ticket alert to {to_email}")
+            return True
+        except Exception as e:
+            logging.error(f"Failed to send ticket alert to {to_email}: {e}")
+            return False
