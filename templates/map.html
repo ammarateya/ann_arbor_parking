@@ -140,7 +140,7 @@
       /* Info box/link */
       .info-link {
         position: fixed;
-        top: 94px;
+        top: 48px;
         right: 20px;
         background: rgba(10, 10, 10, 0.95);
         border: 2px solid #00ff00;
@@ -148,7 +148,7 @@
         display: flex;
         align-items: center;
         gap: 8px;
-        z-index: 1001;
+        z-index: 999;
         text-decoration: none;
         color: #00ff00;
         font-size: 11px;
@@ -157,10 +157,6 @@
         letter-spacing: 1px;
         transition: all 0.2s ease;
         box-shadow: 0 4px 20px rgba(0, 255, 0, 0.3);
-      }
-
-      body.panel-open .info-link {
-        right: 420px;
       }
 
       .info-link:hover {
@@ -183,7 +179,7 @@
 
       @media (max-width: 768px) {
         .info-link {
-          top: 116px;
+          top: 62px;
           right: 10px;
           padding: 6px 10px;
           font-size: 10px;
@@ -193,10 +189,6 @@
           width: 14px;
           height: 14px;
           font-size: 10px;
-        }
-
-        body.panel-open .info-link {
-          right: 10px;
         }
       }
 
