@@ -1,7 +1,7 @@
 # Ann Arbor Parking Citation Scraper
 
 A real-time parking citation scraper and API for Ann Arbor, Michigan.
-You could probably use this for any cities/places that use *.citationportal.com domains
+You could probably use this for any cities/places that use \*.citationportal.com domains
 
 ## Architecture
 
@@ -82,6 +82,25 @@ The API will automatically deploy when you push to main branch.
 - `POST /api/unsubscribe` - Body mirrors subscribe
 
 At least one of `email` or `webhook_url` is required.
+
+## Analytics
+
+The app is configured with **Google Analytics** for free traffic tracking.
+
+To set it up:
+
+1. Go to [Google Analytics](https://analytics.google.com/) and create a free account
+2. Create a new property for your site
+3. Copy your Measurement ID (looks like `G-XXXXXXXXXX`)
+4. Replace `G-XXXXXXXXXX` in `templates/map.html` and `templates/about.html` with your actual Measurement ID
+
+That's it! Google Analytics will track:
+
+- Unique visitors
+- Pageviews
+- User demographics (location, device, browser)
+- Traffic sources
+- And much more
 
 ## Performance
 
