@@ -18,7 +18,7 @@ You could probably use this for any cities/places that use *.citationportal.com 
 - **REST API** for health checks and statistics
 - **Bulk optimization** to avoid duplicate processing
 
-## 🔧 Setup
+## Setup
 
 ### 1. Make Repository Public
 
