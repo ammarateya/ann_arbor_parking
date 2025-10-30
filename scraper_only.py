@@ -283,25 +283,26 @@ def ongoing_scraper_job():
                                 logger.warning(f"Failed to geocode citation {citation_num}: {e}")
 
                         # Upload images to cloud storage if available
-                        if result.get('image_urls') and cloud_storage and cloud_storage.is_configured():
-                            try:
-                                logger.debug(f"Uploading images for citation {citation_num}...")
-                                uploaded_images = cloud_storage.upload_images_for_citation(
-                                    result['image_urls'],
-                                    citation_num
-                                )
+                        # TEMPORARILY COMMENTED OUT - Cloudflare image saving disabled
+                        # if result.get('image_urls') and cloud_storage and cloud_storage.is_configured():
+                        #     try:
+                        #         logger.debug(f"Uploading images for citation {citation_num}...")
+                        #         uploaded_images = cloud_storage.upload_images_for_citation(
+                        #             result['image_urls'],
+                        #             citation_num
+                        #         )
 
-                                # Save cloud storage image metadata to database
-                                for image_data in uploaded_images:
-                                    image_data['original_url'] = result['image_urls'][uploaded_images.index(image_data)]
-                                    db_manager.save_b2_image(citation_num, image_data)
-                                    images_uploaded += 1
+                        #         # Save cloud storage image metadata to database
+                        #         for image_data in uploaded_images:
+                        #             image_data['original_url'] = result['image_urls'][uploaded_images.index(image_data)]
+                        #             db_manager.save_b2_image(citation_num, image_data)
+                        #             images_uploaded += 1
 
-                                logger.info(f"Uploaded {len(uploaded_images)} images for citation {citation_num}")
+                        #         logger.info(f"Uploaded {len(uploaded_images)} images for citation {citation_num}")
 
-                            except Exception as e:
-                                logger.error(f"Failed to upload images for citation {citation_num}: {e}")
-                                logger.error(f"Traceback: {traceback.format_exc()}")
+                        #     except Exception as e:
+                        #         logger.error(f"Failed to upload images for citation {citation_num}: {e}")
+                        #         logger.error(f"Traceback: {traceback.format_exc()}")
 
                         # Update AA base only when under 2,000,000; NC base auto-derives from DB next run
                         if label == "AA" and citation_num < 2_000_000:
