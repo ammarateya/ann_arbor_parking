@@ -1,20 +1,20 @@
 # Ann Arbor Parking Citation Scraper
 
 A real-time parking citation scraper and API for Ann Arbor, Michigan.
+You could probably use this for any cities/places that use *.citationportal.com domains
 
-## 🚀 Architecture
+## Architecture
 
-- **Scraper**: Runs every 10 minutes via GitHub Actions (free for public repos)
-- **API**: Hosted on Render for health checks and statistics
-- **Database**: Supabase PostgreSQL
-- **Storage**: Cloudflare R2 for citation images
+- **Scraper**: Runs every 10 minutes via GH Actions
+- **API**: Hosted on Render (for now) for health checks and statistics
+- **Database**: Supabase pgsql
+- **Storage**: Cloudflare R2 for citation images, doesn't work yet
 
-## 📊 Features
+## Features
 
-- **Real-time scraping** every 10 minutes
-- **OCR address extraction** for clean street addresses
-- **Image storage** with compression
-- **Subscriber notifications**: email and/or webhook when your plate appears
+- **Real-time scraping**
+- **OCR address extraction** for street addresses
+- **Subscriber notifications**: email and/or webhook when your plate/loco appears
 - **REST API** for health checks and statistics
 - **Bulk optimization** to avoid duplicate processing
 
