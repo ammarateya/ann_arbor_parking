@@ -89,7 +89,7 @@ class EmailNotifier:
                     <td>{citation.get('location', 'N/A')}</td>
                     <td>{citation.get('plate_state', 'N/A')} {citation.get('plate_number', 'N/A')}</td>
                     <td>{citation.get('issue_date', 'N/A')}</td>
-                    <td>${{citation.get('amount_due', 'N/A')}}</td>
+                    <td>${citation.get('amount_due', 'N/A')}</td>
                     <td><a href="{citation.get('more_info_url', '#')}">View Details</a></td>
                 </tr>
                 """
