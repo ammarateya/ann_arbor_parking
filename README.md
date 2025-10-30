@@ -83,11 +83,10 @@ The API will automatically deploy when you push to main branch.
 
 At least one of `email` or `webhook_url` is required.
 
-## 📈 Performance
+## Performance
 
 - **Bulk citation lookup** - 1 query instead of 200+ per session
 - **Skip existing citations** - no duplicate processing
-- **Image compression** - optimized storage usage
 - **OCR optimization** - clean address extraction
 
 ## Tech Stack
