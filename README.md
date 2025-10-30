@@ -68,7 +68,7 @@ Notes:
 
 The API will automatically deploy when you push to main branch.
 
-## 📡 API Endpoints
+## API Endpoints
 
 - `GET /` - Map UI
 - `GET /about` - About
@@ -83,23 +83,6 @@ The API will automatically deploy when you push to main branch.
 
 At least one of `email` or `webhook_url` is required.
 
-### Gmail API (optional, if SMTP doesn’t work)
-
-- Install extras (already in `requirements.txt`): `google-api-python-client`, `google-auth`, `google-auth-oauthlib`.
-- Create OAuth client (Desktop) and generate a token file with scope `gmail.send`.
-- Set env vars:
-  - `FROM_EMAIL` (sender address)
-  - `GMAIL_TOKEN_FILE` (default `gmail_token.json`)
-    The app will try SMTP first; if not configured, it will fall back to Gmail API.
-
-## 🔄 GitHub Actions
-
-The scraper runs automatically:
-
-- **Every 10 minutes** via cron schedule
-- **On push** to main branch (for testing)
-- **Manual trigger** available in GitHub Actions tab
-
 ## 📈 Performance
 
 - **Bulk citation lookup** - 1 query instead of 200+ per session
@@ -107,7 +90,7 @@ The scraper runs automatically:
 - **Image compression** - optimized storage usage
 - **OCR optimization** - clean address extraction
 
-## 🛠️ Tech Stack
+## Tech Stack
 
 - **Python 3.11**
 - **Supabase** (PostgreSQL + Python client)
@@ -118,6 +101,6 @@ The scraper runs automatically:
 - **Pillow** (image processing)
 - **pytesseract** (OCR)
 
-## 📝 License
+## License
 
 MIT License - Feel free to use for civic tech projects!
