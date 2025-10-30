@@ -29,7 +29,7 @@ This enables free GitHub Actions (unlimited minutes for public repos).
 Go to **Settings** → **Secrets and variables** → **Actions** and add:
 
 ```
-DB_HOST=db.kctfygcpobxjgpivujiy.supabase.co
+DB_HOST=db.your_url.supabase.co
 DB_NAME=postgres
 DB_USER=postgres
 DB_PASSWORD=your_supabase_password
