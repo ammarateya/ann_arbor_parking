@@ -189,7 +189,7 @@
 
       @media (max-width: 768px) {
         .info-link {
-          top: 62px;
+          top: 70px;
           right: 10px;
           padding: 6px 10px;
           font-size: 10px;
@@ -199,6 +199,15 @@
           width: 14px;
           height: 14px;
           font-size: 10px;
+        }
+
+        /* Mobile: show only the info icon, hide text */
+        .info-link span:nth-child(2) {
+          display: none !important;
+        }
+        .info-link {
+          padding: 4px 6px !important;
+          border-width: 2px !important;
         }
       }
 
@@ -732,6 +741,28 @@
         }
       }
 
+      /* Hint flash animation (3 blinks) */
+      @keyframes hintFlash {
+        0% {
+          opacity: 0;
+        }
+        20% {
+          opacity: 1;
+        }
+        50% {
+          opacity: 0;
+        }
+        70% {
+          opacity: 1;
+        }
+        100% {
+          opacity: 0;
+        }
+      }
+      #searchHint.flash {
+        animation: hintFlash 0.6s ease-in-out 3;
+      }
+
       /* Custom marker styles - Minimal terminal dots */
       .custom-marker {
         width: 10px;
@@ -813,14 +844,18 @@
 
         .time-filter-bar {
           top: 62px;
-          padding: 10px 12px 10px 12px;
-          gap: 8px;
-          flex-wrap: wrap;
+          padding: 8px 3px 8px 3px;
+          gap: 4px;
         }
 
         .time-filter-btn {
-          font-size: 8px;
-          padding: 4px 8px;
+          font-size: 9px !important;
+          padding: 2px 7px !important;
+          min-width: 34px !important;
+          max-width: 44px;
+          border-width: 2px !important;
+          line-height: 12px;
+          letter-spacing: 0.2px;
         }
 
         .stats-bar {
@@ -887,6 +922,157 @@
 
         .info-value {
           font-size: 11px;
+        }
+      }
+
+      /* Mobile: legend docked below top bars and compact controls */
+      @media (max-width: 768px) {
+        .legend {
+          position: fixed !important;
+          top: 106px !important;
+          left: 10px !important;
+          right: 10px !important;
+          min-width: 0 !important;
+          width: auto !important;
+          max-width: calc(100vw - 20px) !important;
+          height: 14px !important;
+          min-height: 0 !important;
+          background: rgba(10, 10, 10, 0.93) !important;
+          border: 1px solid #00ff00 !important;
+          border-radius: 4px !important;
+          z-index: 1200 !important;
+          padding: 1px 5px !important;
+          margin: 2px auto 0 auto !important;
+          font-size: 8px !important;
+          display: flex !important;
+          align-items: center !important;
+          justify-content: center !important;
+          gap: 0 !important;
+          overflow: visible !important;
+          white-space: nowrap !important;
+          pointer-events: auto !important;
+          box-shadow: none !important;
+        }
+        .legend-header {
+          display: none !important;
+        }
+        .legend-items-row {
+          display: flex !important;
+          flex-direction: row !important;
+          align-items: center !important;
+          justify-content: center !important;
+          gap: 6px !important;
+          white-space: nowrap !important;
+          flex-wrap: nowrap !important;
+          overflow-x: visible !important;
+          height: 14px !important;
+          min-height: 0 !important;
+          padding: 0 !important;
+          margin: 0 !important;
+          background: none !important;
+        }
+        .legend-item {
+          display: inline-flex !important;
+          flex-direction: row !important;
+          align-items: center !important;
+          font-size: 8px !important;
+          margin: 0 !important;
+          padding: 0 4px 0 0 !important;
+          height: 14px !important;
+          min-height: 0 !important;
+          background: none !important;
+          gap: 0 !important;
+        }
+        .legend-marker {
+          width: 5px !important;
+          height: 5px !important;
+          min-width: 5px !important;
+          min-height: 5px !important;
+          margin: 0 1px 0 0 !important;
+          padding: 0 !important;
+          display: inline-block !important;
+          background: inherit !important;
+        }
+        .legend-text {
+          font-size: 8px !important;
+          color: #00ff00 !important;
+          line-height: 12px !important;
+          padding: 0 !important;
+          margin: 0 !important;
+          letter-spacing: 0.5px !important;
+          font-weight: normal !important;
+          display: inline !important;
+        }
+        /* Search panel and notify panel compacting */
+        .map-controls #searchPanel,
+        .map-controls #notifyPanel {
+          padding: 4px 2px 4px 2px !important;
+          gap: 2px !important;
+          flex-wrap: wrap;
+          font-size: 10px !important;
+        }
+        .select-control,
+        .search-input {
+          font-size: 10px !important;
+          padding: 3px 6px !important;
+          min-width: 40px;
+          height: 28px !important;
+        }
+        .control-btn,
+        .time-filter-btn {
+          font-size: 9px !important;
+          padding: 5px 7px !important;
+          min-width: 22px;
+          height: 28px !important;
+          border-width: 1.5px !important;
+        }
+        /* Make action text smaller on mobile (PICK / NEAR ME / +/-) */
+        #pickLocationBtn,
+        #useMyLocationBtn,
+        #notifyPickCenterBtn,
+        #notifyUseMyLocationBtn,
+        #searchRadiusMinus,
+        #searchRadiusPlus,
+        #notifyRadiusMinus,
+        #notifyRadiusPlus {
+          font-size: 8px !important;
+          padding: 2px 6px !important;
+          letter-spacing: 0.2px !important;
+        }
+        /* Ensure PICK buttons fit their text fully */
+        #pickLocationBtn,
+        #notifyPickCenterBtn {
+          min-width: auto !important;
+          width: auto !important;
+          white-space: nowrap !important;
+          padding: 3px 8px !important;
+          line-height: 12px !important;
+        }
+        #searchPickedLocationText,
+        #notifyPickedText {
+          font-size: 9px !important;
+          max-width: 70vw;
+          overflow: hidden;
+          text-overflow: ellipsis;
+        }
+        /* Ensure search action buttons have enough room */
+        #searchBtn {
+          min-width: 48px !important;
+          white-space: nowrap !important;
+        }
+        #clearSearchBtn {
+          min-width: 64px !important;
+          padding: 4px 10px !important;
+          white-space: nowrap !important;
+        }
+        /* Ensure SUBSCRIBE button fits content */
+        #notifySubmitBtn {
+          min-width: auto !important;
+          width: auto !important;
+          max-width: none !important;
+          white-space: nowrap !important;
+          padding: 4px 10px !important;
+          line-height: 12px !important;
         }
       }
     </style>
@@ -1012,6 +1198,41 @@
       </div>
     </div>
 
+    <!-- Mobile: legend directly below stats bar -->
+    <div class="legend" id="legendBar">
+      <div class="legend-header">LEGEND</div>
+      <div class="legend-items-row">
+        <div class="legend-item">
+          <div
+            class="legend-marker"
+            style="background: rgba(255, 0, 64, 0.7); border: 1px solid #ff0040"
+          ></div>
+          <span class="legend-text">>= $50: <span id="legendRed">0</span></span>
+        </div>
+        <div class="legend-item">
+          <div
+            class="legend-marker"
+            style="
+              background: rgba(255, 128, 0, 0.7);
+              border: 1px solid #ff8000;
+            "
+          ></div>
+          <span class="legend-text"
+            >>= $30: <span id="legendOrange">0</span></span
+          >
+        </div>
+        <div class="legend-item">
+          <div
+            class="legend-marker"
+            style="background: rgba(0, 255, 0, 0.7); border: 1px solid #00ff00"
+          ></div>
+          <span class="legend-text"
+            >< $30: <span id="legendGreen">0</span></span
+          >
+        </div>
+      </div>
+    </div>
+
     <div class="map-controls">
       <button
         class="control-btn"
@@ -1105,6 +1326,13 @@
           >
             PICK
           </button>
+          <button
+            class="time-filter-btn"
+            id="useMyLocationBtn"
+            title="Use my current location"
+          >
+            NEAR ME
+          </button>
           <input
             id="searchRadiusMeters"
             type="number"
@@ -1115,6 +1343,20 @@
             class="search-input"
             style="width: 100px"
           />
+          <button
+            class="time-filter-btn"
+            id="searchRadiusMinus"
+            title="decrease radius"
+          >
+            −
+          </button>
+          <button
+            class="time-filter-btn"
+            id="searchRadiusPlus"
+            title="increase radius"
+          >
+            +
+          </button>
           <span class="time-filter-label">RADIUS (m)</span>
           <span
             id="searchPickedLocationText"
@@ -1183,6 +1425,13 @@
           >
             PICK
           </button>
+          <button
+            class="time-filter-btn"
+            id="notifyUseMyLocationBtn"
+            title="Use my current location"
+          >
+            NEAR ME
+          </button>
           <input
             id="notifyRadiusMeters"
             type="number"
@@ -1193,6 +1442,20 @@
             class="search-input"
             style="width: 100px"
           />
+          <button
+            class="time-filter-btn"
+            id="notifyRadiusMinus"
+            title="decrease radius"
+          >
+            −
+          </button>
+          <button
+            class="time-filter-btn"
+            id="notifyRadiusPlus"
+            title="increase radius"
+          >
+            +
+          </button>
           <span class="time-filter-label">RADIUS (m)</span>
           <span
             id="notifyPickedText"
@@ -1242,35 +1505,6 @@
       "
     >
       CLICK MAP TO SET CENTER • ADJUST RADIUS • PRESS GO
-    </div>
-
-    <div class="legend">
-      <div class="legend-header">LEGEND</div>
-      <div class="legend-item">
-        <div
-          class="legend-marker"
-          style="background: rgba(255, 0, 64, 0.7); border: 1px solid #ff0040"
-        ></div>
-        <span class="legend-text">>= $50: <span id="legendRed">0</span></span>
-      </div>
-      <div class="legend-item">
-        <div
-          class="legend-marker"
-          style="background: rgba(255, 128, 0, 0.7); border: 1px solid #ff8000"
-        ></div>
-        <span class="legend-text"
-          >>= $30: <span id="legendOrange">0</span></span
-        >
-      </div>
-      <div class="legend-item">
-        <div
-          class="legend-marker"
-          style="background: rgba(0, 255, 0, 0.7); border: 1px solid #00ff00"
-        ></div>
-        <span class="legend-text"
-          >&lt; $30: <span id="legendGreen">0</span></span
-        >
-      </div>
     </div>
 
     <div class="loading" id="loading">LOADING CITATIONS...</div>
@@ -1384,6 +1618,7 @@
         const citationInputs = document.getElementById("citationInputs");
         const locationInputs = document.getElementById("locationInputs");
         const pickBtn = document.getElementById("pickLocationBtn");
+        const useMyLocationBtn = document.getElementById("useMyLocationBtn");
         const searchBtn = document.getElementById("searchBtn");
         const clearBtn = document.getElementById("clearSearchBtn");
         const radiusEl = document.getElementById("searchRadiusMeters");
@@ -1409,6 +1644,20 @@
           });
         }
 
+        function flashSearchHint() {
+          const el = document.getElementById("searchHint");
+          if (!el) return;
+          el.style.display = "block";
+          el.classList.remove("flash");
+          // restart animation
+          void el.offsetWidth;
+          el.classList.add("flash");
+          setTimeout(() => {
+            el.classList.remove("flash");
+            el.style.display = "none";
+          }, 1800);
+        }
+
         function updateInputs() {
           const mode = modeEl.value;
           plateInputs.style.display = mode === "plate" ? "inline-flex" : "none";
@@ -1416,9 +1665,9 @@
             mode === "citation" ? "inline" : "none";
           locationInputs.style.display =
             mode === "location" ? "inline-flex" : "none";
-          if (mode === "location" && hint) {
-            hint.style.display = "block";
+          if (mode === "location") {
             if (radiusEl) radiusEl.classList.add("highlight");
+            flashSearchHint();
           } else if (hint) {
             hint.style.display = "none";
             if (radiusEl) radiusEl.classList.remove("highlight");
@@ -1432,12 +1681,77 @@
           pendingPick = true;
           document.getElementById("searchPickedLocationText").textContent =
             "tap map to set center";
-          if (hint) hint.style.display = "block";
+          flashSearchHint();
           if (map && map._container) map._container.style.cursor = "crosshair";
         });
 
+        // Geolocation helper
+        async function getCurrentPosition() {
+          return new Promise((resolve, reject) => {
+            if (!navigator.geolocation) {
+              return reject(new Error("geolocation not supported"));
+            }
+            navigator.geolocation.getCurrentPosition(resolve, reject, {
+              enableHighAccuracy: true,
+              timeout: 8000,
+              maximumAge: 0,
+            });
+          });
+        }
+
+        if (useMyLocationBtn) {
+          useMyLocationBtn.addEventListener("click", async () => {
+            try {
+              const pos = await getCurrentPosition();
+              searchCenter = {
+                lat: pos.coords.latitude,
+                lon: pos.coords.longitude,
+              };
+              document.getElementById(
+                "searchPickedLocationText"
+              ).textContent = `center: ${searchCenter.lat.toFixed(
+                5
+              )}, ${searchCenter.lon.toFixed(5)}`;
+              const radiusM = parseFloat(radiusEl.value || "0");
+              if (searchCircle) map.removeLayer(searchCircle);
+              if (radiusM > 0) {
+                searchCircle = L.circle([searchCenter.lat, searchCenter.lon], {
+                  radius: radiusM,
+                  color: "#00ff00",
+                }).addTo(map);
+              }
+              map.setView([searchCenter.lat, searchCenter.lon], 15);
+              // Auto-run search
+              let url = "/api/search?mode=location";
+              url += `&lat=${encodeURIComponent(
+                searchCenter.lat
+              )}&lon=${encodeURIComponent(
+                searchCenter.lon
+              )}&radius_m=${encodeURIComponent(radiusM)}`;
+              const resp = await fetch(url);
+              const data = await resp.json();
+              if (data.status !== "success") return;
+              isSearchActive = true;
+              const results = data.citations || [];
+              showOnlyMarkers(results);
+              const noResultsMsg = document.getElementById("noResultsMessage");
+              const intervalEl = document.getElementById("noResultsInterval");
+              if (!results.length) {
+                if (intervalEl) intervalEl.textContent = "NO MATCHES FOUND";
+                if (noResultsMsg) noResultsMsg.classList.add("visible");
+              } else if (noResultsMsg) {
+                noResultsMsg.classList.remove("visible");
+              }
+            } catch (_) {
+              // ignore geolocation errors silently
+            }
+          });
+        }
+
         map.on("click", (e) => {
-          if (!pendingPick) return;
+          // When in location mode on mobile, allow tap-to-pick without pressing PICK
+          const isLocationMode = modeEl && modeEl.value === "location";
+          if (!pendingPick && !isLocationMode) return;
           pendingPick = false;
           searchCenter = { lat: e.latlng.lat, lon: e.latlng.lng };
           document.getElementById(
@@ -1515,6 +1829,38 @@
           }
         });
 
+        // Inline +/- buttons for search radius
+        const searchMinus = document.getElementById("searchRadiusMinus");
+        const searchPlus = document.getElementById("searchRadiusPlus");
+        let searchDebounce = null;
+        function adjustSearchRadius(delta) {
+          const current = parseFloat(radiusEl.value || "0") || 0;
+          const next = Math.max(10, Math.min(100000, current + delta));
+          radiusEl.value = String(Math.round(next));
+          radiusEl.dispatchEvent(new Event("input"));
+          if (isNaN(next) || !searchCenter) return;
+          if (searchDebounce) clearTimeout(searchDebounce);
+          searchDebounce = setTimeout(async () => {
+            try {
+              let url = "/api/search?mode=location";
+              url += `&lat=${encodeURIComponent(
+                searchCenter.lat
+              )}&lon=${encodeURIComponent(
+                searchCenter.lon
+              )}&radius_m=${encodeURIComponent(next)}`;
+              const resp = await fetch(url);
+              const data = await resp.json();
+              if (data.status !== "success") return;
+              isSearchActive = true;
+              showOnlyMarkers(data.citations || []);
+            } catch (_) {}
+          }, 300);
+        }
+        if (searchMinus)
+          searchMinus.addEventListener("click", () => adjustSearchRadius(-50));
+        if (searchPlus)
+          searchPlus.addEventListener("click", () => adjustSearchRadius(50));
+
         searchBtn.addEventListener("click", async () => {
           // Reuse the same logic as auto-search
           const mode = modeEl.value;
@@ -1554,6 +1900,9 @@
             isSearchActive = true;
             const results = data.citations || [];
             showOnlyMarkers(results);
+            updateRadiusDisplay(
+              mode === "location" ? radiusEl.value || "0" : null
+            );
 
             if (!results.length) {
               const noResultsMsg = document.getElementById("noResultsMessage");
@@ -2300,6 +2649,9 @@
         const plateRow = document.getElementById("notifyPlate");
         const locRow = document.getElementById("notifyLocation");
         const pickBtn = document.getElementById("notifyPickCenterBtn");
+        const useMyLocationBtn = document.getElementById(
+          "notifyUseMyLocationBtn"
+        );
         const radiusEl = document.getElementById("notifyRadiusMeters");
         const pickedText = document.getElementById("notifyPickedText");
         const submitBtn = document.getElementById("notifySubmitBtn");
@@ -2402,11 +2754,62 @@
           if (map && map._container) map._container.style.cursor = "";
         });
 
+        if (useMyLocationBtn) {
+          useMyLocationBtn.addEventListener("click", async () => {
+            try {
+              const pos = await (async () =>
+                new Promise((resolve, reject) => {
+                  if (!navigator.geolocation) {
+                    return reject(new Error("geolocation not supported"));
+                  }
+                  navigator.geolocation.getCurrentPosition(resolve, reject, {
+                    enableHighAccuracy: true,
+                    timeout: 8000,
+                    maximumAge: 0,
+                  });
+                }))();
+              searchCenter = {
+                lat: pos.coords.latitude,
+                lon: pos.coords.longitude,
+              };
+              pickedText.textContent = `center: ${searchCenter.lat.toFixed(
+                5
+              )}, ${searchCenter.lon.toFixed(5)}`;
+              const r = parseFloat(radiusEl.value || "0");
+              if (notifyCircle) map.removeLayer(notifyCircle);
+              if (!isNaN(r) && r > 0) {
+                notifyCircle = L.circle([searchCenter.lat, searchCenter.lon], {
+                  radius: r,
+                  color: "#00ffff",
+                  dashArray: "6 6",
+                }).addTo(map);
+              }
+              map.setView([searchCenter.lat, searchCenter.lon], 15);
+            } catch (_) {
+              // ignore geolocation errors silently
+            }
+          });
+        }
+
         // Live update preview when radius changes in notify panel
         radiusEl.addEventListener("input", () => {
           const r = parseFloat(radiusEl.value || "0");
           if (notifyCircle && !isNaN(r)) notifyCircle.setRadius(r);
         });
+
+        // Inline +/- for notify radius
+        const notifyMinus = document.getElementById("notifyRadiusMinus");
+        const notifyPlus = document.getElementById("notifyRadiusPlus");
+        function adjustNotifyRadius(delta) {
+          const current = parseFloat(radiusEl.value || "0") || 0;
+          const next = Math.max(10, Math.min(100000, current + delta));
+          radiusEl.value = String(Math.round(next));
+          radiusEl.dispatchEvent(new Event("input"));
+        }
+        if (notifyMinus)
+          notifyMinus.addEventListener("click", () => adjustNotifyRadius(-50));
+        if (notifyPlus)
+          notifyPlus.addEventListener("click", () => adjustNotifyRadius(50));
 
         submitBtn.addEventListener("click", async () => {
           msg.style.color = "#888";
@@ -2422,6 +2825,11 @@
             msg.textContent = "Provide email or webhook URL";
             return;
           }
+          // persist contact locally for convenience
+          try {
+            localStorage.setItem("notify_email", email || "");
+            localStorage.setItem("notify_webhook", webhook_url || "");
+          } catch (_) {}
           const mode = modeEl.value;
           let payload = {
             email: email || undefined,
@@ -2474,6 +2882,53 @@
             msg.textContent = "Network error";
           }
         });
+
+        // Pre-fill contact from localStorage
+        try {
+          const savedEmail = localStorage.getItem("notify_email") || "";
+          const savedHook = localStorage.getItem("notify_webhook") || "";
+          if (savedEmail)
+            document.getElementById("notifyEmail").value = savedEmail;
+          if (savedHook)
+            document.getElementById("notifyWebhook").value = savedHook;
+        } catch (_) {}
+      })();
+
+      // On small screens, open location search by default to reduce taps
+      (function initMobileDefaults() {
+        try {
+          const isMobile =
+            window.matchMedia &&
+            window.matchMedia("(max-width: 768px)").matches;
+          if (!isMobile) return;
+          const panel = document.getElementById("searchPanel");
+          const modeEl = document.getElementById("searchMode");
+          if (modeEl) modeEl.value = "location";
+          if (panel) panel.style.display = "flex";
+        } catch (_) {}
+      })();
+
+      // (popup radius controls removed; radius +/- now inline in panels)
+
+      (function updateMobileFilterLabels() {
+        function setLabels(isMobile) {
+          if (isMobile) {
+            document.getElementById("filterAll").textContent = "ALL";
+            document.getElementById("filterWeek").textContent = "WK";
+            document.getElementById("filterDay").textContent = "24H";
+            document.getElementById("filterHour").textContent = "1H";
+          } else {
+            document.getElementById("filterAll").textContent = "ALL";
+            document.getElementById("filterWeek").textContent = "PAST WEEK";
+            document.getElementById("filterDay").textContent = "PAST 24 HOURS";
+            document.getElementById("filterHour").textContent = "PAST HOUR";
+          }
+        }
+        function checkWidth() {
+          setLabels(window.innerWidth <= 768);
+        }
+        window.addEventListener("resize", checkWidth);
+        checkWidth();
       })();
     </script>
   </body>
