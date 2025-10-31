@@ -133,6 +133,10 @@ def search_citations():
         mode = (request.args.get('mode') or '').strip().lower()
         db_manager = DatabaseManager(DB_CONFIG)
 
+        # Optional time bound: ISO 8601 string; when provided, only return citations with
+        # issue_date >= since_iso
+        since_iso = (request.args.get('since') or '').strip() or None
+
         citations = []
 
         if mode == 'plate':
@@ -144,6 +148,8 @@ def search_citations():
             # Case-insensitive match for plate_number; exact for state
             query = db_manager.supabase.table('citations').select('*')
             query = query.eq('plate_state', plate_state).ilike('plate_number', plate_number)
+            if since_iso:
+                query = query.gte('issue_date', since_iso)
             result = query.execute()
             citations = result.data or []
 
@@ -162,8 +168,10 @@ def search_citations():
                 .table('citations')
                 .select('*')
                 .eq('citation_number', citation_number_int)
-                .execute()
             )
+            if since_iso:
+                result = result.gte('issue_date', since_iso)
+            result = result.execute()
             citations = result.data or []
 
         elif mode == 'location':
@@ -189,7 +197,7 @@ def search_citations():
             max_lon = lon + deg_lon
 
             # Filter by bbox and presence of coordinates
-            bbox_result = (
+            bbox_query = (
                 db_manager
                 .supabase
                 .table('citations')
@@ -200,8 +208,10 @@ def search_citations():
                 .lte('latitude', max_lat)
                 .gte('longitude', min_lon)
                 .lte('longitude', max_lon)
-                .execute()
             )
+            if since_iso:
+                bbox_query = bbox_query.gte('issue_date', since_iso)
+            bbox_result = bbox_query.execute()
             candidates = bbox_result.data or []
 
             # Precise filter using haversine distance

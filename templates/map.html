@@ -1657,6 +1657,26 @@
             }
           });
         }
+        function getSinceIsoFromFilter() {
+          // Map currentTimeFilter to a cutoff ISO string; return null for "all"
+          try {
+            if (
+              currentTimeFilter === "hour" ||
+              currentTimeFilter === "day" ||
+              currentTimeFilter === "week"
+            ) {
+              const now = new Date();
+              let ms = 0;
+              if (currentTimeFilter === "hour") ms = 60 * 60 * 1000;
+              else if (currentTimeFilter === "day") ms = 24 * 60 * 60 * 1000;
+              else if (currentTimeFilter === "week")
+                ms = 7 * 24 * 60 * 60 * 1000;
+              const cutoff = new Date(now.getTime() - ms);
+              return cutoff.toISOString();
+            }
+          } catch (_) {}
+          return null;
+        }
 
         function flashSearchHint() {
           const el = document.getElementById("searchHint");
@@ -1742,6 +1762,10 @@
               )}&lon=${encodeURIComponent(
                 searchCenter.lon
               )}&radius_m=${encodeURIComponent(radiusM)}`;
+              const sinceIso1 = getSinceIsoFromFilter();
+              if (sinceIso1) {
+                url += `&since=${encodeURIComponent(sinceIso1)}`;
+              }
               const resp = await fetch(url);
               const data = await resp.json();
               if (data.status !== "success") return;
@@ -1798,6 +1822,10 @@
               )}&lon=${encodeURIComponent(
                 searchCenter.lon
               )}&radius_m=${encodeURIComponent(radiusM)}`;
+              const sinceIso2 = getSinceIsoFromFilter();
+              if (sinceIso2) {
+                url += `&since=${encodeURIComponent(sinceIso2)}`;
+              }
               const resp = await fetch(url);
               const data = await resp.json();
               if (data.status !== "success") return;
@@ -1862,6 +1890,10 @@
               )}&lon=${encodeURIComponent(
                 searchCenter.lon
               )}&radius_m=${encodeURIComponent(next)}`;
+              const sinceIso3 = getSinceIsoFromFilter();
+              if (sinceIso3) {
+                url += `&since=${encodeURIComponent(sinceIso3)}`;
+              }
               const resp = await fetch(url);
               const data = await resp.json();
               if (data.status !== "success") return;
@@ -1905,6 +1937,11 @@
               )}&lon=${encodeURIComponent(
                 searchCenter.lon
               )}&radius_m=${encodeURIComponent(radiusM)}`;
+            }
+
+            const sinceIso4 = getSinceIsoFromFilter();
+            if (sinceIso4) {
+              url += `&since=${encodeURIComponent(sinceIso4)}`;
             }
 
             const resp = await fetch(url);
