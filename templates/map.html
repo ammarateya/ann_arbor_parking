@@ -1898,7 +1898,16 @@
               const data = await resp.json();
               if (data.status !== "success") return;
               isSearchActive = true;
-              showOnlyMarkers(data.citations || []);
+              const results = data.citations || [];
+              showOnlyMarkers(results);
+              const noResultsMsg = document.getElementById("noResultsMessage");
+              if (results.length === 0) {
+                const intervalEl = document.getElementById("noResultsInterval");
+                if (intervalEl) intervalEl.textContent = "NO MATCHES FOUND";
+                if (noResultsMsg) noResultsMsg.classList.add("visible");
+              } else {
+                if (noResultsMsg) noResultsMsg.classList.remove("visible");
+              }
             } catch (_) {}
           }, 300);
         }
