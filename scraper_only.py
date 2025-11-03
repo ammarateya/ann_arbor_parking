@@ -125,11 +125,13 @@ def ongoing_scraper_job():
 
         logger.info(f"Last successful citation: {last_citation}")
 
-        # Determine dynamic bases from DB with thresholds
-        aa_db_max = db_manager.get_max_citation_below(2_000_000)
-        nc_db_max = db_manager.get_max_citation_at_or_above(2_000_000)
-        logger.info(f"AA DB max <2,000,000: {aa_db_max}")
-        logger.info(f"NC DB max ≥2,000,000: {nc_db_max}")
+        # Determine dynamic bases from DB using leading-digit bands
+        # NC (starts with 2): [2,000,000, 3,000,000)
+        nc_db_max = db_manager.get_max_citation_between(2_000_000, 3_000_000)
+        # AA (starts with 1): [10,000,000, 20,000,000)
+        aa_db_max = db_manager.get_max_citation_between(10_000_000, 20_000_000)
+        logger.info(f"NC DB max [2,000,000..3,000,000): {nc_db_max}")
+        logger.info(f"AA DB max [10,000,000..20,000,000): {aa_db_max}")
 
         # Configure seeds and range size from environment
         try:
