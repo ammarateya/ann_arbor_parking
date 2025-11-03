@@ -82,7 +82,7 @@ def ongoing_scraper_job():
       - North Campus seed: NC_BASE_SEED env var (defaults to 2081673)
 
     Range size:
-      - SCRAPE_RANGE_SIZE env var (defaults to 100)
+      - SCRAPE_RANGE_SIZE env var (defaults to 50)
     """
     logger.info("Starting ongoing scraper job...")
     
@@ -135,9 +135,9 @@ def ongoing_scraper_job():
 
         # Configure range size from environment
         try:
-            range_size = int(os.getenv('SCRAPE_RANGE_SIZE', '100'))
+            range_size = int(os.getenv('SCRAPE_RANGE_SIZE', '50'))
         except ValueError:
-            range_size = 100
+            range_size = 50
 
         # Center ranges on DB maxima directly (no env seeds)
         aa_center = aa_db_max if aa_db_max is not None else last_citation
