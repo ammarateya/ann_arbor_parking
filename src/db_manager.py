@@ -96,6 +96,25 @@ class DatabaseManager:
             logger.error(f"Failed to get max citation below {threshold}: {e}")
             return None
 
+    def get_max_citation_at_or_above(self, threshold: int) -> Optional[int]:
+        """Return the maximum citation_number at or above the given threshold."""
+        try:
+            result = (
+                self.supabase
+                .table('citations')
+                .select('citation_number')
+                .gte('citation_number', threshold)
+                .order('citation_number', desc=True)
+                .limit(1)
+                .execute()
+            )
+            if result.data:
+                return int(result.data[0]['citation_number'])
+            return None
+        except Exception as e:
+            logger.error(f"Failed to get max citation at or above {threshold}: {e}")
+            return None
+
     def update_last_successful_citation(self, citation_number: int):
         """Update the last successfully scraped citation number"""
         try:

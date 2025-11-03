@@ -24,21 +24,22 @@ from storage_factory import StorageFactory
 from geocoder import Geocoder
 from nonstandard import resolve_alias
 
-# Configure verbose logging (configurable via LOG_LEVEL)
-log_level_name = os.getenv('LOG_LEVEL', 'DEBUG').upper()
-numeric_level = getattr(logging, log_level_name, logging.DEBUG)
+# Configure logging (configurable via LOG_LEVEL)
+# Default to INFO to avoid overly verbose logs
+log_level_name = os.getenv('LOG_LEVEL', 'INFO').upper()
+numeric_level = getattr(logging, log_level_name, logging.INFO)
 logging.basicConfig(
     level=numeric_level,
     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
     handlers=[logging.StreamHandler()]
 )
 
-# Increase verbosity for HTTP clients used by dependencies (Supabase/httpx, requests/urllib3)
-logging.getLogger('httpx').setLevel(logging.DEBUG)
-logging.getLogger('httpcore').setLevel(logging.DEBUG)
-logging.getLogger('urllib3').setLevel(logging.DEBUG)
-logging.getLogger('botocore').setLevel(logging.INFO)
-logging.getLogger('boto3').setLevel(logging.INFO)
+# Reduce verbosity for noisy third-party libraries
+logging.getLogger('httpx').setLevel(logging.WARNING)
+logging.getLogger('httpcore').setLevel(logging.WARNING)
+logging.getLogger('urllib3').setLevel(logging.WARNING)
+logging.getLogger('botocore').setLevel(logging.WARNING)
+logging.getLogger('boto3').setLevel(logging.WARNING)
 
 logger = logging.getLogger(__name__)
 
@@ -126,9 +127,9 @@ def ongoing_scraper_job():
 
         # Determine dynamic bases from DB with thresholds
         aa_db_max = db_manager.get_max_citation_below(2_000_000)
-        nc_db_max = db_manager.get_max_citation_below(3_000_000)
+        nc_db_max = db_manager.get_max_citation_at_or_above(2_000_000)
         logger.info(f"AA DB max <2,000,000: {aa_db_max}")
-        logger.info(f"NC DB max <3,000,000: {nc_db_max}")
+        logger.info(f"NC DB max ≥2,000,000: {nc_db_max}")
 
         # Configure seeds and range size from environment
         try:
