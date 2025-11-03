@@ -133,24 +133,18 @@ def ongoing_scraper_job():
         logger.info(f"NC DB max [2,000,000..3,000,000): {nc_db_max}")
         logger.info(f"AA DB max [10,000,000..20,000,000): {aa_db_max}")
 
-        # Configure seeds and range size from environment
-        try:
-            aa_seed_env = os.getenv('AA_BASE_SEED')
-            aa_seed = int(aa_seed_env) if aa_seed_env else (aa_db_max if aa_db_max is not None else last_citation)
-        except ValueError:
-            aa_seed = aa_db_max if aa_db_max is not None else last_citation
-        try:
-            nc_seed_env = os.getenv('NC_BASE_SEED')
-            nc_seed = int(nc_seed_env) if nc_seed_env else (nc_db_max if nc_db_max is not None else 2081673)
-        except ValueError:
-            nc_seed = nc_db_max if nc_db_max is not None else 2081673
+        # Configure range size from environment
         try:
             range_size = int(os.getenv('SCRAPE_RANGE_SIZE', '100'))
         except ValueError:
             range_size = 100
 
-        aa_range = (aa_seed - range_size, aa_seed + range_size)
-        nc_range = (nc_seed - range_size, nc_seed + range_size)
+        # Center ranges on DB maxima directly (no env seeds)
+        aa_center = aa_db_max if aa_db_max is not None else last_citation
+        nc_center = nc_db_max if nc_db_max is not None else 2081673
+
+        aa_range = (aa_center - range_size, aa_center + range_size)
+        nc_range = (nc_center - range_size, nc_center + range_size)
         ranges = [aa_range, nc_range]
 
         overall_start = min(start for start, _ in ranges)
