@@ -1596,6 +1596,8 @@
       let searchCenter = null; // {lat, lon}
       let searchCircle = null;
       let pendingPick = false;
+      let mostRecentCitationTime = null; // Store the most recent citation timestamp
+      let mostRecentCitationNumber = null; // Store the most recent citation number
 
       // Search UI logic
       (function initSearchUI() {
@@ -2209,6 +2211,9 @@
             // Update most recent citation time (America/Detroit)
             if (data.most_recent_citation_time) {
               const recent = new Date(data.most_recent_citation_time);
+              mostRecentCitationTime = data.most_recent_citation_time; // Store for Latest link
+              mostRecentCitationNumber =
+                data.most_recent_citation_number || null; // Store citation number
 
               if (!isNaN(recent.getTime())) {
                 const detroitTZ = "America/Detroit";
@@ -2219,14 +2224,14 @@
                   month: "2-digit",
                   day: "2-digit",
                 }).format(new Date());
-                
+
                 const recentDateStr = new Intl.DateTimeFormat("en-CA", {
                   timeZone: detroitTZ,
                   year: "numeric",
                   month: "2-digit",
                   day: "2-digit",
                 }).format(recent);
-                
+
                 let formattedTime;
                 if (recentDateStr === todayDetroitStr) {
                   // Format as "Today, X:YZ PM/AM"
@@ -2389,12 +2394,129 @@
       }
 
       // Focus and open the latest citation
-      function focusLatestCitation() {
-        if (!citations.length) return;
-        let latest = citations[0];
-        for (const c of citations) {
-          if (new Date(c.issue_date) > new Date(latest.issue_date)) latest = c;
+      async function focusLatestCitation() {
+        console.log("focusLatestCitation called", {
+          mostRecentCitationNumber,
+          mostRecentCitationTime,
+          citationsCount: citations.length,
+        });
+
+        if (!citations.length && !mostRecentCitationNumber) {
+          console.warn("No citations loaded and no citation number");
+          return;
         }
+
+        let latest = null;
+
+        // First try to find by citation number (most reliable)
+        if (mostRecentCitationNumber) {
+          const targetNum = String(mostRecentCitationNumber);
+          console.log("Looking for citation number:", targetNum);
+
+          latest = citations.find((c) => {
+            const cNum = String(c.citation_number || "");
+            const match = cNum === targetNum;
+            if (match)
+              console.log("Found citation by number:", c.citation_number);
+            return match;
+          });
+
+          if (!latest) {
+            console.log(
+              "Citation not found in loaded array, attempting to fetch..."
+            );
+            // If not found in loaded citations, fetch it directly
+            try {
+              const resp = await fetch(
+                `/api/search?mode=citation&citation_number=${encodeURIComponent(
+                  mostRecentCitationNumber
+                )}`
+              );
+              const data = await resp.json();
+              if (
+                data.status === "success" &&
+                data.citations &&
+                data.citations.length > 0
+              ) {
+                latest = data.citations[0];
+                console.log(
+                  "Fetched citation from API:",
+                  latest.citation_number
+                );
+                // Add it to the citations array and create a marker for it
+                if (
+                  !citations.find(
+                    (c) =>
+                      String(c.citation_number) ===
+                      String(latest.citation_number)
+                  )
+                ) {
+                  citations.push(latest);
+                  const marker = createMarkerForCitation(latest);
+                  if (marker) {
+                    markers.push(marker);
+                  }
+                }
+              } else {
+                console.warn(
+                  "API search returned no results for citation",
+                  mostRecentCitationNumber
+                );
+              }
+            } catch (err) {
+              console.error("Error fetching latest citation:", err);
+            }
+          }
+        }
+
+        // Only fall back to timestamp/date matching if we still don't have a match
+        if (!latest) {
+          // If not found by citation number, try to find by timestamp (with tolerance)
+          if (mostRecentCitationTime) {
+            const targetTime = new Date(mostRecentCitationTime).getTime();
+            // Use tolerance of 5 seconds to handle precision differences
+            const tolerance = 5000; // 5 seconds in milliseconds
+            for (const c of citations) {
+              if (c.issue_date) {
+                const issueTime = new Date(c.issue_date).getTime();
+                if (Math.abs(issueTime - targetTime) <= tolerance) {
+                  latest = c;
+                  console.log(
+                    "Found citation by timestamp:",
+                    c.citation_number
+                  );
+                  break;
+                }
+              }
+            }
+          }
+
+          // If still not found, find the most recent by date from loaded citations
+          if (!latest && citations.length > 0) {
+            latest = citations[0];
+            for (const c of citations) {
+              if (!c.issue_date) continue;
+              if (new Date(c.issue_date) > new Date(latest.issue_date || 0)) {
+                latest = c;
+              }
+            }
+            console.log(
+              "Falling back to most recent citation by date:",
+              latest.citation_number
+            );
+          }
+        }
+
+        if (!latest || !latest.citation_number) {
+          console.warn("Could not find latest citation", {
+            latest,
+            mostRecentCitationNumber,
+          });
+          return;
+        }
+
+        console.log("Focusing on citation:", latest.citation_number);
+
         const marker = citationToMarker.get(String(latest.citation_number));
         if (marker) {
           const lat = parseFloat(latest.latitude);
@@ -2402,6 +2524,23 @@
           map.setView([lat, lon], 16);
           marker.openPopup();
           showCitationDetails(latest);
+        } else if (latest.latitude && latest.longitude) {
+          // Marker not found but we have coordinates - create a temporary marker or just focus
+          const lat = parseFloat(latest.latitude);
+          const lon = parseFloat(latest.longitude);
+          map.setView([lat, lon], 16);
+          showCitationDetails(latest);
+          // Try to create marker now if it doesn't exist
+          const newMarker = createMarkerForCitation(latest);
+          if (newMarker) {
+            markers.push(newMarker);
+            newMarker.openPopup();
+          }
+        } else {
+          console.warn(
+            "Citation found but no coordinates:",
+            latest.citation_number
+          );
         }
       }
 
@@ -2582,20 +2721,23 @@
         const noResultsMsg = document.getElementById("noResultsMessage");
         noResultsMsg.classList.remove("visible");
 
-        // Calculate cutoff time in America/Detroit timezone
-        const detroitTZ = "America/Detroit";
-        const nowDetroit = new Date();
+        // Calculate cutoff time - use UTC for consistent comparison with database dates
+        // Database dates are in UTC, so we need to compare in UTC
+        const now = new Date();
+        let cutoffTime = null;
 
-        let cutoffTime;
         if (period === "hour") {
-          cutoffTime = new Date(nowDetroit.getTime() - 60 * 60 * 1000);
+          cutoffTime = new Date(now.getTime() - 60 * 60 * 1000);
         } else if (period === "day") {
-          cutoffTime = new Date(nowDetroit.getTime() - 24 * 60 * 60 * 1000);
+          cutoffTime = new Date(now.getTime() - 24 * 60 * 60 * 1000);
         } else if (period === "week") {
-          cutoffTime = new Date(nowDetroit.getTime() - 7 * 24 * 60 * 60 * 1000);
-        } else {
-          cutoffTime = null; // Show all
+          cutoffTime = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
         }
+        // else cutoffTime remains null (show all)
+
+        // Convert cutoff to UTC timestamp for comparison
+        // JavaScript Date objects are internally UTC, but we ensure proper comparison
+        const cutoffTimestamp = cutoffTime ? cutoffTime.getTime() : null;
 
         // Filter and show/hide markers
         let visibleCount = 0;
@@ -2605,7 +2747,7 @@
           const marker = citationToMarker.get(String(citation.citation_number));
           if (!marker) return;
 
-          if (cutoffTime === null) {
+          if (cutoffTimestamp === null) {
             // Show all
             if (!map.hasLayer(marker)) {
               marker.addTo(map);
@@ -2615,7 +2757,9 @@
             // Check if citation issue_date is within the time period
             if (citation.issue_date) {
               const issueDate = new Date(citation.issue_date);
-              if (issueDate >= cutoffTime) {
+              // Compare timestamps (UTC) to avoid timezone issues
+              const issueTimestamp = issueDate.getTime();
+              if (issueTimestamp >= cutoffTimestamp) {
                 if (!map.hasLayer(marker)) {
                   marker.addTo(map);
                 }
@@ -2652,18 +2796,19 @@
         }
 
         // Update stats based on visible citations
-        updateStatsForFilter(period, cutoffTime);
+        updateStatsForFilter(period, cutoffTimestamp);
       }
 
       // Update statistics for filtered citations
-      function updateStatsForFilter(period, cutoffTime) {
+      function updateStatsForFilter(period, cutoffTimestamp) {
         let filteredCitations = citations;
 
-        if (cutoffTime !== null) {
+        if (cutoffTimestamp !== null) {
           filteredCitations = citations.filter((c) => {
             if (!c.issue_date) return false;
             const issueDate = new Date(c.issue_date);
-            return issueDate >= cutoffTime;
+            // Compare timestamps (UTC) to avoid timezone issues
+            return issueDate.getTime() >= cutoffTimestamp;
           });
         }
 

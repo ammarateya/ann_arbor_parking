@@ -119,14 +119,15 @@ def get_citations():
         # Filter out citations without coordinates (they need to be geocoded on frontend)
         citations_with_coords = [c for c in citations if c.get('latitude') and c.get('longitude')]
         
-        # Get the most recent citation timestamp directly from database
+        # Get the most recent citation timestamp and number directly from database
         # This ensures we get the actual latest even if it's not in the current result set
         most_recent_time = None
+        most_recent_citation_number = None
         try:
             latest_result = (
                 db_manager.supabase
                 .table('citations')
-                .select('issue_date')
+                .select('issue_date,citation_number')
                 .not_.is_('location', 'null')
                 .not_.is_('issue_date', 'null')
                 .not_.is_('latitude', 'null')
@@ -137,6 +138,7 @@ def get_citations():
             )
             if latest_result.data and latest_result.data[0].get('issue_date'):
                 most_recent_time = latest_result.data[0]['issue_date']
+                most_recent_citation_number = latest_result.data[0].get('citation_number')
         except Exception as e:
             logger.warning(f"Failed to get most recent citation time: {e}")
             # Fallback: check citations_with_coords if database query fails
@@ -146,6 +148,7 @@ def get_citations():
                     if issue_date:
                         if most_recent_time is None or issue_date > most_recent_time:
                             most_recent_time = issue_date
+                            most_recent_citation_number = citation.get('citation_number')
         
         # Return all citations
         return jsonify({
@@ -153,7 +156,8 @@ def get_citations():
             'citations': citations_with_coords,
             'count': len(citations_with_coords),
             'total': len(citations),
-            'most_recent_citation_time': most_recent_time
+            'most_recent_citation_time': most_recent_time,
+            'most_recent_citation_number': most_recent_citation_number
         })
     except Exception as e:
         import traceback
