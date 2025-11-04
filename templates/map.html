@@ -920,12 +920,43 @@
           bottom: 10px;
           flex-direction: column;
           gap: 8px;
-          transition: bottom 0.3s ease-out;
+          transition: bottom 0.3s ease-out, left 0.3s ease-out,
+            right 0.3s ease-out, width 0.3s ease-out, padding 0.3s ease-out;
+          width: auto;
         }
-        
-        /* When panel is active on mobile, move controls up */
+
+        .map-controls .control-btn {
+          transition: opacity 0.3s ease-out, transform 0.3s ease-out;
+        }
+
+        /* When panel is active on mobile, move controls up and slide to horizontal layout */
         body.mobile-panel-open .map-controls {
           bottom: calc(33vh + 10px);
+          flex-direction: row;
+          /* Keep same container size - just change layout direction */
+        }
+
+        /* Hide search and notify panels when mobile panel is open */
+        body.mobile-panel-open .map-controls #searchPanel,
+        body.mobile-panel-open .map-controls #notifyPanel {
+          display: none !important;
+        }
+
+        /* Position buttons: reset on left, notify on right when panel is open */
+        body.mobile-panel-open .map-controls #resetBtn {
+          order: 1;
+        }
+
+        body.mobile-panel-open .map-controls #themeBtn {
+          order: 2;
+        }
+
+        body.mobile-panel-open .map-controls #searchToggleBtn {
+          order: 3;
+        }
+
+        body.mobile-panel-open .map-controls #notifyToggleBtn {
+          order: 4;
         }
 
         .control-btn {
@@ -1476,7 +1507,8 @@
         const panel = document.getElementById("sidePanel");
         panel.classList.remove("active");
         // Check if mobile
-        const isMobile = window.matchMedia && window.matchMedia("(max-width: 768px)").matches;
+        const isMobile =
+          window.matchMedia && window.matchMedia("(max-width: 768px)").matches;
         if (isMobile) {
           document.body.classList.remove("mobile-panel-open");
         } else {
@@ -2383,8 +2415,9 @@
         const content = document.getElementById("sidePanelContent");
 
         // Check if mobile
-        const isMobile = window.matchMedia && window.matchMedia("(max-width: 768px)").matches;
-        
+        const isMobile =
+          window.matchMedia && window.matchMedia("(max-width: 768px)").matches;
+
         if (isMobile) {
           // On mobile: just slide up from bottom, no layout shift
           panel.classList.add("active");
