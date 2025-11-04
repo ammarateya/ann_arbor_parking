@@ -16,20 +16,24 @@
     <meta property="og:title" content="Ann Arbor Parking Citations Map" />
     <meta
       property="og:description"
-      content="Interactive map showing parking citations across Ann Arbor, MI"
+      content="Interactive map showing parking citations across Ann Arbor, MI. Real-time tracking of parking tickets with search and notifications."
     />
     <meta property="og:type" content="website" />
-    <meta property="og:url" content="https://ammarateya.com/a2-parking" />
-    <meta property="og:image" content="https://ammarateya.com/icon.png" />
+    <meta property="og:url" content="{{ og_url }}" />
+    <meta property="og:image" content="{{ og_image }}" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:image:type" content="image/png" />
+    <meta property="og:site_name" content="Ann Arbor Parking Citations" />
 
     <!-- Twitter Card Tags -->
     <meta name="twitter:card" content="summary_large_image" />
     <meta name="twitter:title" content="Ann Arbor Parking Citations Map" />
     <meta
       name="twitter:description"
-      content="Interactive map showing parking citations across Ann Arbor, MI"
+      content="Interactive map showing parking citations across Ann Arbor, MI. Real-time tracking of parking tickets with search and notifications."
     />
-    <meta name="twitter:image" content="https://ammarateya.com/icon.png" />
+    <meta name="twitter:image" content="{{ og_image }}" />
 
     <!-- Favicon -->
     <link rel="icon" type="image/png" href="/icon.png" />
@@ -1482,15 +1486,9 @@
         >
           <input
             id="notifyEmail"
-            placeholder="Email (optional)"
+            placeholder="Email (required)"
             class="search-input"
             style="min-width: 200px"
-          />
-          <input
-            id="notifyWebhook"
-            placeholder="Webhook URL (optional)"
-            class="search-input"
-            style="min-width: 220px"
           />
           <button class="time-filter-btn" id="notifySubmitBtn">
             SUBSCRIBE
@@ -2877,23 +2875,18 @@
           const email = (
             document.getElementById("notifyEmail").value || ""
           ).trim();
-          const webhook_url = (
-            document.getElementById("notifyWebhook").value || ""
-          ).trim();
-          if (!email && !webhook_url) {
+          if (!email) {
             msg.style.color = "#ff8080";
-            msg.textContent = "Provide email or webhook URL";
+            msg.textContent = "Email is required";
             return;
           }
           // persist contact locally for convenience
           try {
             localStorage.setItem("notify_email", email || "");
-            localStorage.setItem("notify_webhook", webhook_url || "");
           } catch (_) {}
           const mode = modeEl.value;
           let payload = {
-            email: email || undefined,
-            webhook_url: webhook_url || undefined,
+            email: email,
           };
           if (mode === "plate") {
             const st = (document.getElementById("notifyPlateState").value || "")
@@ -2946,11 +2939,8 @@
         // Pre-fill contact from localStorage
         try {
           const savedEmail = localStorage.getItem("notify_email") || "";
-          const savedHook = localStorage.getItem("notify_webhook") || "";
           if (savedEmail)
             document.getElementById("notifyEmail").value = savedEmail;
-          if (savedHook)
-            document.getElementById("notifyWebhook").value = savedHook;
         } catch (_) {}
       })();
 

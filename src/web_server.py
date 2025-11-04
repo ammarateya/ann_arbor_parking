@@ -1,6 +1,7 @@
 from flask import Flask, jsonify, render_template, request
 import os
 import logging
+from pathlib import Path
 from db_manager import DatabaseManager
 from storage_factory import StorageFactory
 from email_notifier import EmailNotifier
@@ -28,16 +29,33 @@ def get_db_manager():
         _db_manager = DatabaseManager(DB_CONFIG)
     return _db_manager
 
+def get_og_image_url(base_url):
+    """Get the Open Graph preview image URL, checking for og-preview.png first"""
+    # Check if og-preview.png exists in static folder
+    static_dir = Path(__file__).parent.parent / 'static'
+    if (static_dir / 'og-preview.png').exists():
+        return f"{base_url}/static/og-preview.png"
+    # Fallback to parking-icon
+    return f"{base_url}/static/parking-icon.png"
+
 @app.route('/')
 def index():
     """Main map page"""
-    return render_template('map.html')
+    # Generate absolute URLs for Open Graph meta tags
+    base_url = request.url_root.rstrip('/')
+    og_url = f"{base_url}{request.path}"
+    og_image = get_og_image_url(base_url)
+    return render_template('map.html', og_url=og_url, og_image=og_image, base_url=base_url)
 
 @app.route('/about/')
 @app.route('/about')
 def about():
     """About page explaining the scraping methodology"""
-    return render_template('about.html')
+    # Generate absolute URLs for Open Graph meta tags
+    base_url = request.url_root.rstrip('/')
+    og_url = f"{base_url}{request.path}"
+    og_image = get_og_image_url(base_url)
+    return render_template('about.html', og_url=og_url, og_image=og_image, base_url=base_url)
 
 @app.route('/api/health')
 def health_check():
@@ -344,21 +362,20 @@ def subscribe():
       - Plate: { plate_state, plate_number }
       - Location: { center_lat, center_lon, radius_m }
 
-    JSON body must include one of the above groups, plus at least one of: email or webhook_url.
+    JSON body must include one of the above groups, plus email.
     """
     try:
         payload = request.get_json(force=True, silent=False) or {}
         plate_state = (payload.get('plate_state') or '').strip().upper()
         plate_number = (payload.get('plate_number') or '').strip()
         email = (payload.get('email') or '').strip() or None
-        webhook_url = (payload.get('webhook_url') or '').strip() or None
-        if not email and not webhook_url:
-            return jsonify({'status': 'error', 'error': 'email or webhook_url is required'}), 400
+        if not email:
+            return jsonify({'status': 'error', 'error': 'email is required'}), 400
 
         db_manager = get_db_manager()
         # Plate subscription
         if plate_state and plate_number:
-            result = db_manager.add_subscription(plate_state, plate_number, email=email, webhook_url=webhook_url)
+            result = db_manager.add_subscription(plate_state, plate_number, email=email)
             return jsonify({'status': 'success', 'subscription': result.get('data')}), 200
 
         # Location subscription
@@ -370,7 +387,7 @@ def subscribe():
             return jsonify({'status': 'error', 'error': 'center_lat, center_lon, and radius_m must be numbers'}), 400
 
         if center_lat is not None and center_lon is not None and radius_m is not None:
-            result = db_manager.add_location_subscription(center_lat, center_lon, radius_m, email=email, webhook_url=webhook_url)
+            result = db_manager.add_location_subscription(center_lat, center_lon, radius_m, email=email)
             return jsonify({'status': 'success', 'subscription': result.get('data')}), 200
 
         return jsonify({'status': 'error', 'error': 'provide either plate_state+plate_number or center_lat+center_lon+radius_m'}), 400
@@ -379,20 +396,19 @@ def subscribe():
 
 @app.route('/api/unsubscribe', methods=['POST'])
 def unsubscribe():
-    """Deactivate a subscription matching the plate or location and contact."""
+    """Deactivate a subscription matching the plate or location and email."""
     try:
         payload = request.get_json(force=True, silent=False) or {}
         plate_state = (payload.get('plate_state') or '').strip().upper()
         plate_number = (payload.get('plate_number') or '').strip()
         email = (payload.get('email') or '').strip() or None
-        webhook_url = (payload.get('webhook_url') or '').strip() or None
 
-        if not email and not webhook_url:
-            return jsonify({'status': 'error', 'error': 'email or webhook_url is required'}), 400
+        if not email:
+            return jsonify({'status': 'error', 'error': 'email is required'}), 400
 
         db_manager = get_db_manager()
         if plate_state and plate_number:
-            result = db_manager.deactivate_subscription(plate_state, plate_number, email=email, webhook_url=webhook_url)
+            result = db_manager.deactivate_subscription(plate_state, plate_number, email=email)
             return jsonify({'status': 'success', 'unsubscribed': result.get('data')}), 200
 
         try:
@@ -403,7 +419,7 @@ def unsubscribe():
             return jsonify({'status': 'error', 'error': 'center_lat, center_lon, and radius_m must be numbers'}), 400
 
         if center_lat is not None and center_lon is not None and radius_m is not None:
-            result = db_manager.deactivate_location_subscription(center_lat, center_lon, radius_m, email=email, webhook_url=webhook_url)
+            result = db_manager.deactivate_location_subscription(center_lat, center_lon, radius_m, email=email)
             return jsonify({'status': 'success', 'unsubscribed': result.get('data')}), 200
 
         return jsonify({'status': 'error', 'error': 'provide either plate_state+plate_number or center_lat+center_lon+radius_m'}), 400

@@ -19,7 +19,6 @@ sys.path.insert(0, os.path.join(os.path.dirname(__file__), 'src'))
 from db_manager import DatabaseManager
 from scraper import CitationScraper
 from email_notifier import EmailNotifier
-from webhook_notifier import WebhookNotifier
 from storage_factory import StorageFactory
 from geocoder import Geocoder
 from nonstandard import resolve_alias
@@ -96,8 +95,6 @@ def ongoing_scraper_job():
         
         email_notifier = EmailNotifier()
         logger.info("✓ EmailNotifier initialized")
-        webhook_notifier = WebhookNotifier()
-        logger.info("✓ WebhookNotifier initialized")
         
         cloud_storage = StorageFactory.create_storage_service()
         logger.info(f"✓ Cloud storage initialized: {cloud_storage is not None}")
@@ -239,8 +236,6 @@ def ongoing_scraper_job():
                                                 'radius_m': sub.get('radius_m'),
                                             },
                                         )
-                                    if sub.get('webhook_url'):
-                                        webhook_notifier.send_ticket_alert(sub['webhook_url'], result)
                         except Exception as e:
                             logger.error(f"Failed notifying location subscribers for {citation_num}: {e}")
 

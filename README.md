@@ -62,7 +62,6 @@ IMAGE_FORMAT=JPEG
 Notes:
 
 - For subscriber emails, the app uses the same SMTP credentials as the daily report. Set `EMAIL_*` accordingly.
-- Apply DB changes for subscriptions by running the SQL in `docs/alter_schema_ocr.sql` on your Supabase database (idempotent).
 
 ### 3. Deploy API to Render
 

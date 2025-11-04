@@ -231,39 +231,27 @@ class DatabaseManager:
             return {'total_images': 0, 'total_mb': 0, 'citations_with_images': 0}
 
     # Subscriptions
-    def add_subscription(self, plate_state: str, plate_number: str, email: Optional[str] = None, webhook_url: Optional[str] = None) -> Dict:
-        """Create or upsert a subscription for the given plate and contact.
-
-        Either email or webhook_url must be provided.
-        """
-        if not email and not webhook_url:
-            raise ValueError("Either email or webhook_url must be provided")
+    def add_subscription(self, plate_state: str, plate_number: str, email: str) -> Dict:
+        """Create or upsert a subscription for the given plate and email."""
+        if not email:
+            raise ValueError("email is required")
         try:
             payload = {
                 'plate_state': plate_state.upper(),
                 'plate_number': plate_number,
                 'email': email,
-                'webhook_url': webhook_url,
                 'is_active': True,
             }
             # Check if subscription already exists
-            query = (
+            existing = (
                 self.supabase
                 .table('subscriptions')
                 .select('*')
                 .eq('plate_state', plate_state.upper())
                 .eq('plate_number', plate_number)
+                .eq('email', email)
+                .execute()
             )
-            if email:
-                query = query.eq('email', email)
-            else:
-                query = query.is_('email', 'null')
-            if webhook_url:
-                query = query.eq('webhook_url', webhook_url)
-            else:
-                query = query.is_('webhook_url', 'null')
-            
-            existing = query.execute()
             
             if existing.data and len(existing.data) > 0:
                 # Update existing subscription
@@ -287,24 +275,21 @@ class DatabaseManager:
             logger.error(f"Failed to add subscription: {e}")
             raise
 
-    def deactivate_subscription(self, plate_state: str, plate_number: str, email: Optional[str] = None, webhook_url: Optional[str] = None) -> Dict:
-        """Deactivate a subscription matching the plate and contact."""
-        if not email and not webhook_url:
-            raise ValueError("Either email or webhook_url must be provided")
+    def deactivate_subscription(self, plate_state: str, plate_number: str, email: str) -> Dict:
+        """Deactivate a subscription matching the plate and email."""
+        if not email:
+            raise ValueError("email is required")
         try:
-            query = (
+            result = (
                 self.supabase
                 .table('subscriptions')
                 .update({'is_active': False})
                 .eq('plate_state', plate_state.upper())
                 .eq('plate_number', plate_number)
+                .eq('email', email)
                 .eq('is_active', True)
+                .execute()
             )
-            if email:
-                query = query.eq('email', email)
-            if webhook_url:
-                query = query.eq('webhook_url', webhook_url)
-            result = query.execute()
             return {'status': 'success', 'data': result.data}
         except Exception as e:
             logger.error(f"Failed to deactivate subscription: {e}")
@@ -327,10 +312,10 @@ class DatabaseManager:
             logger.error(f"Failed to find subscriptions for plate {plate_state} {plate_number}: {e}")
             return []
 
-    def add_location_subscription(self, center_lat: float, center_lon: float, radius_m: float, email: Optional[str] = None, webhook_url: Optional[str] = None) -> Dict:
+    def add_location_subscription(self, center_lat: float, center_lon: float, radius_m: float, email: str) -> Dict:
         """Create a location-based subscription."""
-        if not email and not webhook_url:
-            raise ValueError("Either email or webhook_url must be provided")
+        if not email:
+            raise ValueError("email is required")
         if radius_m <= 0 or radius_m > 100000:
             raise ValueError("radius_m must be between 1 and 100000 meters")
         try:
@@ -340,7 +325,6 @@ class DatabaseManager:
                 'center_lon': center_lon,
                 'radius_m': radius_m,
                 'email': email,
-                'webhook_url': webhook_url,
                 'is_active': True,
             }
             result = self.supabase.table('subscriptions').insert(payload).execute()
@@ -349,12 +333,12 @@ class DatabaseManager:
             logger.error(f"Failed to add location subscription: {e}")
             raise
 
-    def deactivate_location_subscription(self, center_lat: float, center_lon: float, radius_m: float, email: Optional[str] = None, webhook_url: Optional[str] = None) -> Dict:
-        """Deactivate location-based subscriptions matching provided params and contact."""
-        if not email and not webhook_url:
-            raise ValueError("Either email or webhook_url must be provided")
+    def deactivate_location_subscription(self, center_lat: float, center_lon: float, radius_m: float, email: str) -> Dict:
+        """Deactivate location-based subscriptions matching provided params and email."""
+        if not email:
+            raise ValueError("email is required")
         try:
-            query = (
+            result = (
                 self.supabase
                 .table('subscriptions')
                 .update({'is_active': False})
@@ -362,13 +346,10 @@ class DatabaseManager:
                 .eq('center_lat', center_lat)
                 .eq('center_lon', center_lon)
                 .eq('radius_m', radius_m)
+                .eq('email', email)
                 .eq('is_active', True)
+                .execute()
             )
-            if email:
-                query = query.eq('email', email)
-            if webhook_url:
-                query = query.eq('webhook_url', webhook_url)
-            result = query.execute()
             return {'status': 'success', 'data': result.data}
         except Exception as e:
             logger.error(f"Failed to deactivate location subscription: {e}")
