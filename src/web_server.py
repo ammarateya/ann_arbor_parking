@@ -83,12 +83,36 @@ def get_citations():
         db_manager = get_db_manager()
         
         # Try to get all citations that have a location field
-        # Use postgrest syntax for row selection
+        # Use postgrest syntax for row selection with pagination
+        # Supabase PostgREST has a default limit of 1000, so we need to paginate
         try:
             # Exclude raw_html to save memory (it's 50-200KB per citation!)
             fields = 'citation_number,location,plate_state,plate_number,vin,issue_date,due_date,status,amount_due,more_info_url,issuing_agency,comments,violations,image_urls,latitude,longitude,created_at,scraped_at'
-            result = db_manager.supabase.table('citations').select(fields).not_.is_('location', 'null').execute()
-            citations = result.data if result.data else []
+            
+            # Fetch all citations with pagination
+            citations = []
+            page_size = 1000
+            offset = 0
+            
+            while True:
+                result = (
+                    db_manager.supabase
+                    .table('citations')
+                    .select(fields)
+                    .not_.is_('location', 'null')
+                    .order('issue_date', desc=True)
+                    .range(offset, offset + page_size - 1)
+                    .execute()
+                )
+                page_data = result.data if result.data else []
+                if not page_data:
+                    break
+                citations.extend(page_data)
+                # If we got fewer than page_size, we've reached the end
+                if len(page_data) < page_size:
+                    break
+                offset += page_size
+                
         except Exception as e:
             # If that fails due to RLS, try a different approach
             logger.warning(f"Query failed due to RLS or permissions: {e}")
@@ -102,8 +126,30 @@ def get_citations():
                     service_client = create_client(supabase_url, service_key)
                     # Exclude raw_html to save memory
                     fields = 'citation_number,location,plate_state,plate_number,vin,issue_date,due_date,status,amount_due,more_info_url,issuing_agency,comments,violations,image_urls,latitude,longitude,created_at,scraped_at'
-                    result = service_client.table('citations').select(fields).not_.is_('location', 'null').execute()
-                    citations = result.data if result.data else []
+                    
+                    # Fetch all citations with pagination using service client
+                    citations = []
+                    page_size = 1000
+                    offset = 0
+                    
+                    while True:
+                        result = (
+                            service_client
+                            .table('citations')
+                            .select(fields)
+                            .not_.is_('location', 'null')
+                            .order('issue_date', desc=True)
+                            .range(offset, offset + page_size - 1)
+                            .execute()
+                        )
+                        page_data = result.data if result.data else []
+                        if not page_data:
+                            break
+                        citations.extend(page_data)
+                        # If we got fewer than page_size, we've reached the end
+                        if len(page_data) < page_size:
+                            break
+                        offset += page_size
                 else:
                     citations = []
             else:
