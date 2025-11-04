@@ -5,6 +5,7 @@ from email.mime.multipart import MIMEMultipart
 from typing import List, Dict
 import os
 from datetime import datetime
+import pytz
 import base64
 from email.message import EmailMessage
 
@@ -37,7 +38,10 @@ class EmailNotifier:
             msg = MIMEMultipart()
             msg['From'] = self.email_user
             msg['To'] = self.notification_email
-            msg['Subject'] = f"Parking Citation Scraper Report - {datetime.now().strftime('%Y-%m-%d %H:%M')}"
+            # Format time in Detroit timezone
+            detroit_tz = pytz.timezone('America/Detroit')
+            detroit_time = datetime.now(detroit_tz)
+            msg['Subject'] = f"Parking Citation Scraper Report - {detroit_time.strftime('%Y-%m-%d %H:%M')}"
             
             # Create email body
             body = self._create_email_body(successful_citations, total_processed, errors, images_uploaded)
@@ -58,11 +62,17 @@ class EmailNotifier:
     
     def _create_email_body(self, successful_citations: List[Dict], total_processed: int, errors: List[str] = None, images_uploaded: int = 0) -> str:
         """Create HTML email body with scraper results"""
+        # Format time in Detroit timezone
+        detroit_tz = pytz.timezone('America/Detroit')
+        detroit_time = datetime.now(detroit_tz)
+        # Format as human-readable time (e.g., "Jan 15, 2024 at 3:45 PM")
+        run_time_str = detroit_time.strftime('%B %d, %Y at %I:%M %p')
+        
         html = f"""
         <html>
         <body>
             <h2>Parking Citation Scraper Report</h2>
-            <p><strong>Run Time:</strong> {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}</p>
+            <p><strong>Run Time:</strong> {run_time_str}</p>
             <p><strong>Total Citations Processed:</strong> {total_processed}</p>
             <p><strong>Successful Citations Found:</strong> {len(successful_citations)}</p>
             <p><strong>Images Uploaded to B2:</strong> {images_uploaded}</p>
