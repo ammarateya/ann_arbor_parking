@@ -2095,7 +2095,7 @@
 
       // Load citations from API
       async function loadCitations() {
-        // Estimate final length using the same formatter on current time
+        // Estimate final length - account for "Today, " prefix if it's today
         const estimateFormatter = new Intl.DateTimeFormat("en-US", {
           timeZone: "America/Detroit",
           month: "short",
@@ -2106,7 +2106,8 @@
           hour12: true,
         });
         const estimated = `LATEST: ${estimateFormatter.format(new Date())}`;
-        startRecentScramble(estimated.length);
+        // Use slightly longer estimate to account for "Today, " format
+        startRecentScramble(Math.max(estimated.length, 25));
         try {
           const response = await fetch("/api/citations");
           const data = await response.json();
@@ -2210,17 +2211,45 @@
               const recent = new Date(data.most_recent_citation_time);
 
               if (!isNaN(recent.getTime())) {
-                // Format with timeZone: 'America/Detroit' converts UTC to Eastern Time
-                const formatter = new Intl.DateTimeFormat("en-US", {
-                  timeZone: "America/Detroit",
-                  month: "short",
-                  day: "numeric",
+                const detroitTZ = "America/Detroit";
+                // Check if the citation is from today
+                const todayDetroitStr = new Intl.DateTimeFormat("en-CA", {
+                  timeZone: detroitTZ,
                   year: "numeric",
-                  hour: "numeric",
-                  minute: "2-digit",
-                  hour12: true,
-                });
-                const formattedTime = formatter.format(recent);
+                  month: "2-digit",
+                  day: "2-digit",
+                }).format(new Date());
+                
+                const recentDateStr = new Intl.DateTimeFormat("en-CA", {
+                  timeZone: detroitTZ,
+                  year: "numeric",
+                  month: "2-digit",
+                  day: "2-digit",
+                }).format(recent);
+                
+                let formattedTime;
+                if (recentDateStr === todayDetroitStr) {
+                  // Format as "Today, X:YZ PM/AM"
+                  const timeFormatter = new Intl.DateTimeFormat("en-US", {
+                    timeZone: detroitTZ,
+                    hour: "numeric",
+                    minute: "2-digit",
+                    hour12: true,
+                  });
+                  formattedTime = `Today, ${timeFormatter.format(recent)}`;
+                } else {
+                  // Format as "Month Day, Year X:YZ PM/AM"
+                  const formatter = new Intl.DateTimeFormat("en-US", {
+                    timeZone: detroitTZ,
+                    month: "short",
+                    day: "numeric",
+                    year: "numeric",
+                    hour: "numeric",
+                    minute: "2-digit",
+                    hour12: true,
+                  });
+                  formattedTime = formatter.format(recent);
+                }
                 revealRecentTime(`LATEST: ${formattedTime}`);
                 const el = document.getElementById("recentCitationTime");
                 if (el) {
