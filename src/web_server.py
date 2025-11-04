@@ -101,17 +101,33 @@ def get_citations():
         # Filter out citations without coordinates (they need to be geocoded on frontend)
         citations_with_coords = [c for c in citations if c.get('latitude') and c.get('longitude')]
         
-        # Find the most recent citation timestamp
+        # Get the most recent citation timestamp directly from database
+        # This ensures we get the actual latest even if it's not in the current result set
         most_recent_time = None
-        if citations_with_coords:
-            # Find the most recent issue_date
-            # Note: Supabase returns ISO 8601 formatted date strings which can be
-            # compared lexicographically for chronological ordering (YYYY-MM-DDTHH:MM:SS format)
-            for citation in citations_with_coords:
-                issue_date = citation.get('issue_date')
-                if issue_date:
-                    if most_recent_time is None or issue_date > most_recent_time:
-                        most_recent_time = issue_date
+        try:
+            latest_result = (
+                db_manager.supabase
+                .table('citations')
+                .select('issue_date')
+                .not_.is_('location', 'null')
+                .not_.is_('issue_date', 'null')
+                .not_.is_('latitude', 'null')
+                .not_.is_('longitude', 'null')
+                .order('issue_date', desc=True)
+                .limit(1)
+                .execute()
+            )
+            if latest_result.data and latest_result.data[0].get('issue_date'):
+                most_recent_time = latest_result.data[0]['issue_date']
+        except Exception as e:
+            logger.warning(f"Failed to get most recent citation time: {e}")
+            # Fallback: check citations_with_coords if database query fails
+            if citations_with_coords:
+                for citation in citations_with_coords:
+                    issue_date = citation.get('issue_date')
+                    if issue_date:
+                        if most_recent_time is None or issue_date > most_recent_time:
+                            most_recent_time = issue_date
         
         # Return all citations
         return jsonify({
