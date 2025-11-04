@@ -17,6 +17,17 @@ DB_CONFIG = {
     'port': os.getenv('DB_PORT', '5432'),
 }
 
+# Create a single DatabaseManager instance to reuse across requests
+# This prevents creating multiple Supabase clients which can accumulate memory
+_db_manager = None
+
+def get_db_manager():
+    """Get or create the shared DatabaseManager instance"""
+    global _db_manager
+    if _db_manager is None:
+        _db_manager = DatabaseManager(DB_CONFIG)
+    return _db_manager
+
 @app.route('/')
 def index():
     """Main map page"""
@@ -32,7 +43,7 @@ def about():
 def health_check():
     """Health check endpoint for Render"""
     try:
-        db_manager = DatabaseManager(DB_CONFIG)
+        db_manager = get_db_manager()
         last_citation = db_manager.get_last_successful_citation()
         
         return jsonify({
@@ -51,13 +62,14 @@ def health_check():
 def get_citations():
     """Get all citations with location data"""
     try:
-        db_manager = DatabaseManager(DB_CONFIG)
+        db_manager = get_db_manager()
         
         # Try to get all citations that have a location field
         # Use postgrest syntax for row selection
         try:
-            # First try with regular query
-            result = db_manager.supabase.table('citations').select('*').not_.is_('location', 'null').execute()
+            # Exclude raw_html to save memory (it's 50-200KB per citation!)
+            fields = 'citation_number,location,plate_state,plate_number,vin,issue_date,due_date,status,amount_due,more_info_url,issuing_agency,comments,violations,image_urls,latitude,longitude,created_at,scraped_at'
+            result = db_manager.supabase.table('citations').select(fields).not_.is_('location', 'null').execute()
             citations = result.data if result.data else []
         except Exception as e:
             # If that fails due to RLS, try a different approach
@@ -70,7 +82,9 @@ def get_citations():
                 supabase_url = os.getenv('SUPABASE_URL')
                 if supabase_url:
                     service_client = create_client(supabase_url, service_key)
-                    result = service_client.table('citations').select('*').not_.is_('location', 'null').execute()
+                    # Exclude raw_html to save memory
+                    fields = 'citation_number,location,plate_state,plate_number,vin,issue_date,due_date,status,amount_due,more_info_url,issuing_agency,comments,violations,image_urls,latitude,longitude,created_at,scraped_at'
+                    result = service_client.table('citations').select(fields).not_.is_('location', 'null').execute()
                     citations = result.data if result.data else []
                 else:
                     citations = []
@@ -99,7 +113,7 @@ def get_citations():
                     if most_recent_time is None or issue_date > most_recent_time:
                         most_recent_time = issue_date
         
-        # Group by location and return citations
+        # Return all citations
         return jsonify({
             'status': 'success',
             'citations': citations_with_coords,
@@ -131,7 +145,7 @@ def search_citations():
     """
     try:
         mode = (request.args.get('mode') or '').strip().lower()
-        db_manager = DatabaseManager(DB_CONFIG)
+        db_manager = get_db_manager()
 
         # Optional time bound: ISO 8601 string; when provided, only return citations with
         # issue_date >= since_iso
@@ -146,7 +160,9 @@ def search_citations():
                 return jsonify({'status': 'error', 'error': 'plate_state and plate_number are required'}), 400
 
             # Case-insensitive match for plate_number; exact for state
-            query = db_manager.supabase.table('citations').select('*')
+            # Exclude raw_html to save memory
+            fields = 'citation_number,location,plate_state,plate_number,vin,issue_date,due_date,status,amount_due,more_info_url,issuing_agency,comments,violations,image_urls,latitude,longitude,created_at,scraped_at'
+            query = db_manager.supabase.table('citations').select(fields)
             query = query.eq('plate_state', plate_state).ilike('plate_number', plate_number)
             if since_iso:
                 query = query.gte('issue_date', since_iso)
@@ -162,11 +178,13 @@ def search_citations():
             except ValueError:
                 return jsonify({'status': 'error', 'error': 'citation_number must be an integer'}), 400
 
+            # Exclude raw_html to save memory
+            fields = 'citation_number,location,plate_state,plate_number,vin,issue_date,due_date,status,amount_due,more_info_url,issuing_agency,comments,violations,image_urls,latitude,longitude,created_at,scraped_at'
             result = (
                 db_manager
                 .supabase
                 .table('citations')
-                .select('*')
+                .select(fields)
                 .eq('citation_number', citation_number_int)
             )
             if since_iso:
@@ -197,11 +215,13 @@ def search_citations():
             max_lon = lon + deg_lon
 
             # Filter by bbox and presence of coordinates
+            # Exclude raw_html to save memory (it's 50-200KB per citation!)
+            fields = 'citation_number,location,plate_state,plate_number,vin,issue_date,due_date,status,amount_due,more_info_url,issuing_agency,comments,violations,image_urls,latitude,longitude,created_at,scraped_at'
             bbox_query = (
                 db_manager
                 .supabase
                 .table('citations')
-                .select('*')
+                .select(fields)
                 .not_.is_('latitude', 'null')
                 .not_.is_('longitude', 'null')
                 .gte('latitude', min_lat)
@@ -262,7 +282,7 @@ def search_citations():
 def stats():
     """Get scraper statistics"""
     try:
-        db_manager = DatabaseManager(DB_CONFIG)
+        db_manager = get_db_manager()
         
         # Get total citations count using Supabase client
         total_citations_response = db_manager.supabase.from_('citations').select('count', count='exact').execute()
@@ -319,7 +339,7 @@ def subscribe():
         if not email and not webhook_url:
             return jsonify({'status': 'error', 'error': 'email or webhook_url is required'}), 400
 
-        db_manager = DatabaseManager(DB_CONFIG)
+        db_manager = get_db_manager()
         # Plate subscription
         if plate_state and plate_number:
             result = db_manager.add_subscription(plate_state, plate_number, email=email, webhook_url=webhook_url)
@@ -354,7 +374,7 @@ def unsubscribe():
         if not email and not webhook_url:
             return jsonify({'status': 'error', 'error': 'email or webhook_url is required'}), 400
 
-        db_manager = DatabaseManager(DB_CONFIG)
+        db_manager = get_db_manager()
         if plate_state and plate_number:
             result = db_manager.deactivate_subscription(plate_state, plate_number, email=email, webhook_url=webhook_url)
             return jsonify({'status': 'success', 'unsubscribed': result.get('data')}), 200

@@ -246,13 +246,42 @@ class DatabaseManager:
                 'webhook_url': webhook_url,
                 'is_active': True,
             }
-            # Upsert by composite unique key
-            result = (
+            # Check if subscription already exists
+            query = (
                 self.supabase
                 .table('subscriptions')
-                .upsert(payload, on_conflict='plate_state,plate_number,email,webhook_url')
-                .execute()
+                .select('*')
+                .eq('plate_state', plate_state.upper())
+                .eq('plate_number', plate_number)
             )
+            if email:
+                query = query.eq('email', email)
+            else:
+                query = query.is_('email', 'null')
+            if webhook_url:
+                query = query.eq('webhook_url', webhook_url)
+            else:
+                query = query.is_('webhook_url', 'null')
+            
+            existing = query.execute()
+            
+            if existing.data and len(existing.data) > 0:
+                # Update existing subscription
+                result = (
+                    self.supabase
+                    .table('subscriptions')
+                    .update(payload)
+                    .eq('id', existing.data[0]['id'])
+                    .execute()
+                )
+            else:
+                # Insert new subscription
+                result = (
+                    self.supabase
+                    .table('subscriptions')
+                    .insert(payload)
+                    .execute()
+                )
             return {'status': 'success', 'data': result.data}
         except Exception as e:
             logger.error(f"Failed to add subscription: {e}")
