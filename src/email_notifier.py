@@ -38,10 +38,12 @@ class EmailNotifier:
             msg = MIMEMultipart()
             msg['From'] = self.email_user
             msg['To'] = self.notification_email
-            # Format time in Detroit timezone
+            # Format time in Detroit timezone with human-readable format
             detroit_tz = pytz.timezone('America/Detroit')
             detroit_time = datetime.now(detroit_tz)
-            msg['Subject'] = f"Parking Citation Scraper Report - {detroit_time.strftime('%Y-%m-%d %H:%M')}"
+            # Format as human-readable time (e.g., "Jan 15, 2024 at 3:45 PM")
+            subject_time_str = detroit_time.strftime('%b %d, %Y at %I:%M %p')
+            msg['Subject'] = f"Parking Citation Scraper Report - {subject_time_str}"
             
             # Create email body
             body = self._create_email_body(successful_citations, total_processed, errors, images_uploaded)
