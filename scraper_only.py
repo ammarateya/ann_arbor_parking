@@ -74,11 +74,12 @@ def write_github_actions_summary(title: str = "Parking Citation Scraper", body_l
         pass
 
 def ongoing_scraper_job():
-    """Run scraper job across two seeds with configurable ± range.
+    """Run scraper job across three seeds with configurable ± range.
 
     Seeds:
       - Ann Arbor seed: AA_BASE_SEED env var (defaults to last successful citation)
       - North Campus seed: NC_BASE_SEED env var (defaults to 2081673)
+      - Third range seed: defaults to 1123108
 
     Range size:
       - SCRAPE_RANGE_SIZE env var (defaults to 50)
@@ -127,8 +128,11 @@ def ongoing_scraper_job():
         nc_db_max = db_manager.get_max_citation_between(2_000_000, 3_000_000)
         # AA (starts with 1): [10,000,000, 20,000,000)
         aa_db_max = db_manager.get_max_citation_between(10_000_000, 20_000_000)
+        # Third range (starts with 1): [1,000,000, 2,000,000)
+        third_db_max = db_manager.get_max_citation_between(1_000_000, 2_000_000)
         logger.info(f"NC DB max [2,000,000..3,000,000): {nc_db_max}")
         logger.info(f"AA DB max [10,000,000..20,000,000): {aa_db_max}")
+        logger.info(f"Third range DB max [1,000,000..2,000,000): {third_db_max}")
 
         # Configure range size from environment
         try:
@@ -139,16 +143,18 @@ def ongoing_scraper_job():
         # Center ranges on DB maxima directly (no env seeds)
         aa_center = aa_db_max if aa_db_max is not None else last_citation
         nc_center = nc_db_max if nc_db_max is not None else 2081673
+        third_center = third_db_max if third_db_max is not None else 1123108
 
         aa_range = (aa_center - range_size, aa_center + range_size)
         nc_range = (nc_center - range_size, nc_center + range_size)
-        ranges = [aa_range, nc_range]
+        third_range = (third_center - range_size, third_center + range_size)
+        ranges = [aa_range, nc_range, third_range]
 
         overall_start = min(start for start, _ in ranges)
         overall_end = max(end for _, end in ranges)
 
         logger.info(
-            f"Processing dual ranges: AA[{aa_range[0]}..{aa_range[1]}], NC[{nc_range[0]}..{nc_range[1]}] "
+            f"Processing three ranges: AA[{aa_range[0]}..{aa_range[1]}], NC[{nc_range[0]}..{nc_range[1]}], Third[{third_range[0]}..{third_range[1]}] "
             f"(overall {overall_start}..{overall_end})"
         )
 
@@ -157,12 +163,13 @@ def ongoing_scraper_job():
             body_lines=[
                 f"AA range: {aa_range[0]}..{aa_range[1]}",
                 f"NC range: {nc_range[0]}..{nc_range[1]}",
+                f"Third range: {third_range[0]}..{third_range[1]}",
                 f"Overall: {overall_start}..{overall_end}",
             ]
         )
 
         def process_range(label: str, start_range: int, end_range: int, update_last_successful: bool) -> None:
-            nonlocal last_citation, total_processed, images_uploaded, skipped_existing, aa_db_max
+            nonlocal last_citation, total_processed, images_uploaded, skipped_existing, aa_db_max, third_db_max
             logger.info(f"Fetching existing citations for {label} range {start_range}-{end_range}...")
             existing_citations = db_manager.get_existing_citation_numbers_in_range(start_range, end_range)
             logger.info(f"Found {len(existing_citations)} existing citations in {label} range. Will skip these.")
@@ -296,10 +303,14 @@ def ongoing_scraper_job():
                         #         logger.error(f"Failed to upload images for citation {citation_num}: {e}")
                         #         logger.error(f"Traceback: {traceback.format_exc()}")
 
-                        # Update AA base only when under 2,000,000; NC base auto-derives from DB next run
+                        # Update range bases in-memory during processing (optimization for current run)
+                        # All ranges auto-derive from DB at start of next run; this is just for efficiency
                         if label == "AA" and citation_num < 2_000_000:
                             if aa_db_max is None or citation_num > aa_db_max:
                                 aa_db_max = citation_num
+                        elif label == "Third":
+                            if third_db_max is None or citation_num > third_db_max:
+                                third_db_max = citation_num
 
                         logger.info(f"✓ [{label}] Found and saved citation {citation_num}")
                     else:
@@ -314,7 +325,7 @@ def ongoing_scraper_job():
                 # Small delay between requests to be respectful (only after we made a request)
                 time.sleep(1)
 
-        # Explicitly run AA, then NC sequentially, isolating failures
+        # Explicitly run AA, then NC, then Third sequentially, isolating failures
         try:
             process_range("AA", aa_range[0], aa_range[1], update_last_successful=True)
         except Exception as e:
@@ -325,6 +336,12 @@ def ongoing_scraper_job():
             process_range("NC", nc_range[0], nc_range[1], update_last_successful=False)
         except Exception as e:
             logger.error(f"NC range processing failed: {e}")
+            logger.error(f"Traceback: {traceback.format_exc()}")
+
+        try:
+            process_range("Third", third_range[0], third_range[1], update_last_successful=False)
+        except Exception as e:
+            logger.error(f"Third range processing failed: {e}")
             logger.error(f"Traceback: {traceback.format_exc()}")
             
     except Exception as e:
