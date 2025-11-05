@@ -25,6 +25,15 @@ class CitationScraper:
             'Upgrade-Insecure-Requests': '1'
         })
 
+    def normalize_location(self, location: str) -> str:
+        """Normalize location strings - replace Tappan St with Tappan Ave"""
+        if not location:
+            return location
+        # Replace "Tappan St" with "Tappan Ave" (case-insensitive)
+        location = re.sub(r'\bTappan\s+St\b', 'Tappan Ave', location, flags=re.IGNORECASE)
+        location = re.sub(r'\bTappan\s+Street\b', 'Tappan Ave', location, flags=re.IGNORECASE)
+        return location
+
     def get_verification_token(self) -> Optional[str]:
         try:
             start = time.time()
@@ -88,9 +97,10 @@ class CitationScraper:
 
             if len(cells) >= 9:
                 more_info_url = self.extract_more_info_url_from_row(row)
+                location = self.normalize_location(cells[1].get_text(strip=True))
                 return {
                     'citation_number': citation_number,
-                    'location': cells[1].get_text(strip=True),
+                    'location': location,
                     'plate_state': cells[2].get_text(strip=True),
                     'plate_number': cells[3].get_text(strip=True),
                     'vin': cells[4].get_text(strip=True),
@@ -202,6 +212,7 @@ class CitationScraper:
             try:
                 clean_address = self.extract_address_from_receipt(image_urls[-1])
                 if clean_address:
+                    clean_address = self.normalize_location(clean_address)
                     info['location'] = clean_address
                     logger.info(f"Extracted clean address from OCR: {clean_address}")
             except Exception as e:
