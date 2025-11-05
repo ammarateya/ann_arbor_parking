@@ -87,7 +87,8 @@ def get_citations():
         # Supabase PostgREST has a default limit of 1000, so we need to paginate
         try:
             # Exclude raw_html to save memory (it's 50-200KB per citation!)
-            fields = 'citation_number,location,plate_state,plate_number,vin,issue_date,due_date,status,amount_due,more_info_url,issuing_agency,comments,violations,image_urls,latitude,longitude,created_at,scraped_at'
+            # Exclude vin, due_date, issuing_agency, status, and scraped_at - not used in frontend, reduces payload size
+            fields = 'citation_number,location,plate_state,plate_number,issue_date,amount_due,more_info_url,comments,violations,image_urls,latitude,longitude,created_at'
             
             # Fetch all citations with pagination
             citations = []
@@ -125,7 +126,8 @@ def get_citations():
                 if supabase_url:
                     service_client = create_client(supabase_url, service_key)
                     # Exclude raw_html to save memory
-                    fields = 'citation_number,location,plate_state,plate_number,vin,issue_date,due_date,status,amount_due,more_info_url,issuing_agency,comments,violations,image_urls,latitude,longitude,created_at,scraped_at'
+                    # Exclude vin, due_date, issuing_agency, status, and scraped_at - not used in frontend, reduces payload size
+                    fields = 'citation_number,location,plate_state,plate_number,issue_date,amount_due,more_info_url,comments,violations,image_urls,latitude,longitude,created_at'
                     
                     # Fetch all citations with pagination using service client
                     citations = []
@@ -245,7 +247,8 @@ def search_citations():
 
             # Case-insensitive match for plate_number; exact for state
             # Exclude raw_html to save memory
-            fields = 'citation_number,location,plate_state,plate_number,vin,issue_date,due_date,status,amount_due,more_info_url,issuing_agency,comments,violations,image_urls,latitude,longitude,created_at,scraped_at'
+            # Exclude vin, due_date, issuing_agency, status, and scraped_at - not used in frontend, reduces payload size
+            fields = 'citation_number,location,plate_state,plate_number,issue_date,amount_due,more_info_url,comments,violations,image_urls,latitude,longitude,created_at'
             query = db_manager.supabase.table('citations').select(fields)
             query = query.eq('plate_state', plate_state).ilike('plate_number', plate_number)
             if since_iso:
@@ -263,7 +266,8 @@ def search_citations():
                 return jsonify({'status': 'error', 'error': 'citation_number must be an integer'}), 400
 
             # Exclude raw_html to save memory
-            fields = 'citation_number,location,plate_state,plate_number,vin,issue_date,due_date,status,amount_due,more_info_url,issuing_agency,comments,violations,image_urls,latitude,longitude,created_at,scraped_at'
+            # Exclude vin, due_date, issuing_agency, status, and scraped_at - not used in frontend, reduces payload size
+            fields = 'citation_number,location,plate_state,plate_number,issue_date,amount_due,more_info_url,comments,violations,image_urls,latitude,longitude,created_at'
             result = (
                 db_manager
                 .supabase
@@ -300,7 +304,8 @@ def search_citations():
 
             # Filter by bbox and presence of coordinates
             # Exclude raw_html to save memory (it's 50-200KB per citation!)
-            fields = 'citation_number,location,plate_state,plate_number,vin,issue_date,due_date,status,amount_due,more_info_url,issuing_agency,comments,violations,image_urls,latitude,longitude,created_at,scraped_at'
+            # Exclude vin, due_date, issuing_agency, status, and scraped_at - not used in frontend, reduces payload size
+            fields = 'citation_number,location,plate_state,plate_number,issue_date,amount_due,more_info_url,comments,violations,image_urls,latitude,longitude,created_at'
             bbox_query = (
                 db_manager
                 .supabase
