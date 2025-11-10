@@ -91,28 +91,37 @@ def get_citations():
             fields = 'citation_number,location,plate_state,plate_number,issue_date,amount_due,more_info_url,comments,violations,latitude,longitude'
             
             # Fetch all citations with pagination
+            # Query directly for citations with coordinates to avoid filtering issues
             citations = []
             page_size = 1000
             offset = 0
+            max_iterations = 100  # Safety limit
             
-            while True:
+            while offset < max_iterations * page_size:
                 result = (
                     db_manager.supabase
                     .table('citations')
                     .select(fields)
                     .not_.is_('location', 'null')
+                    .not_.is_('latitude', 'null')
+                    .not_.is_('longitude', 'null')
                     .order('issue_date', desc=True)
                     .range(offset, offset + page_size - 1)
                     .execute()
                 )
                 page_data = result.data if result.data else []
                 if not page_data:
+                    # Empty page means we've reached the end
                     break
                 citations.extend(page_data)
-                # If we got fewer than page_size, we've reached the end
-                if len(page_data) < page_size:
-                    break
+                # Move to next page
+                # Only stop if we got an empty page (handled above)
+                # Don't stop just because we got fewer than page_size - 
+                # Supabase might return exactly page_size-1 records even if more exist
                 offset += page_size
+                # Safety check: if we got exactly 0 records, we're done
+                if len(page_data) == 0:
+                    break
                 
         except Exception as e:
             # If that fails due to RLS, try a different approach
@@ -130,28 +139,37 @@ def get_citations():
                     fields = 'citation_number,location,plate_state,plate_number,issue_date,amount_due,more_info_url,comments,violations,latitude,longitude'
                     
                     # Fetch all citations with pagination using service client
+                    # Query directly for citations with coordinates to avoid filtering issues
                     citations = []
                     page_size = 1000
                     offset = 0
+                    max_iterations = 100  # Safety limit
                     
-                    while True:
+                    while offset < max_iterations * page_size:
                         result = (
                             service_client
                             .table('citations')
                             .select(fields)
                             .not_.is_('location', 'null')
+                            .not_.is_('latitude', 'null')
+                            .not_.is_('longitude', 'null')
                             .order('issue_date', desc=True)
                             .range(offset, offset + page_size - 1)
                             .execute()
                         )
                         page_data = result.data if result.data else []
                         if not page_data:
+                            # Empty page means we've reached the end
                             break
                         citations.extend(page_data)
-                        # If we got fewer than page_size, we've reached the end
-                        if len(page_data) < page_size:
-                            break
+                        # Move to next page
+                        # Only stop if we got an empty page (handled above)
+                        # Don't stop just because we got fewer than page_size - 
+                        # Supabase might return exactly page_size-1 records even if more exist
                         offset += page_size
+                        # Safety check: if we got exactly 0 records, we're done
+                        if len(page_data) == 0:
+                            break
                 else:
                     citations = []
             else:
@@ -164,7 +182,8 @@ def get_citations():
                     'most_recent_citation_time': None
                 }), 200  # Return 200 with empty data instead of error
         
-        # Filter out citations without coordinates (they need to be geocoded on frontend)
+        # All citations should have coordinates since we filtered in the query
+        # But double-check to be safe
         citations_with_coords = [c for c in citations if c.get('latitude') and c.get('longitude')]
         
         # Get the most recent citation timestamp and number directly from database
@@ -199,11 +218,12 @@ def get_citations():
                             most_recent_citation_number = citation.get('citation_number')
         
         # Return all citations
+        logger.info(f"Returning {len(citations_with_coords)} geocoded citations (fetched {len(citations)} total)")
         return jsonify({
             'status': 'success',
             'citations': citations_with_coords,
             'count': len(citations_with_coords),
-            'total': len(citations),
+            'total': len(citations_with_coords),  # Total geocoded citations
             'most_recent_citation_time': most_recent_time,
             'most_recent_citation_number': most_recent_citation_number
         })
