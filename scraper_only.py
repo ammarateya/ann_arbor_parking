@@ -125,18 +125,18 @@ def ongoing_scraper_job():
         logger.info(f"Last successful citation: {last_citation}")
 
         # Determine dynamic bases from DB using leading-digit bands
-        # NC (starts with 2): [2,000,000, 3,000,000)
-        nc_db_max = db_manager.get_max_citation_between(2_000_000, 3_000_000)
+        # NC (starts with 2,080,000+): [2,080,000, 3,000,000)
+        nc_db_max = db_manager.get_max_citation_between(2_080_000, 3_000_000)
         # AA (starts with 1): [10,000,000, 20,000,000)
         aa_db_max = db_manager.get_max_citation_between(10_000_000, 20_000_000)
         # Third range (starts with 1): [1,000,000, 2,000,000)
         third_db_max = db_manager.get_max_citation_between(1_000_000, 2_000_000)
-        # Fourth range (starts from 2025645): [2,000,000, 2,100,000)
-        fourth_db_max = db_manager.get_max_citation_between(2_000_000, 2_100_000)
-        logger.info(f"NC DB max [2,000,000..3,000,000): {nc_db_max}")
+        # Fourth range (starts from 2025645): [2,000,000, 2,080,000)
+        fourth_db_max = db_manager.get_max_citation_between(2_000_000, 2_080_000)
+        logger.info(f"NC DB max [2,080,000..3,000,000): {nc_db_max}")
         logger.info(f"AA DB max [10,000,000..20,000,000): {aa_db_max}")
         logger.info(f"Third range DB max [1,000,000..2,000,000): {third_db_max}")
-        logger.info(f"Fourth range DB max [2,000,000..2,100,000): {fourth_db_max}")
+        logger.info(f"Fourth range DB max [2,000,000..2,080,000): {fourth_db_max}")
 
         # Configure range size from environment
         try:
@@ -176,7 +176,7 @@ def ongoing_scraper_job():
         )
 
         def process_range(label: str, start_range: int, end_range: int, update_last_successful: bool) -> None:
-            nonlocal last_citation, total_processed, images_uploaded, skipped_existing, aa_db_max, third_db_max, fourth_db_max
+            nonlocal last_citation, total_processed, images_uploaded, skipped_existing, aa_db_max, nc_db_max, third_db_max, fourth_db_max
             logger.info(f"Fetching existing citations for {label} range {start_range}-{end_range}...")
             existing_citations = db_manager.get_existing_citation_numbers_in_range(start_range, end_range)
             logger.info(f"Found {len(existing_citations)} existing citations in {label} range. Will skip these.")
@@ -312,13 +312,16 @@ def ongoing_scraper_job():
 
                         # Update range bases in-memory during processing (optimization for current run)
                         # All ranges auto-derive from DB at start of next run; this is just for efficiency
-                        if label == "AA" and citation_num < 2_000_000:
+                        if label == "AA" and 10_000_000 <= citation_num < 20_000_000:
                             if aa_db_max is None or citation_num > aa_db_max:
                                 aa_db_max = citation_num
-                        elif label == "Third":
+                        elif label == "NC" and 2_080_000 <= citation_num < 3_000_000:
+                            if nc_db_max is None or citation_num > nc_db_max:
+                                nc_db_max = citation_num
+                        elif label == "Third" and 1_000_000 <= citation_num < 2_000_000:
                             if third_db_max is None or citation_num > third_db_max:
                                 third_db_max = citation_num
-                        elif label == "Fourth" and 2_000_000 <= citation_num < 2_100_000:
+                        elif label == "Fourth" and 2_000_000 <= citation_num < 2_080_000:
                             if fourth_db_max is None or citation_num > fourth_db_max:
                                 fourth_db_max = citation_num
 
