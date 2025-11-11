@@ -11,6 +11,7 @@ import os
 import sys
 import threading
 import traceback
+from datetime import datetime, timezone, timedelta
 from dotenv import load_dotenv
 
 # Add src directory to Python path
@@ -103,6 +104,16 @@ def ongoing_scraper_job():
         
         geocoder = Geocoder()
         logger.info("✓ Geocoder initialized")
+
+        try:
+            last_citation_seen_at = db_manager.get_last_citation_seen_at()
+            last_no_citation_email_sent_at = db_manager.get_last_no_citation_email_sent_at()
+            if last_citation_seen_at:
+                logger.info(f"Last citation seen at: {last_citation_seen_at.isoformat()}")
+            if last_no_citation_email_sent_at:
+                logger.info(f"Last no-citation email sent at: {last_no_citation_email_sent_at.isoformat()}")
+        except Exception as state_error:
+            logger.warning(f"Unable to load historical scraper state timestamps: {state_error}")
         
     except Exception as e:
         logger.error(f"Failed to initialize components: {e}")
@@ -114,6 +125,10 @@ def ongoing_scraper_job():
     total_processed = 0
     images_uploaded = 0
     skipped_existing = 0
+    last_citation_seen_at = None
+    last_no_citation_email_sent_at = None
+    latest_citation_number = None
+    latest_citation_seen_at = None
     
     # Global batch buffer for citations to be inserted
     citation_batch = []
@@ -199,7 +214,7 @@ def ongoing_scraper_job():
         )
 
         def process_range(label: str, start_range: int, end_range: int, update_last_successful: bool) -> None:
-            nonlocal last_citation, total_processed, images_uploaded, skipped_existing, aa_db_max, nc_db_max, third_db_max, fourth_db_max, citation_batch
+            nonlocal last_citation, total_processed, images_uploaded, skipped_existing, aa_db_max, nc_db_max, third_db_max, fourth_db_max, citation_batch, latest_citation_number, latest_citation_seen_at
             logger.info(f"Fetching existing citations for {label} range {start_range}-{end_range}...")
             existing_citations = db_manager.get_existing_citation_numbers_in_range(start_range, end_range)
             logger.info(f"Found {len(existing_citations)} existing citations in {label} range. Will skip these.")
@@ -229,6 +244,13 @@ def ongoing_scraper_job():
                         # Add to batch - will be inserted all at once per range
                         citation_batch.append(result)
                         successful_citations.append(result)
+                        try:
+                            citation_value = int(result.get('citation_number'))
+                            if latest_citation_number is None or citation_value > latest_citation_number:
+                                latest_citation_number = citation_value
+                        except (TypeError, ValueError):
+                            pass
+                        latest_citation_seen_at = datetime.now(timezone.utc)
 
                         # Notify subscribers for matching plate
                         try:
@@ -409,18 +431,62 @@ def ongoing_scraper_job():
                 logger.error(f"Error flushing final citation batch: {e}")
                 logger.error(f"Traceback: {traceback.format_exc()}")
         
-        # Send email notification
-        if successful_citations or errors:
-            try:
-                logger.info("Sending email notification...")
-                email_notifier.send_notification(successful_citations, total_processed, errors, images_uploaded)
-                logger.info("✓ Email notification sent")
-            except Exception as e:
-                logger.error(f"Failed to send email notification: {e}")
-                logger.error(f"Traceback: {traceback.format_exc()}")
-        
+        now_utc = datetime.now(timezone.utc)
         found_count = len(successful_citations)
         errors_count = len(errors)
+
+        if found_count > 0:
+            try:
+                db_manager.record_citation_activity(
+                    latest_citation_number,
+                    latest_citation_seen_at or now_utc,
+                )
+                last_citation_seen_at = latest_citation_seen_at or now_utc
+                last_no_citation_email_sent_at = None
+            except Exception as e:
+                logger.error(f"Failed to record citation activity: {e}")
+                logger.error(f"Traceback: {traceback.format_exc()}")
+        else:
+            final_last_seen = latest_citation_seen_at or last_citation_seen_at
+            if not final_last_seen:
+                try:
+                    final_last_seen = db_manager.get_last_citation_seen_at()
+                except Exception as state_error:
+                    logger.warning(f"Unable to refresh last citation seen timestamp: {state_error}")
+                    final_last_seen = None
+
+            if final_last_seen:
+                dry_span = now_utc - final_last_seen
+                if dry_span >= timedelta(hours=24):
+                    should_send_alert = False
+                    if not last_no_citation_email_sent_at:
+                        should_send_alert = True
+                    elif last_no_citation_email_sent_at < final_last_seen:
+                        should_send_alert = True
+                    elif (now_utc - last_no_citation_email_sent_at) >= timedelta(hours=24):
+                        should_send_alert = True
+
+                    if should_send_alert:
+                        try:
+                            logger.info("No citations detected for 24h — sending alert email...")
+                            if email_notifier.send_no_citation_alert(final_last_seen):
+                                db_manager.mark_no_citation_email_sent(now_utc)
+                                last_no_citation_email_sent_at = now_utc
+                                logger.info("✓ No-citation alert email sent")
+                        except Exception as alert_error:
+                            logger.error(f"Failed to send no-citation alert email: {alert_error}")
+                            logger.error(f"Traceback: {traceback.format_exc()}")
+
+        if errors:
+            try:
+                logger.info("Sending error notification email...")
+                email_notifier.send_notification(successful_citations, total_processed, errors, images_uploaded)
+                logger.info("✓ Error notification email sent")
+            except Exception as e:
+                logger.error(f"Failed to send error notification email: {e}")
+                logger.error(f"Traceback: {traceback.format_exc()}")
+
+        found_count = len(successful_citations)
         logger.info(f"Scraper job completed. Processed: {total_processed}, Found: {found_count}, Skipped (existing): {skipped_existing}, Images uploaded: {images_uploaded}, Errors: {errors_count}")
 
         # Append final stats to GitHub Actions step summary

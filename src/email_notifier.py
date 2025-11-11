@@ -125,6 +125,52 @@ class EmailNotifier:
         
         return html
 
+    def send_no_citation_alert(self, last_seen_at: datetime | None) -> bool:
+        """Send an email alerting that no citations have been observed for 24 hours."""
+        if not self.email_user or not self.email_password:
+            logging.warning("Email credentials not configured, skipping no-citation alert")
+            return False
+
+        try:
+            detroit_tz = pytz.timezone('America/Detroit')
+            now_dt = datetime.now(detroit_tz)
+            last_seen_str = "unknown"
+            if last_seen_at:
+                try:
+                    last_seen_local = last_seen_at.astimezone(detroit_tz)
+                    last_seen_str = last_seen_local.strftime('%B %d, %Y at %I:%M %p %Z')
+                except Exception as e:
+                    logging.warning(f"Failed to format last_seen_at value '{last_seen_at}': {e}")
+
+            msg = MIMEMultipart()
+            msg['From'] = self.email_user
+            msg['To'] = self.notification_email
+            msg['Subject'] = f"Parking Citation Scraper: No new citations in 24 hours ({now_dt.strftime('%b %d, %Y')})"
+
+            body = f"""
+            <html>
+            <body>
+                <h2>No New Parking Citations in the Past 24 Hours</h2>
+                <p>The automated scraper has not observed any new citations in the last full day.</p>
+                <p><strong>Last citation observed:</strong> {last_seen_str}</p>
+                <p>This alert is sent only once per dry period. A new alert will not be sent until another citation appears and 24 hours elapse without new activity.</p>
+                <p style="color:#666">This is an automated message from the Parking Citation Scraper.</p>
+            </body>
+            </html>
+            """
+            msg.attach(MIMEText(body, 'html'))
+
+            with smtplib.SMTP(self.smtp_host, self.smtp_port) as server:
+                server.starttls()
+                server.login(self.email_user, self.email_password)
+                server.send_message(msg)
+
+            logging.info(f"No-citation alert email sent to {self.notification_email}")
+            return True
+        except Exception as e:
+            logging.error(f"Failed to send no-citation alert email: {e}")
+            return False
+
     def send_ticket_alert(self, to_email: str, citation: Dict, context: Dict | None = None) -> bool:
         """Send a single ticket alert to a subscriber.
 

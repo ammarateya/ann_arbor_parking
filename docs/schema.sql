@@ -21,14 +21,16 @@ create table if not exists public.citations (
 
 -- Scraper state tracks last successful citation processed
 create table if not exists public.scraper_state (
-  id                         int primary key default 1,
-  last_successful_citation   bigint,
-  updated_at                 timestamp with time zone default now()
+  id                              int primary key default 1,
+  last_successful_citation        bigint,
+  last_citation_seen_at           timestamp with time zone,
+  last_no_citation_email_sent_at  timestamp with time zone,
+  updated_at                      timestamp with time zone default now()
 );
 
 -- Ensure single row state table
-insert into public.scraper_state (id, last_successful_citation)
-values (1, null)
+insert into public.scraper_state (id, last_successful_citation, last_citation_seen_at, last_no_citation_email_sent_at)
+values (1, null, null, null)
 on conflict (id) do nothing;
 
 -- Logs of search attempts

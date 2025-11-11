@@ -1,6 +1,7 @@
 import os
 import json
 import logging
+from datetime import datetime, timezone
 from typing import Dict, Optional, List, Tuple
 from supabase import create_client, Client
 
@@ -42,6 +43,45 @@ class DatabaseManager:
         """Legacy method for compatibility - returns None since we use Supabase client directly"""
         logger.warning("get_connection() called - using Supabase client instead of direct psycopg connection")
         return None
+
+    @staticmethod
+    def _parse_timestamp(value) -> Optional[datetime]:
+        """Parse Supabase timestamp values into timezone-aware datetimes."""
+        if not value:
+            return None
+        if isinstance(value, datetime):
+            if value.tzinfo is None:
+                return value.replace(tzinfo=timezone.utc)
+            return value
+        if isinstance(value, str):
+            try:
+                clean = value.replace("Z", "+00:00") if value.endswith("Z") else value
+                parsed = datetime.fromisoformat(clean)
+                if parsed.tzinfo is None:
+                    return parsed.replace(tzinfo=timezone.utc)
+                return parsed
+            except Exception:
+                logger.warning(f"Failed to parse timestamp value '{value}'")
+                return None
+        logger.warning(f"Unsupported timestamp type: {type(value)}")
+        return None
+
+    def get_scraper_state(self) -> Dict:
+        """Fetch the singleton scraper state row."""
+        try:
+            result = (
+                self.supabase
+                .table('scraper_state')
+                .select('*')
+                .limit(1)
+                .execute()
+            )
+            if result.data:
+                return result.data[0]
+            return {}
+        except Exception as e:
+            logger.error(f"Failed to load scraper state: {e}")
+            return {}
 
     def save_citation(self, citation_data: Dict):
         """Save citation data to Supabase"""
@@ -104,15 +144,70 @@ class DatabaseManager:
             }
 
     def get_last_successful_citation(self) -> Optional[int]:
-        """Get the last successfully scraped citation number"""
+        """Get the last successfully scraped citation number."""
+        state = self.get_scraper_state()
+        if not state:
+            return None
         try:
-            result = self.supabase.table('scraper_state').select('last_successful_citation').execute()
-            if result.data:
-                return result.data[0]['last_successful_citation']
+            value = state.get('last_successful_citation')
+            return int(value) if value is not None else None
+        except (ValueError, TypeError):
+            logger.warning(f"Invalid last_successful_citation value: {state.get('last_successful_citation')}")
             return None
+
+    def get_last_citation_seen_at(self) -> Optional[datetime]:
+        """Return the timestamp of the last observed citation."""
+        state = self.get_scraper_state()
+        return self._parse_timestamp(state.get('last_citation_seen_at')) if state else None
+
+    def get_last_no_citation_email_sent_at(self) -> Optional[datetime]:
+        """Return when the last no-citation alert email was sent."""
+        state = self.get_scraper_state()
+        return self._parse_timestamp(state.get('last_no_citation_email_sent_at')) if state else None
+
+    def record_citation_activity(self, citation_number: Optional[int], seen_at: Optional[datetime] = None):
+        """Update scraper state when new citations are found."""
+        seen_at = seen_at or datetime.now(timezone.utc)
+        payload: Dict = {
+            'id': 1,
+            'last_citation_seen_at': seen_at.isoformat(),
+            'last_no_citation_email_sent_at': None,
+        }
+        if citation_number is not None:
+            payload['last_successful_citation'] = int(citation_number)
+
+        try:
+            result = (
+                self.supabase
+                .table('scraper_state')
+                .upsert(payload)
+                .execute()
+            )
+            logger.info(f"Recorded citation activity at {payload['last_citation_seen_at']}")
+            return result
         except Exception as e:
-            logger.error(f"Failed to get last successful citation: {e}")
-            return None
+            logger.error(f"Failed to record citation activity: {e}")
+            raise
+
+    def mark_no_citation_email_sent(self, sent_at: Optional[datetime] = None):
+        """Track the moment when a no-citation alert email was dispatched."""
+        sent_at = sent_at or datetime.now(timezone.utc)
+        payload = {
+            'id': 1,
+            'last_no_citation_email_sent_at': sent_at.isoformat(),
+        }
+        try:
+            result = (
+                self.supabase
+                .table('scraper_state')
+                .upsert(payload)
+                .execute()
+            )
+            logger.info(f"Recorded no-citation alert email sent at {payload['last_no_citation_email_sent_at']}")
+            return result
+        except Exception as e:
+            logger.error(f"Failed to record no-citation email timestamp: {e}")
+            raise
 
     def get_existing_citation_numbers_in_range(self, start_range: int, end_range: int) -> set:
         """Get all existing citation numbers in the given range"""
