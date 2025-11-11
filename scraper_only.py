@@ -335,8 +335,8 @@ def ongoing_scraper_job():
                     logger.error(f"Traceback: {traceback.format_exc()}")
                     errors.append(error_msg)
 
-                # Small delay between requests to be respectful (only after we made a request)
-                time.sleep(1)
+                # Minimal delay between requests (only after we made a request)
+                time.sleep(0.01)
 
         # Explicitly run AA, then NC, then Third sequentially, isolating failures
         try:

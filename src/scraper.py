@@ -60,9 +60,9 @@ class CitationScraper:
         }
 
         try:
-            # politeness: small random delay per request
-            delay = random.uniform(0.4, 1.1)
-            logger.debug(f"POST /Citation/Search delay_s={delay:.2f} citation={citation_number}")
+            # minimal delay for politeness
+            delay = random.uniform(0.01, 0.05)
+            logger.debug(f"POST /Citation/Search delay_s={delay:.3f} citation={citation_number}")
             time.sleep(delay)
 
             start = time.time()
@@ -144,8 +144,9 @@ class CitationScraper:
 
     def fetch_details_page(self, url: str) -> Optional[Dict]:
         try:
-            delay = random.uniform(0.4, 1.1)
-            logger.debug(f"GET details delay_s={delay:.2f} url={url}")
+            # minimal delay for politeness
+            delay = random.uniform(0.01, 0.05)
+            logger.debug(f"GET details delay_s={delay:.3f} url={url}")
             time.sleep(delay)
             start = time.time()
             resp = self.session.get(url, timeout=30)

@@ -9,7 +9,7 @@ logger = logging.getLogger(__name__)
 class Geocoder:
     def __init__(self):
         self.base_url = "https://nominatim.openstreetmap.org/search"
-        self.delay = 2.0  # Be more respectful to the API (2 seconds between requests)
+        self.delay = 0.05  # Minimal delay for politeness (reduced from 2.0s)
         self.headers = {
             'User-Agent': 'Ann Arbor Parking Citations/1.0 (Educational Research - annarbor.gov citation portal)',
             'Accept': 'application/json'
