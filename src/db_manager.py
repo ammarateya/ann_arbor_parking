@@ -53,56 +53,6 @@ class DatabaseManager:
             logger.error(f"Failed to save citation: {e}")
             raise
 
-    def batch_insert_citations(self, citations: List[Dict]) -> Dict:
-        """
-        Insert multiple citations in a single batch operation.
-        
-        Args:
-            citations: List of citation dictionaries to insert
-            
-        Returns:
-            Dict with 'success_count' and 'failed_count' keys
-            
-        Note: If batch insert fails, falls back to individual inserts.
-        """
-        if not citations:
-            return {'success_count': 0, 'failed_count': 0, 'errors': []}
-        
-        try:
-            # Attempt batch insert
-            result = self.supabase.table('citations').insert(citations).execute()
-            success_count = len(citations)
-            citation_numbers = [c.get('citation_number', 'unknown') for c in citations]
-            logger.info(f"Batch inserted {success_count} citations: {citation_numbers[0] if citation_numbers else 'none'} to {citation_numbers[-1] if citation_numbers else 'none'}")
-            return {
-                'success_count': success_count,
-                'failed_count': 0,
-                'errors': []
-            }
-        except Exception as e:
-            # If batch insert fails, fall back to individual inserts
-            logger.warning(f"Batch insert failed for {len(citations)} citations, falling back to individual inserts: {e}")
-            success_count = 0
-            failed_count = 0
-            errors = []
-            
-            for citation in citations:
-                try:
-                    self.save_citation(citation)
-                    success_count += 1
-                except Exception as individual_error:
-                    failed_count += 1
-                    citation_num = citation.get('citation_number', 'unknown')
-                    error_msg = f"Failed to save citation {citation_num}: {individual_error}"
-                    logger.error(error_msg)
-                    errors.append(error_msg)
-            
-            return {
-                'success_count': success_count,
-                'failed_count': failed_count,
-                'errors': errors
-            }
-
     def get_last_successful_citation(self) -> Optional[int]:
         """Get the last successfully scraped citation number"""
         try:

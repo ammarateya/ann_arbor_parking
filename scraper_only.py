@@ -115,29 +115,6 @@ def ongoing_scraper_job():
     images_uploaded = 0
     skipped_existing = 0
     
-    # Global batch buffer for citations to be inserted
-    citation_batch = []
-    
-    def flush_citation_batch() -> None:
-        """Flush all citations in the batch to the database"""
-        nonlocal citation_batch, errors
-        if not citation_batch:
-            return
-        
-        try:
-            batch_result = db_manager.batch_insert_citations(citation_batch)
-            if batch_result.get('failed_count', 0) > 0:
-                errors.extend(batch_result.get('errors', []))
-            logger.info(f"Batch inserted {batch_result.get('success_count', 0)} citations, {batch_result.get('failed_count', 0)} failed")
-        except Exception as e:
-            logger.error(f"Error flushing citation batch: {e}")
-            logger.error(f"Traceback: {traceback.format_exc()}")
-            # Add batch citations to errors
-            for citation in citation_batch:
-                errors.append(f"Failed to save citation {citation.get('citation_number', 'unknown')}: {e}")
-        finally:
-            citation_batch = []
-    
     try:
         logger.info("Getting last successful citation...")
         last_citation = db_manager.get_last_successful_citation()
@@ -199,7 +176,7 @@ def ongoing_scraper_job():
         )
 
         def process_range(label: str, start_range: int, end_range: int, update_last_successful: bool) -> None:
-            nonlocal last_citation, total_processed, images_uploaded, skipped_existing, aa_db_max, nc_db_max, third_db_max, fourth_db_max, citation_batch
+            nonlocal last_citation, total_processed, images_uploaded, skipped_existing, aa_db_max, nc_db_max, third_db_max, fourth_db_max
             logger.info(f"Fetching existing citations for {label} range {start_range}-{end_range}...")
             existing_citations = db_manager.get_existing_citation_numbers_in_range(start_range, end_range)
             logger.info(f"Found {len(existing_citations)} existing citations in {label} range. Will skip these.")
@@ -225,9 +202,8 @@ def ongoing_scraper_job():
                     total_processed += 1
 
                     if result:
-                        logger.debug(f"Found citation {citation_num}, adding to batch...")
-                        # Add to batch - will be inserted all at once per range
-                        citation_batch.append(result)
+                        logger.debug(f"Found citation {citation_num}, saving to database...")
+                        db_manager.save_citation(result)
                         successful_citations.append(result)
 
                         # Notify subscribers for matching plate
@@ -349,7 +325,7 @@ def ongoing_scraper_job():
                             if fourth_db_max is None or citation_num > fourth_db_max:
                                 fourth_db_max = citation_num
 
-                        logger.info(f"✓ [{label}] Found citation {citation_num} (added to batch)")
+                        logger.info(f"✓ [{label}] Found and saved citation {citation_num}")
                     else:
                         logger.debug(f"[{label}] No results for citation {citation_num}")
 
@@ -361,11 +337,6 @@ def ongoing_scraper_job():
 
                 # Minimal delay between requests (only after we made a request)
                 time.sleep(0.01)
-            
-            # Flush all citations collected for this range
-            if citation_batch:
-                logger.info(f"Flushing {len(citation_batch)} citations for {label} range...")
-                flush_citation_batch()
 
         # Explicitly run AA, then NC, then Third sequentially, isolating failures
         try:
@@ -400,15 +371,6 @@ def ongoing_scraper_job():
     
     finally:
         logger.info("Scraper job finishing up...")
-        # Flush any remaining citations in batch before finishing
-        if citation_batch:
-            logger.info(f"Flushing final batch of {len(citation_batch)} citations...")
-            try:
-                flush_citation_batch()
-            except Exception as e:
-                logger.error(f"Error flushing final citation batch: {e}")
-                logger.error(f"Traceback: {traceback.format_exc()}")
-        
         # Send email notification
         if successful_citations or errors:
             try:
