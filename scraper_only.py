@@ -23,6 +23,7 @@ from email_notifier import EmailNotifier
 from storage_factory import StorageFactory
 from geocoder import Geocoder
 from nonstandard import resolve_alias
+from webhook_notifier import WebhookNotifier
 
 # Configure logging (configurable via LOG_LEVEL)
 # Default to INFO to avoid overly verbose logs
@@ -98,6 +99,9 @@ def ongoing_scraper_job():
         
         email_notifier = EmailNotifier()
         logger.info("✓ EmailNotifier initialized")
+        
+        webhook_notifier = WebhookNotifier()
+        logger.info("✓ WebhookNotifier initialized")
         
         cloud_storage = StorageFactory.create_storage_service()
         logger.info(f"✓ Cloud storage initialized: {cloud_storage is not None}")
@@ -241,7 +245,51 @@ def ongoing_scraper_job():
 
                     if result:
                         logger.debug(f"Found citation {citation_num}, adding to batch...")
-                        # Add to batch - will be inserted all at once per range
+                        
+                        # Geocode address BEFORE adding to batch so coordinates are included in the insert
+                        # This fixes the issue where geocoding tried to update citations that didn't exist yet
+                        if result.get('location'):
+                            location_str = result['location']
+                            try:
+                                # 1) DB cache: reuse coords if location was already geocoded before
+                                cached = db_manager.get_cached_coords_for_location(location_str)
+                                if cached:
+                                    lat, lon = cached
+                                    result['latitude'] = lat
+                                    result['longitude'] = lon
+                                    result['geocoded_at'] = datetime.now(timezone.utc).isoformat()
+                                    logger.debug(f"✓ Reused cached coords for {citation_num} -> ({lat}, {lon})")
+                                else:
+                                    # 2) Nonstandard alias mapping: coords or mapped address
+                                    mapped_address, coords = resolve_alias(location_str)
+                                    if coords:
+                                        lat, lon = coords
+                                        result['latitude'] = lat
+                                        result['longitude'] = lon
+                                        result['geocoded_at'] = datetime.now(timezone.utc).isoformat()
+                                        logger.debug(f"✓ Applied nonstandard coords for {citation_num} -> ({lat}, {lon})")
+                                    elif mapped_address:
+                                        # Geocode the mapped address
+                                        geocoded_coords = geocoder.geocode_address(mapped_address)
+                                        if geocoded_coords:
+                                            lat, lon = geocoded_coords
+                                            result['latitude'] = lat
+                                            result['longitude'] = lon
+                                            result['geocoded_at'] = datetime.now(timezone.utc).isoformat()
+                                            logger.debug(f"✓ Geocoded via nonstandard mapping for {citation_num} -> '{mapped_address}'")
+                                    else:
+                                        # 3) Fallback: geocode the raw location string
+                                        geocoded_coords = geocoder.geocode_address(location_str)
+                                        if geocoded_coords:
+                                            lat, lon = geocoded_coords
+                                            result['latitude'] = lat
+                                            result['longitude'] = lon
+                                            result['geocoded_at'] = datetime.now(timezone.utc).isoformat()
+                                            logger.debug(f"✓ Geocoded citation {citation_num}")
+                            except Exception as e:
+                                logger.warning(f"Failed to geocode citation {citation_num}: {e}")
+                        
+                        # Add to batch - will be inserted all at once per range (with coordinates if geocoded)
                         citation_batch.append(result)
                         successful_citations.append(result)
                         try:
@@ -299,41 +347,6 @@ def ongoing_scraper_job():
                         except Exception as e:
                             logger.error(f"Failed notifying location subscribers for {citation_num}: {e}")
 
-                        # Geocode address for map display with caching and nonstandard resolution
-                        if result.get('location'):
-                            location_str = result['location']
-                            try:
-                                # 1) DB cache: reuse coords if location was already geocoded before
-                                cached = db_manager.get_cached_coords_for_location(location_str)
-                                if cached:
-                                    lat, lon = cached
-                                    db_manager.supabase.table('citations').update({
-                                        'latitude': lat,
-                                        'longitude': lon,
-                                        'geocoded_at': 'now()'
-                                    }).eq('citation_number', citation_num).execute()
-                                    logger.debug(f"✓ Reused cached coords for {citation_num} -> ({lat}, {lon})")
-                                else:
-                                    # 2) Nonstandard alias mapping: coords or mapped address
-                                    mapped_address, coords = resolve_alias(location_str)
-                                    if coords:
-                                        lat, lon = coords
-                                        db_manager.supabase.table('citations').update({
-                                            'latitude': lat,
-                                            'longitude': lon,
-                                            'geocoded_at': 'now()'
-                                        }).eq('citation_number', citation_num).execute()
-                                        logger.debug(f"✓ Applied nonstandard coords for {citation_num} -> ({lat}, {lon})")
-                                    elif mapped_address:
-                                        geocoder.geocode_and_update_citation(db_manager, citation_num, mapped_address)
-                                        logger.debug(f"✓ Geocoded via nonstandard mapping for {citation_num} -> '{mapped_address}'")
-                                    else:
-                                        # 3) Fallback: geocode the raw location string
-                                        geocoder.geocode_and_update_citation(db_manager, citation_num, location_str)
-                                        logger.debug(f"✓ Geocoded citation {citation_num}")
-                            except Exception as e:
-                                logger.warning(f"Failed to geocode citation {citation_num}: {e}")
-
                         # Upload images to cloud storage if available
                         # TEMPORARILY COMMENTED OUT - Cloudflare image saving disabled
                         # if result.get('image_urls') and cloud_storage and cloud_storage.is_configured():
@@ -388,6 +401,48 @@ def ongoing_scraper_job():
             if citation_batch:
                 logger.info(f"Flushing {len(citation_batch)} citations for {label} range...")
                 flush_citation_batch()
+                
+                # Post-batch geocoding: geocode any citations that failed to geocode during initial pass
+                # This handles cases where geocoding failed or was skipped
+                logger.info(f"Post-batch geocoding for {label} range...")
+                for citation in citation_batch:
+                    citation_num = citation.get('citation_number')
+                    location_str = citation.get('location')
+                    # Only geocode if we have a location but no coordinates
+                    if location_str and not citation.get('latitude') and not citation.get('longitude'):
+                        try:
+                            # Try cached coords first
+                            cached = db_manager.get_cached_coords_for_location(location_str)
+                            if cached:
+                                lat, lon = cached
+                                db_manager.supabase.table('citations').update({
+                                    'latitude': lat,
+                                    'longitude': lon,
+                                    'geocoded_at': 'now()'
+                                }).eq('citation_number', citation_num).execute()
+                                logger.debug(f"✓ Post-batch: Reused cached coords for {citation_num}")
+                                continue
+                            
+                            # Try nonstandard alias
+                            mapped_address, coords = resolve_alias(location_str)
+                            if coords:
+                                lat, lon = coords
+                                db_manager.supabase.table('citations').update({
+                                    'latitude': lat,
+                                    'longitude': lon,
+                                    'geocoded_at': 'now()'
+                                }).eq('citation_number', citation_num).execute()
+                                logger.debug(f"✓ Post-batch: Applied nonstandard coords for {citation_num}")
+                                continue
+                            
+                            # Geocode the address
+                            if mapped_address:
+                                geocoder.geocode_and_update_citation(db_manager, citation_num, mapped_address)
+                            else:
+                                geocoder.geocode_and_update_citation(db_manager, citation_num, location_str)
+                            logger.debug(f"✓ Post-batch: Geocoded citation {citation_num}")
+                        except Exception as e:
+                            logger.warning(f"Post-batch geocoding failed for citation {citation_num}: {e}")
 
         # Explicitly run AA, then NC, then Third sequentially, isolating failures
         try:
