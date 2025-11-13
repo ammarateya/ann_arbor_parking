@@ -76,16 +76,24 @@ def write_github_actions_summary(title: str = "Parking Citation Scraper", body_l
         pass
 
 def ongoing_scraper_job():
-    """Run scraper job across four seeds with configurable ± range.
+    """Run scraper job across multiple ranges with configurable ± range.
 
-    Seeds:
-      - Ann Arbor seed: AA_BASE_SEED env var (defaults to last successful citation)
-      - North Campus seed: NC_BASE_SEED env var (defaults to 2081673)
-      - Third range seed: defaults to 1123108
-      - Fourth range seed: defaults to 2025645
+    Ranges:
+      - AA (Ann Arbor): [10,000,000, 20,000,000) - auto-updates from DB max
+      - NC (North Campus): [2,080,000, 3,000,000) - auto-updates from DB max
+      - Third: [1,000,000, 2,000,000) - auto-updates from DB max
+      - Fourth: [2,000,000, 2,080,000) - auto-updates from DB max
+      - Fifth: Center 1,027,117 - range size 10,000 (covers ~1,017,117 to 1,037,117)
+      - Sixth: Center 1,048,162 - range size 10,000 (covers ~1,038,162 to 1,058,162)
+      - Seventh: Center 1,072,744 - range size 10,000 (covers ~1,062,744 to 1,082,744)
+      - Eighth: Center 1,123,252 - range size 10,000 (covers ~1,113,252 to 1,133,252)
 
     Range size:
-      - SCRAPE_RANGE_SIZE env var (defaults to 50)
+      - SCRAPE_RANGE_SIZE env var (defaults to 50 for AA/NC/Third/Fourth)
+      - New ranges (Fifth-Eighth) use fixed 10,000 range size (20,000 total citations per range)
+    
+    Note: Range 1039342 (ends at 1039399) should be run locally once up to 1039400.
+          This is a one-time historical backfill, not added as a recurring range.
     """
     logger.info("Starting ongoing scraper job...")
     
@@ -175,34 +183,72 @@ def ongoing_scraper_job():
         third_db_max = db_manager.get_max_citation_between(1_000_000, 2_000_000)
         # Fourth range (starts from 2025645): [2,000,000, 2,080,000)
         fourth_db_max = db_manager.get_max_citation_between(2_000_000, 2_080_000)
+        
+        # New range centers discovered from citation_hits.txt analysis
+        # These are separate ranges within the [1,000,000, 2,000,000) band
+        # Each range uses a larger range size (10,000) for broader coverage
+        fifth_db_max = db_manager.get_max_citation_between(1_027_000, 1_028_000)  # Around 1027117
+        sixth_db_max = db_manager.get_max_citation_between(1_048_000, 1_049_000)  # Around 1,048,162
+        seventh_db_max = db_manager.get_max_citation_between(1_072_000, 1_073_000)  # Around 1,072,744
+        eighth_db_max = db_manager.get_max_citation_between(1_123_000, 1_124_000)  # Around 1,123,252
+        
         logger.info(f"NC DB max [2,080,000..3,000,000): {nc_db_max}")
         logger.info(f"AA DB max [10,000,000..20,000,000): {aa_db_max}")
         logger.info(f"Third range DB max [1,000,000..2,000,000): {third_db_max}")
         logger.info(f"Fourth range DB max [2,000,000..2,080,000): {fourth_db_max}")
+        logger.info(f"Fifth range DB max [1,027,000..1,028,000): {fifth_db_max}")
+        logger.info(f"Sixth range DB max [1,048,000..1,049,000): {sixth_db_max}")
+        logger.info(f"Seventh range DB max [1,072,000..1,073,000): {seventh_db_max}")
+        logger.info(f"Eighth range DB max [1,123,000..1,124,000): {eighth_db_max}")
 
         # Configure range size from environment
+        # Default: 50 for existing ranges, 10,000 for new discovered ranges
         try:
             range_size = int(os.getenv('SCRAPE_RANGE_SIZE', '50'))
         except ValueError:
             range_size = 50
+        
+        # Larger range size for new discovered ranges (10,000 citations per side = 20,000 total)
+        new_range_size = 10_000
 
         # Center ranges on DB maxima directly (no env seeds)
         aa_center = aa_db_max if aa_db_max is not None else last_citation
         nc_center = nc_db_max if nc_db_max is not None else 2081673
         third_center = third_db_max if third_db_max is not None else 1123108
         fourth_center = fourth_db_max if fourth_db_max is not None else 2025645
+        
+        # New range centers - use discovered centers if DB max found, otherwise use fixed centers
+        fifth_center = fifth_db_max if fifth_db_max is not None else 1_027_117
+        sixth_center = sixth_db_max if sixth_db_max is not None else 1_048_162
+        seventh_center = seventh_db_max if seventh_db_max is not None else 1_072_744
+        eighth_center = eighth_db_max if eighth_db_max is not None else 1_123_252
 
         aa_range = (aa_center - range_size, aa_center + range_size)
         nc_range = (nc_center - range_size, nc_center + range_size)
         third_range = (third_center - range_size, third_center + range_size)
         fourth_range = (fourth_center - range_size, fourth_center + range_size)
-        ranges = [aa_range, nc_range, third_range, fourth_range]
+        
+        # New ranges use larger range size
+        fifth_range = (fifth_center - new_range_size, fifth_center + new_range_size)
+        sixth_range = (sixth_center - new_range_size, sixth_center + new_range_size)
+        seventh_range = (seventh_center - new_range_size, seventh_center + new_range_size)
+        eighth_range = (eighth_center - new_range_size, eighth_center + new_range_size)
+        
+        ranges = [aa_range, nc_range, third_range, fourth_range, fifth_range, sixth_range, seventh_range, eighth_range]
 
         overall_start = min(start for start, _ in ranges)
         overall_end = max(end for _, end in ranges)
 
         logger.info(
-            f"Processing four ranges: AA[{aa_range[0]}..{aa_range[1]}], NC[{nc_range[0]}..{nc_range[1]}], Third[{third_range[0]}..{third_range[1]}], Fourth[{fourth_range[0]}..{fourth_range[1]}] "
+            f"Processing eight ranges: "
+            f"AA[{aa_range[0]}..{aa_range[1]}], "
+            f"NC[{nc_range[0]}..{nc_range[1]}], "
+            f"Third[{third_range[0]}..{third_range[1]}], "
+            f"Fourth[{fourth_range[0]}..{fourth_range[1]}], "
+            f"Fifth[{fifth_range[0]}..{fifth_range[1]}], "
+            f"Sixth[{sixth_range[0]}..{sixth_range[1]}], "
+            f"Seventh[{seventh_range[0]}..{seventh_range[1]}], "
+            f"Eighth[{eighth_range[0]}..{eighth_range[1]}] "
             f"(overall {overall_start}..{overall_end})"
         )
 
@@ -213,12 +259,16 @@ def ongoing_scraper_job():
                 f"NC range: {nc_range[0]}..{nc_range[1]}",
                 f"Third range: {third_range[0]}..{third_range[1]}",
                 f"Fourth range: {fourth_range[0]}..{fourth_range[1]}",
+                f"Fifth range: {fifth_range[0]}..{fifth_range[1]}",
+                f"Sixth range: {sixth_range[0]}..{sixth_range[1]}",
+                f"Seventh range: {seventh_range[0]}..{seventh_range[1]}",
+                f"Eighth range: {eighth_range[0]}..{eighth_range[1]}",
                 f"Overall: {overall_start}..{overall_end}",
             ]
         )
 
         def process_range(label: str, start_range: int, end_range: int, update_last_successful: bool) -> None:
-            nonlocal last_citation, total_processed, images_uploaded, skipped_existing, aa_db_max, nc_db_max, third_db_max, fourth_db_max, citation_batch, latest_citation_number, latest_citation_seen_at
+            nonlocal last_citation, total_processed, images_uploaded, skipped_existing, aa_db_max, nc_db_max, third_db_max, fourth_db_max, fifth_db_max, sixth_db_max, seventh_db_max, eighth_db_max, citation_batch, latest_citation_number, latest_citation_seen_at
             logger.info(f"Fetching existing citations for {label} range {start_range}-{end_range}...")
             existing_citations = db_manager.get_existing_citation_numbers_in_range(start_range, end_range)
             logger.info(f"Found {len(existing_citations)} existing citations in {label} range. Will skip these.")
@@ -383,6 +433,18 @@ def ongoing_scraper_job():
                         elif label == "Fourth" and 2_000_000 <= citation_num < 2_080_000:
                             if fourth_db_max is None or citation_num > fourth_db_max:
                                 fourth_db_max = citation_num
+                        elif label == "Fifth" and 1_027_000 <= citation_num < 1_028_000:
+                            if fifth_db_max is None or citation_num > fifth_db_max:
+                                fifth_db_max = citation_num
+                        elif label == "Sixth" and 1_048_000 <= citation_num < 1_049_000:
+                            if sixth_db_max is None or citation_num > sixth_db_max:
+                                sixth_db_max = citation_num
+                        elif label == "Seventh" and 1_072_000 <= citation_num < 1_073_000:
+                            if seventh_db_max is None or citation_num > seventh_db_max:
+                                seventh_db_max = citation_num
+                        elif label == "Eighth" and 1_123_000 <= citation_num < 1_124_000:
+                            if eighth_db_max is None or citation_num > eighth_db_max:
+                                eighth_db_max = citation_num
 
                         logger.info(f"✓ [{label}] Found citation {citation_num} (added to batch)")
                     else:
@@ -444,7 +506,7 @@ def ongoing_scraper_job():
                         except Exception as e:
                             logger.warning(f"Post-batch geocoding failed for citation {citation_num}: {e}")
 
-        # Explicitly run AA, then NC, then Third sequentially, isolating failures
+        # Explicitly run all ranges sequentially, isolating failures
         try:
             process_range("AA", aa_range[0], aa_range[1], update_last_successful=True)
         except Exception as e:
@@ -467,6 +529,30 @@ def ongoing_scraper_job():
             process_range("Fourth", fourth_range[0], fourth_range[1], update_last_successful=False)
         except Exception as e:
             logger.error(f"Fourth range processing failed: {e}")
+            logger.error(f"Traceback: {traceback.format_exc()}")
+
+        try:
+            process_range("Fifth", fifth_range[0], fifth_range[1], update_last_successful=False)
+        except Exception as e:
+            logger.error(f"Fifth range processing failed: {e}")
+            logger.error(f"Traceback: {traceback.format_exc()}")
+
+        try:
+            process_range("Sixth", sixth_range[0], sixth_range[1], update_last_successful=False)
+        except Exception as e:
+            logger.error(f"Sixth range processing failed: {e}")
+            logger.error(f"Traceback: {traceback.format_exc()}")
+
+        try:
+            process_range("Seventh", seventh_range[0], seventh_range[1], update_last_successful=False)
+        except Exception as e:
+            logger.error(f"Seventh range processing failed: {e}")
+            logger.error(f"Traceback: {traceback.format_exc()}")
+
+        try:
+            process_range("Eighth", eighth_range[0], eighth_range[1], update_last_successful=False)
+        except Exception as e:
+            logger.error(f"Eighth range processing failed: {e}")
             logger.error(f"Traceback: {traceback.format_exc()}")
             
     except Exception as e:

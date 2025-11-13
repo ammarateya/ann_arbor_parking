@@ -28,4 +28,11 @@ ocr_results_*.json
 ocr_*.log
 app.log
 
+# Local citation search files
+citation_hits.txt
+starting_from_0.txt
+find_valid_citation.py
+backfill_1039342.py
+RANGE_1039342_BACKFILL.md
+
 
