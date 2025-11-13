@@ -83,14 +83,15 @@ def ongoing_scraper_job():
       - NC (North Campus): [2,080,000, 3,000,000) - auto-updates from DB max
       - Third: [1,000,000, 2,000,000) - auto-updates from DB max
       - Fourth: [2,000,000, 2,080,000) - auto-updates from DB max
-      - Fifth: Center 1,027,117 - range size 10,000 (covers ~1,017,117 to 1,037,117)
-      - Sixth: Center 1,048,162 - range size 10,000 (covers ~1,038,162 to 1,058,162)
-      - Seventh: Center 1,072,744 - range size 10,000 (covers ~1,062,744 to 1,082,744)
-      - Eighth: Center 1,123,252 - range size 10,000 (covers ~1,113,252 to 1,133,252)
+      - Fifth: Center 1,027,117 - uses 10k window (±10k) to find max, scrapes 50 in either direction
+      - Sixth: Center 1,048,162 - uses 10k window (±10k) to find max, scrapes 50 in either direction
+      - Seventh: Center 1,072,744 - uses 10k window (±10k) to find max, scrapes 50 in either direction
+      - Eighth: Center 1,123,252 - uses 10k window (±10k) to find max, scrapes 50 in either direction
 
     Range size:
-      - SCRAPE_RANGE_SIZE env var (defaults to 50 for AA/NC/Third/Fourth)
-      - New ranges (Fifth-Eighth) use fixed 10,000 range size (20,000 total citations per range)
+      - SCRAPE_RANGE_SIZE env var (defaults to 50 for all ranges)
+      - All ranges scrape 50 citations in either direction (100 total per range)
+      - New ranges use a 10k window (±10k from original center) to find max citation for center updates
     
     Note: Range 1039342 (ends at 1039399) should be run locally once up to 1039400.
           This is a one-time historical backfill, not added as a recurring range.
@@ -186,30 +187,28 @@ def ongoing_scraper_job():
         
         # New range centers discovered from citation_hits.txt analysis
         # These are separate ranges within the [1,000,000, 2,000,000) band
-        # Each range uses a larger range size (10,000) for broader coverage
-        fifth_db_max = db_manager.get_max_citation_between(1_027_000, 1_028_000)  # Around 1027117
-        sixth_db_max = db_manager.get_max_citation_between(1_048_000, 1_049_000)  # Around 1,048,162
-        seventh_db_max = db_manager.get_max_citation_between(1_072_000, 1_073_000)  # Around 1,072,744
-        eighth_db_max = db_manager.get_max_citation_between(1_123_000, 1_124_000)  # Around 1,123,252
+        # Each range uses a 10k window (±10k) to find max citation for center updates
+        # But scraping still uses the standard range_size (50) in either direction
+        fifth_db_max = db_manager.get_max_citation_between(1_027_117 - 10_000, 1_027_117 + 10_000)
+        sixth_db_max = db_manager.get_max_citation_between(1_048_162 - 10_000, 1_048_162 + 10_000)
+        seventh_db_max = db_manager.get_max_citation_between(1_072_744 - 10_000, 1_072_744 + 10_000)
+        eighth_db_max = db_manager.get_max_citation_between(1_123_252 - 10_000, 1_123_252 + 10_000)
         
         logger.info(f"NC DB max [2,080,000..3,000,000): {nc_db_max}")
         logger.info(f"AA DB max [10,000,000..20,000,000): {aa_db_max}")
         logger.info(f"Third range DB max [1,000,000..2,000,000): {third_db_max}")
         logger.info(f"Fourth range DB max [2,000,000..2,080,000): {fourth_db_max}")
-        logger.info(f"Fifth range DB max [1,027,000..1,028,000): {fifth_db_max}")
-        logger.info(f"Sixth range DB max [1,048,000..1,049,000): {sixth_db_max}")
-        logger.info(f"Seventh range DB max [1,072,000..1,073,000): {seventh_db_max}")
-        logger.info(f"Eighth range DB max [1,123,000..1,124,000): {eighth_db_max}")
+        logger.info(f"Fifth range DB max [1,017,117..1,037,117): {fifth_db_max}")
+        logger.info(f"Sixth range DB max [1,038,162..1,058,162): {sixth_db_max}")
+        logger.info(f"Seventh range DB max [1,062,744..1,082,744): {seventh_db_max}")
+        logger.info(f"Eighth range DB max [1,113,252..1,133,252): {eighth_db_max}")
 
         # Configure range size from environment
-        # Default: 50 for existing ranges, 10,000 for new discovered ranges
+        # All ranges use the same scraping range size (50 in either direction = 100 total)
         try:
             range_size = int(os.getenv('SCRAPE_RANGE_SIZE', '50'))
         except ValueError:
             range_size = 50
-        
-        # Larger range size for new discovered ranges (10,000 citations per side = 20,000 total)
-        new_range_size = 10_000
 
         # Center ranges on DB maxima directly (no env seeds)
         aa_center = aa_db_max if aa_db_max is not None else last_citation
@@ -218,21 +217,21 @@ def ongoing_scraper_job():
         fourth_center = fourth_db_max if fourth_db_max is not None else 2025645
         
         # New range centers - use discovered centers if DB max found, otherwise use fixed centers
+        # The 10k window is only used to find the max; scraping uses standard range_size
         fifth_center = fifth_db_max if fifth_db_max is not None else 1_027_117
         sixth_center = sixth_db_max if sixth_db_max is not None else 1_048_162
         seventh_center = seventh_db_max if seventh_db_max is not None else 1_072_744
         eighth_center = eighth_db_max if eighth_db_max is not None else 1_123_252
 
+        # All ranges use the same scraping range size (50 in either direction)
         aa_range = (aa_center - range_size, aa_center + range_size)
         nc_range = (nc_center - range_size, nc_center + range_size)
         third_range = (third_center - range_size, third_center + range_size)
         fourth_range = (fourth_center - range_size, fourth_center + range_size)
-        
-        # New ranges use larger range size
-        fifth_range = (fifth_center - new_range_size, fifth_center + new_range_size)
-        sixth_range = (sixth_center - new_range_size, sixth_center + new_range_size)
-        seventh_range = (seventh_center - new_range_size, seventh_center + new_range_size)
-        eighth_range = (eighth_center - new_range_size, eighth_center + new_range_size)
+        fifth_range = (fifth_center - range_size, fifth_center + range_size)
+        sixth_range = (sixth_center - range_size, sixth_center + range_size)
+        seventh_range = (seventh_center - range_size, seventh_center + range_size)
+        eighth_range = (eighth_center - range_size, eighth_center + range_size)
         
         ranges = [aa_range, nc_range, third_range, fourth_range, fifth_range, sixth_range, seventh_range, eighth_range]
 
@@ -433,16 +432,16 @@ def ongoing_scraper_job():
                         elif label == "Fourth" and 2_000_000 <= citation_num < 2_080_000:
                             if fourth_db_max is None or citation_num > fourth_db_max:
                                 fourth_db_max = citation_num
-                        elif label == "Fifth" and 1_027_000 <= citation_num < 1_028_000:
+                        elif label == "Fifth" and (1_027_117 - 10_000) <= citation_num <= (1_027_117 + 10_000):
                             if fifth_db_max is None or citation_num > fifth_db_max:
                                 fifth_db_max = citation_num
-                        elif label == "Sixth" and 1_048_000 <= citation_num < 1_049_000:
+                        elif label == "Sixth" and (1_048_162 - 10_000) <= citation_num <= (1_048_162 + 10_000):
                             if sixth_db_max is None or citation_num > sixth_db_max:
                                 sixth_db_max = citation_num
-                        elif label == "Seventh" and 1_072_000 <= citation_num < 1_073_000:
+                        elif label == "Seventh" and (1_072_744 - 10_000) <= citation_num <= (1_072_744 + 10_000):
                             if seventh_db_max is None or citation_num > seventh_db_max:
                                 seventh_db_max = citation_num
-                        elif label == "Eighth" and 1_123_000 <= citation_num < 1_124_000:
+                        elif label == "Eighth" and (1_123_252 - 10_000) <= citation_num <= (1_123_252 + 10_000):
                             if eighth_db_max is None or citation_num > eighth_db_max:
                                 eighth_db_max = citation_num
 
