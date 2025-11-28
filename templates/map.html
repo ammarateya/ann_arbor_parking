@@ -58,9 +58,42 @@
       rel="stylesheet"
       href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
     />
+    <!-- Leaflet MarkerCluster CSS -->
+    <link
+      rel="stylesheet"
+      href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.css"
+    />
+    <link
+      rel="stylesheet"
+      href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.Default.css"
+    />
 
     <style>
-      @import url("https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap");
+      @import url("https://fonts.cdnfonts.com/css/ocr-a-std");
+      @import url("https://fonts.cdnfonts.com/css/ocr-b-std");
+      @import url("https://fonts.cdnfonts.com/css/nk57-monospace");
+      @import url("https://fonts.cdnfonts.com/css/profont");
+      @import url("https://fonts.cdnfonts.com/css/terminus-ttf");
+
+      :root {
+        --font-display: "OCR A Std", "OCR A Extended", "Courier New", monospace;
+        --font-secondary: "OCR B Std", "NK57 Monospace", "ProFontWindows",
+          "Terminus (TTF)", monospace;
+        --font-body: "NK57 Monospace", "OCR B Std", "ProFontWindows",
+          "Terminus (TTF)", monospace;
+        --font-micro: "ProFontWindows", "Terminus (TTF)", "OCR A Std",
+          "Courier New", monospace;
+        --font-title: "NK57 Monospace", "OCR B Std", "IBM Plex Mono", monospace;
+        --safe-top: 0px;
+        --header-height: 64px;
+        --time-filter-height: 48px;
+      }
+
+      @supports (padding-top: env(safe-area-inset-top)) {
+        :root {
+          --safe-top: env(safe-area-inset-top);
+        }
+      }
 
       * {
         margin: 0;
@@ -68,19 +101,18 @@
         box-sizing: border-box;
       }
 
-      /* Custom text selection - vibrant magenta */
+      /* Custom text selection */
       ::selection {
-        background: rgba(255, 0, 170, 0.35);
-        color: #0a0a0a;
+        background: rgba(255, 255, 255, 0.85);
+        color: #050505;
       }
       ::-moz-selection {
-        background: rgba(255, 0, 170, 0.35);
-        color: #0a0a0a;
+        background: rgba(255, 255, 255, 0.85);
+        color: #050505;
       }
 
       body {
-        font-family: "SF Mono", "Monaco", "Menlo", "Consolas", "Liberation Mono",
-          monospace;
+        font-family: var(--font-body);
         background: #0a0a0a;
         overflow: hidden;
         height: 100vh;
@@ -98,8 +130,8 @@
         height: 100%;
         background: repeating-linear-gradient(
           0deg,
-          rgba(0, 255, 0, 0.03),
-          rgba(0, 255, 0, 0.03) 1px,
+          rgba(0, 212, 255, 0.03),
+          rgba(0, 212, 255, 0.03) 1px,
           transparent 1px,
           transparent 2px
         );
@@ -124,6 +156,17 @@
         position: fixed;
         z-index: 1;
         transition: width 0.3s ease, margin-left 0.3s ease;
+        overflow: hidden; /* Prevent white space during zoom */
+      }
+
+      /* Ensure Leaflet map container doesn't show white space during zoom */
+      .leaflet-container {
+        background: #1a1a1a !important; /* Match dark theme background */
+        outline: none;
+      }
+
+      .leaflet-zoom-animated {
+        will-change: transform; /* Optimize zoom animations */
       }
 
       body.panel-open #map {
@@ -134,18 +177,18 @@
       /* Header - Retro Terminal Style */
       .header {
         position: fixed;
-        top: 0;
+        top: var(--safe-top);
         left: 0;
         right: 0;
         background: #0a0a0a;
-        border-bottom: 3px solid #00ff00;
+        border-bottom: 3px solid #00d4ff;
         z-index: 1000;
         padding: 10px 20px;
         display: flex;
         align-items: center;
         justify-content: space-between;
-        font-family: "Press Start 2P", cursive;
-        box-shadow: 0 4px 20px rgba(0, 255, 0, 0.3);
+        font-family: var(--font-display);
+        box-shadow: 0 4px 20px rgba(0, 212, 255, 0.3);
       }
 
       body.panel-open .header {
@@ -153,14 +196,15 @@
       }
 
       .header-title {
-        color: #00ff00;
+        color: #00d4ff;
         font-size: 10px;
-        text-shadow: 0 0 10px #00ff00;
+        text-shadow: 0 0 10px #00d4ff;
         letter-spacing: 2px;
+        font-family: var(--font-title);
       }
 
       .header-status {
-        color: #00ff00;
+        color: #00d4ff;
         font-size: 8px;
         animation: blink 1s infinite;
       }
@@ -168,29 +212,30 @@
       /* Info box/link */
       .info-link {
         position: fixed;
-        top: 48px;
+        top: calc(var(--safe-top) + var(--header-height) + 4px);
         right: 20px;
         background: rgba(10, 10, 10, 0.95);
-        border: 2px solid #00ff00;
+        border: 2px solid #00d4ff;
         padding: 8px 12px;
         display: flex;
         align-items: center;
         gap: 8px;
         z-index: 999;
         text-decoration: none;
-        color: #00ff00;
+        color: #00d4ff;
         font-size: 11px;
         font-weight: bold;
+        font-family: var(--font-secondary);
         text-transform: uppercase;
         letter-spacing: 1px;
         transition: all 0.2s ease;
-        box-shadow: 0 4px 20px rgba(0, 255, 0, 0.3);
+        box-shadow: 0 4px 20px rgba(0, 212, 255, 0.3);
       }
 
       .info-link:hover {
-        background: #00ff00;
+        background: #00d4ff;
         color: #0a0a0a;
-        box-shadow: 0 4px 20px rgba(0, 255, 0, 0.5);
+        box-shadow: 0 4px 20px rgba(0, 212, 255, 0.5);
       }
 
       .info-icon {
@@ -200,14 +245,14 @@
         align-items: center;
         justify-content: center;
         border: 2px solid currentColor;
-        border-radius: 50%;
+        border-radius: 0;
         font-size: 11px;
         font-weight: bold;
+        font-family: var(--font-display);
       }
 
       @media (max-width: 768px) {
         .info-link {
-          top: 70px;
           right: 10px;
           padding: 6px 10px;
           font-size: 10px;
@@ -243,17 +288,20 @@
       /* Statistics bar - Circuit board style */
       .stats-bar {
         position: fixed;
-        top: 94px;
+        top: calc(
+          var(--safe-top) + var(--header-height) + var(--time-filter-height)
+        );
         left: 0;
         right: 0;
         background: #0a0a0a;
-        border-bottom: 2px solid #00ff00;
+        border-bottom: 2px solid #00d4ff;
         z-index: 999;
         padding: 12px 20px;
         display: flex;
         gap: 40px;
         justify-content: flex-start;
         align-items: center;
+        font-family: var(--font-secondary);
       }
 
       body.panel-open .stats-bar {
@@ -265,11 +313,12 @@
       }
 
       .stat-value {
-        color: #00ff00;
+        color: #00d4ff;
         font-size: 16px;
         font-weight: bold;
         display: block;
-        text-shadow: 0 0 5px #00ff00;
+        text-shadow: 0 0 5px #00d4ff;
+        font-family: var(--font-display);
       }
 
       .stat-label {
@@ -279,6 +328,7 @@
         text-transform: uppercase;
         letter-spacing: 1px;
         margin-top: 2px;
+        font-family: var(--font-micro);
       }
 
       /* Side panel - Retro terminal */
@@ -289,11 +339,12 @@
         width: 400px;
         height: 100vh;
         background: #0a0a0a;
-        border-right: 3px solid #00ff00;
+        border-right: 3px solid #00d4ff;
         z-index: 1001;
         overflow-y: auto;
-        box-shadow: 4px 0 20px rgba(0, 255, 0, 0.3);
+        box-shadow: 4px 0 20px rgba(0, 212, 255, 0.3);
         display: none;
+        font-family: var(--font-secondary);
       }
 
       .side-panel.active {
@@ -302,7 +353,7 @@
 
       .side-panel-header {
         padding: 15px;
-        border-bottom: 2px solid #00ff00;
+        border-bottom: 2px solid #00d4ff;
         background: #0a0a0a;
         position: sticky;
         top: 0;
@@ -310,22 +361,24 @@
       }
 
       .side-panel-title {
-        color: #00ff00;
+        color: #00d4ff;
         font-size: 12px;
         font-weight: bold;
         text-transform: uppercase;
         letter-spacing: 2px;
+        font-family: var(--font-display);
       }
 
       .side-panel-content {
         padding: 15px;
-        color: #00ff00;
+        color: #00d4ff;
         line-height: 1.8;
+        font-family: var(--font-secondary);
       }
 
       .info-item {
         padding: 10px 0;
-        border-bottom: 1px solid rgba(0, 255, 0, 0.2);
+        border-bottom: 1px solid rgba(0, 212, 255, 0.2);
       }
 
       .info-label {
@@ -334,13 +387,15 @@
         text-transform: uppercase;
         letter-spacing: 1px;
         margin-bottom: 5px;
+        font-family: var(--font-micro);
       }
 
       .info-value {
-        color: #00ff00;
+        color: #00d4ff;
         font-size: 12px;
         font-weight: bold;
-        text-shadow: 0 0 5px rgba(0, 255, 0, 0.5);
+        text-shadow: 0 0 5px rgba(0, 212, 255, 0.5);
+        font-family: var(--font-secondary);
       }
 
       /* Map controls */
@@ -349,12 +404,12 @@
         bottom: 20px;
         left: 20px;
         background: rgba(10, 10, 10, 0.95);
-        border: 2px solid #00ff00;
+        border: 2px solid #00d4ff;
         padding: 10px;
         display: flex;
         gap: 8px;
         z-index: 1000;
-        box-shadow: 0 4px 20px rgba(0, 255, 0, 0.3);
+        box-shadow: 0 4px 20px rgba(0, 212, 255, 0.3);
       }
 
       body.panel-open .map-controls {
@@ -367,11 +422,12 @@
         bottom: 20px;
         right: 20px;
         background: rgba(10, 10, 10, 0.95);
-        border: 2px solid #00ff00;
+        border: 2px solid #00d4ff;
         padding: 12px;
         z-index: 1000;
-        box-shadow: 0 4px 20px rgba(0, 255, 0, 0.3);
+        box-shadow: 0 4px 20px rgba(0, 212, 255, 0.3);
         min-width: 180px;
+        font-family: var(--font-secondary);
       }
 
       /* Keep legend docked right even when side panel is open */
@@ -380,14 +436,15 @@
       }
 
       .legend-header {
-        color: #00ff00;
+        color: #00d4ff;
         font-size: 10px;
         font-weight: bold;
         text-transform: uppercase;
         letter-spacing: 1px;
         margin-bottom: 8px;
         padding-bottom: 6px;
-        border-bottom: 1px solid rgba(0, 255, 0, 0.3);
+        border-bottom: 1px solid rgba(0, 212, 255, 0.3);
+        font-family: var(--font-display);
       }
 
       .legend-item {
@@ -404,15 +461,16 @@
       }
 
       .legend-text {
-        color: #00ff00;
+        color: #00d4ff;
         font-size: 11px;
         font-weight: bold;
         letter-spacing: 0.5px;
+        font-family: var(--font-secondary);
       }
 
       .legend-text span {
-        color: #00ff00;
-        text-shadow: 0 0 5px #00ff00;
+        color: #00d4ff;
+        text-shadow: 0 0 5px #00d4ff;
       }
 
       @media (max-width: 768px) {
@@ -421,10 +479,154 @@
         }
       }
 
+      /* Custom marker cluster styling - Receipt/Ticket style */
+      .marker-cluster {
+        background: transparent !important;
+        border: none !important;
+        position: relative;
+      }
+
+      .marker-cluster div {
+        position: relative;
+        width: 100%;
+        height: 100%;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        background: linear-gradient(to bottom, #fafafa 0%, #f5f5f5 100%);
+        border: 2px solid rgba(10, 10, 10, 0.8);
+        border-radius: 6px 6px 3px 3px;
+        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.4), 0 0 12px currentColor,
+          inset 0 1px 0 rgba(255, 255, 255, 0.8),
+          inset 0 -1px 0 rgba(0, 0, 0, 0.1);
+        transform: rotate(-1deg);
+        transition: transform 0.2s ease, box-shadow 0.2s ease;
+      }
+
+      .marker-cluster div::after {
+        content: "";
+        position: absolute;
+        bottom: -2px;
+        left: 0;
+        right: 0;
+        height: 4px;
+        background: repeating-linear-gradient(
+          90deg,
+          transparent 0px,
+          transparent 3px,
+          rgba(10, 10, 10, 0.6) 3px,
+          rgba(10, 10, 10, 0.6) 5px
+        );
+      }
+
+      .marker-cluster div::before {
+        content: "";
+        position: absolute;
+        top: -2px;
+        right: -2px;
+        width: 8px;
+        height: 8px;
+        background: linear-gradient(
+          135deg,
+          rgba(10, 10, 10, 0.3) 0%,
+          transparent 50%
+        );
+        clip-path: polygon(0 0, 100% 0, 0 100%);
+      }
+
+      .marker-cluster:hover div {
+        transform: rotate(0deg) scale(1.1) translateY(-3px);
+        box-shadow: 0 6px 12px rgba(0, 0, 0, 0.5), 0 0 16px currentColor,
+          inset 0 1px 0 rgba(255, 255, 255, 0.9);
+        z-index: 10;
+      }
+
+      .marker-cluster span {
+        display: block;
+        color: #0a0a0a;
+        font-weight: bold;
+        font-family: var(--font-micro);
+        text-shadow: none;
+        line-height: 1.2;
+        position: relative;
+        z-index: 1;
+      }
+
+      .marker-cluster .cluster-count {
+        font-size: 13px;
+        font-weight: 900;
+        letter-spacing: -0.3px;
+        color: #0a0a0a;
+      }
+
+      .marker-cluster .cluster-amount {
+        font-size: 9px;
+        font-weight: 700;
+        color: currentColor;
+        margin-top: 2px;
+        border-top: 1px dashed rgba(10, 10, 10, 0.3);
+        padding-top: 2px;
+        padding-left: 3px;
+        padding-right: 3px;
+      }
+
+      .marker-cluster-small {
+        width: 32px;
+        height: 40px;
+        color: #00d4ff;
+      }
+
+      .marker-cluster-small .cluster-count {
+        font-size: 11px;
+      }
+
+      .marker-cluster-small .cluster-amount {
+        font-size: 7px;
+        padding-left: 2px;
+        padding-right: 2px;
+      }
+
+      .marker-cluster-medium {
+        width: 38px;
+        height: 48px;
+        color: #00d4ff;
+      }
+
+      .marker-cluster-medium .cluster-count {
+        font-size: 14px;
+      }
+
+      .marker-cluster-medium .cluster-amount {
+        font-size: 9px;
+      }
+
+      .marker-cluster-large {
+        width: 44px;
+        height: 56px;
+        color: #00d4ff;
+      }
+
+      .marker-cluster-large .cluster-count {
+        font-size: 16px;
+      }
+
+      .marker-cluster-large .cluster-amount {
+        font-size: 10px;
+      }
+
+      .marker-cluster.cluster-high-amount {
+        color: #ff0040;
+      }
+
+      .marker-cluster.cluster-medium-amount {
+        color: #ff8000;
+      }
+
       .control-btn {
         background: #0a0a0a;
-        border: 2px solid #00ff00;
-        color: #00ff00;
+        border: 2px solid #00d4ff;
+        color: #00d4ff;
         font-size: 11px;
         font-weight: bold;
         padding: 8px 12px;
@@ -432,31 +634,31 @@
         transition: all 0.2s ease;
         text-transform: uppercase;
         letter-spacing: 1px;
+        font-family: var(--font-display);
       }
 
       .control-btn:hover {
-        background: #00ff00;
+        background: #00d4ff;
         color: #0a0a0a;
         text-shadow: none;
       }
 
       .control-btn.active {
-        background: #00ff00;
+        background: #00d4ff;
         color: #0a0a0a;
       }
 
       /* Search dropdown/select styling */
       .select-control {
         background: #0a0a0a;
-        border: 2px solid #00ff00;
-        color: #00ff00;
+        border: 2px solid #00d4ff;
+        color: #00d4ff;
         font-size: 10px;
         font-weight: bold;
         padding: 6px 12px;
         text-transform: uppercase;
         letter-spacing: 1px;
-        font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas,
-          "Liberation Mono", "Courier New", monospace;
+        font-family: var(--font-secondary);
         -webkit-appearance: none;
         -moz-appearance: none;
         appearance: none;
@@ -464,25 +666,23 @@
 
       .search-input {
         background: #0a0a0a;
-        border: 2px solid #00ff00;
-        color: #00ff00;
+        border: 2px solid #00d4ff;
+        color: #00d4ff;
         padding: 6px 8px;
-        font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas,
-          "Liberation Mono", "Courier New", monospace;
+        font-family: var(--font-secondary);
         font-size: 11px;
         letter-spacing: 0.5px;
       }
 
       .search-input::placeholder {
-        color: #00ff00;
+        color: #00d4ff;
         opacity: 0.45;
-        font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas,
-          "Liberation Mono", "Courier New", monospace;
+        font-family: var(--font-secondary);
         letter-spacing: 0.5px;
       }
 
       .search-input.highlight {
-        box-shadow: 0 0 10px rgba(0, 255, 0, 0.5);
+        box-shadow: 0 0 10px rgba(0, 212, 255, 0.5);
       }
 
       /* Dropdown chevron indicator */
@@ -496,10 +696,10 @@
         right: 8px;
         top: 50%;
         transform: translateY(-50%);
-        color: #00ff00;
+        color: #00d4ff;
         pointer-events: none;
         font-weight: bold;
-        text-shadow: 0 0 5px rgba(0, 255, 0, 0.5);
+        text-shadow: 0 0 5px rgba(0, 212, 255, 0.5);
       }
       .select-control {
         padding-right: 28px; /* room for chevron */
@@ -526,7 +726,7 @@
         background: rgba(20, 20, 20, 0.95);
         backdrop-filter: blur(40px);
         -webkit-backdrop-filter: blur(40px);
-        border-radius: 28px 28px 0 0;
+        border-radius: 0;
         padding: 24px;
         max-height: 70vh;
         overflow-y: auto;
@@ -555,7 +755,7 @@
         color: #fff;
         width: 32px;
         height: 32px;
-        border-radius: 16px;
+        border-radius: 0;
         display: flex;
         align-items: center;
         justify-content: center;
@@ -603,30 +803,30 @@
         left: 50%;
         transform: translate(-50%, -50%);
         background: rgba(10, 10, 10, 0.95);
-        color: #00ff00;
+        color: #00d4ff;
         padding: 20px 30px;
-        border: 3px solid #00ff00;
+        border: 3px solid #00d4ff;
         border-radius: 0;
         z-index: 3000;
         font-size: 15px;
         font-weight: bold;
-        font-family: "Press Start 2P", cursive;
+        font-family: var(--font-display);
         text-transform: uppercase;
         letter-spacing: 2px;
-        text-shadow: 0 0 10px #00ff00;
-        box-shadow: 0 0 20px rgba(0, 255, 0, 0.5),
-          inset 0 0 20px rgba(0, 255, 0, 0.1);
+        text-shadow: 0 0 10px #00d4ff;
+        box-shadow: 0 0 20px rgba(0, 212, 255, 0.5),
+          inset 0 0 20px rgba(0, 212, 255, 0.1);
         animation: alarmFlash 0.5s infinite;
       }
 
       @keyframes alarmFlash {
         0%,
         50% {
-          border-color: #00ff00;
-          color: #00ff00;
-          text-shadow: 0 0 10px #00ff00;
-          box-shadow: 0 0 20px rgba(0, 255, 0, 0.5),
-            inset 0 0 20px rgba(0, 255, 0, 0.1);
+          border-color: #00d4ff;
+          color: #00d4ff;
+          text-shadow: 0 0 10px #00d4ff;
+          box-shadow: 0 0 20px rgba(0, 212, 255, 0.5),
+            inset 0 0 20px rgba(0, 212, 255, 0.1);
         }
         51%,
         100% {
@@ -641,11 +841,11 @@
       /* Time filter bar */
       .time-filter-bar {
         position: fixed;
-        top: 48px;
+        top: calc(var(--safe-top) + var(--header-height));
         left: 0;
         right: 0;
         background: #0a0a0a;
-        border-bottom: 2px solid #00ff00;
+        border-bottom: 2px solid #00d4ff;
         z-index: 998;
         padding: 14px 20px 12px 20px;
         display: flex;
@@ -669,8 +869,8 @@
 
       .time-filter-btn {
         background: #0a0a0a;
-        border: 2px solid #00ff00;
-        color: #00ff00;
+        border: 2px solid #00d4ff;
+        color: #00d4ff;
         font-size: 10px;
         font-weight: bold;
         padding: 6px 12px;
@@ -678,20 +878,20 @@
         transition: all 0.2s ease;
         text-transform: uppercase;
         letter-spacing: 1px;
-        font-family: "Press Start 2P", cursive;
+        font-family: var(--font-display);
       }
 
       .time-filter-btn:hover {
-        background: #00ff00;
+        background: #00d4ff;
         color: #0a0a0a;
         text-shadow: none;
-        box-shadow: 0 0 10px rgba(0, 255, 0, 0.5);
+        box-shadow: 0 0 10px rgba(0, 212, 255, 0.5);
       }
 
       .time-filter-btn.active {
-        background: #00ff00;
+        background: #00d4ff;
         color: #0a0a0a;
-        box-shadow: 0 0 10px rgba(0, 255, 0, 0.5);
+        box-shadow: 0 0 10px rgba(0, 212, 255, 0.5);
       }
 
       /* No results message - Flashing style */
@@ -701,19 +901,19 @@
         left: 50%;
         transform: translate(-50%, -50%);
         background: rgba(10, 10, 10, 0.95);
-        color: #00ff00;
+        color: #00d4ff;
         padding: 20px 30px;
-        border: 3px solid #00ff00;
+        border: 3px solid #00d4ff;
         border-radius: 0;
         z-index: 3000;
         font-size: 12px;
         font-weight: bold;
-        font-family: "Press Start 2P", cursive;
+        font-family: var(--font-display);
         text-transform: uppercase;
         letter-spacing: 2px;
-        text-shadow: 0 0 10px #00ff00;
-        box-shadow: 0 0 20px rgba(0, 255, 0, 0.5),
-          inset 0 0 20px rgba(0, 255, 0, 0.1);
+        text-shadow: 0 0 10px #00d4ff;
+        box-shadow: 0 0 20px rgba(0, 212, 255, 0.5),
+          inset 0 0 20px rgba(0, 212, 255, 0.1);
         animation: alarmFlash 0.5s infinite;
         display: none;
         text-align: center;
@@ -771,27 +971,46 @@
         height: 10px;
         cursor: pointer;
         transition: all 0.2s ease;
+        background: transparent !important;
+        border: none !important;
+        padding: 0 !important;
+        margin: 0 !important;
+      }
+
+      .custom-marker div {
+        width: 100% !important;
+        height: 100% !important;
+        position: relative;
+        margin: 0 !important;
+        padding: 0 !important;
+        display: block !important;
+        box-shadow: 2px 2px 0 rgba(0, 0, 0, 0.8), 3px 3px 0 rgba(0, 0, 0, 0.5);
+        transform: skew(-2deg, -1deg);
       }
 
       .custom-marker:hover {
         transform: scale(1.5);
-        box-shadow: 0 0 8px currentColor !important;
+      }
+
+      .custom-marker:hover div {
+        box-shadow: 3px 3px 0 rgba(0, 0, 0, 0.9), 5px 5px 0 rgba(0, 0, 0, 0.6),
+          0 0 8px rgba(0, 212, 255, 0.5);
       }
 
       /* Custom popup style - Terminal aesthetic */
       .leaflet-popup-content-wrapper {
         background: #0a0a0a;
-        border: 2px solid #00ff00;
+        border: 2px solid #00d4ff;
         border-radius: 0;
-        color: #00ff00;
+        color: #00d4ff;
         padding: 0;
-        box-shadow: 0 0 20px rgba(0, 255, 0, 0.5),
-          inset 0 0 20px rgba(0, 255, 0, 0.1);
+        box-shadow: 0 0 20px rgba(0, 212, 255, 0.5),
+          inset 0 0 20px rgba(0, 212, 255, 0.1);
       }
 
       .leaflet-popup-tip {
         background: #0a0a0a;
-        border: 2px solid #00ff00;
+        border: 2px solid #00d4ff;
         border-top: none;
       }
 
@@ -801,11 +1020,11 @@
         line-height: 1.6;
         font-size: 11px;
         font-weight: bold;
-        text-shadow: 0 0 5px rgba(0, 255, 0, 0.5);
+        text-shadow: 0 0 5px rgba(0, 212, 255, 0.5);
       }
 
       .leaflet-popup-content strong {
-        color: #00ff00;
+        color: #00d4ff;
         display: block;
         margin-bottom: 6px;
         font-size: 12px;
@@ -819,11 +1038,11 @@
       }
 
       .leaflet-container a.leaflet-popup-close-button {
-        color: #00ff00;
+        color: #00d4ff;
         padding: 8px;
         font-size: 18px;
         font-weight: bold;
-        text-shadow: 0 0 5px #00ff00;
+        text-shadow: 0 0 5px #00d4ff;
         display: flex;
         align-items: center;
         justify-content: center;
@@ -834,8 +1053,79 @@
 
       .leaflet-container a.leaflet-popup-close-button:hover {
         color: #0a0a0a;
-        background: #00ff00;
+        background: #00d4ff;
         text-shadow: none;
+      }
+
+      .citation-popup .leaflet-popup-content-wrapper {
+        background: #fff;
+        border-radius: 6px;
+        border: 2px solid #0a0a0a;
+        padding: 0;
+        min-width: 220px;
+        box-shadow: 0 15px 35px rgba(0, 0, 0, 0.4);
+      }
+
+      .citation-popup .leaflet-popup-content {
+        margin: 0;
+        padding: 0;
+      }
+
+      .citation-popup .leaflet-popup-tip {
+        background: #fff;
+        border: 2px solid #0a0a0a;
+      }
+
+      .citation-popup .leaflet-popup-close-button {
+        color: #0a0a0a;
+        padding: 6px;
+        font-weight: 700;
+      }
+
+      .popup-receipt {
+        background: repeating-linear-gradient(
+            0deg,
+            rgba(0, 0, 0, 0.04),
+            rgba(0, 0, 0, 0.04) 2px,
+            transparent 2px,
+            transparent 24px
+          ),
+          #fff;
+        padding: 16px 18px 18px 18px;
+        font-family: var(--font-micro);
+        color: #0a0a0a;
+        text-transform: uppercase;
+      }
+
+      .popup-receipt .receipt-title {
+        font-size: 13px;
+        font-weight: 700;
+        letter-spacing: 1px;
+        padding-bottom: 10px;
+        border-bottom: 2px dashed rgba(0, 0, 0, 0.2);
+        margin-bottom: 10px;
+      }
+
+      .popup-receipt .receipt-row {
+        display: flex;
+        justify-content: space-between;
+        gap: 8px;
+        font-size: 11px;
+        padding: 6px 0;
+        border-bottom: 1px dashed rgba(0, 0, 0, 0.15);
+      }
+
+      .popup-receipt .receipt-row span:first-child {
+        color: rgba(0, 0, 0, 0.45);
+        letter-spacing: 0.5px;
+      }
+
+      .popup-receipt .receipt-row span:last-child {
+        font-weight: 600;
+      }
+
+      .popup-receipt .receipt-row:last-child {
+        border-bottom: none;
       }
 
       /* Mobile responsive styles */
@@ -845,7 +1135,6 @@
         }
 
         .time-filter-bar {
-          top: 62px;
           padding: 8px 3px 8px 3px;
           gap: 4px;
         }
@@ -863,7 +1152,6 @@
         .stats-bar {
           font-size: 10px;
           padding: 8px 12px;
-          top: 100px; /* Directly attached below time-filter-bar: 62px (top) + 8px (top padding) + ~20px (button height) + 8px (bottom padding) + 2px (border) = 100px */
         }
 
         .stat-item {
@@ -879,7 +1167,7 @@
           bottom: -33vh; /* Start hidden below viewport */
           top: auto;
           border-right: none;
-          border-top: 3px solid #00ff00;
+          border-top: 3px solid #00d4ff;
           z-index: 1001;
           transition: bottom 0.3s ease-out;
           display: block; /* Always rendered, just positioned off-screen */
@@ -1117,8 +1405,7 @@
             letter-spacing: 0;
             min-height: 14px;
             white-space: nowrap;
-            font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas,
-              'Liberation Mono', 'Courier New', monospace;
+            font-family: var(--font-micro);
           "
         ></div>
       </div>
@@ -1142,7 +1429,7 @@
         ALL
       </button>
       <button
-        class="time-filter-btn"
+        class="time-filter-btn active"
         onclick="filterByTime('week')"
         id="filterWeek"
         data-time="week"
@@ -1212,7 +1499,10 @@
         <div class="legend-item">
           <div
             class="legend-marker"
-            style="background: rgba(0, 255, 0, 0.7); border: 1px solid #00ff00"
+            style="
+              background: rgba(0, 212, 255, 0.7);
+              border: 1px solid #00d4ff;
+            "
           ></div>
           <span class="legend-text"
             >< $30: <span id="legendGreen">0</span></span
@@ -1238,7 +1528,7 @@
         >
           <path
             d="M12 6V3L8 7l4 4V8c2.757 0 5 2.243 5 5s-2.243 5-5 5-5-2.243-5-5H5c0 3.866 3.134 7 7 7s7-3.134 7-7-3.134-7-7-7z"
-            fill="#00ff00"
+            fill="#00d4ff"
           />
         </svg>
       </button>
@@ -1264,7 +1554,7 @@
         style="
           display: none;
           background: #0a0a0a;
-          border: 2px solid #00ff00;
+          border: 2px solid #00d4ff;
           padding: 8px;
           gap: 6px;
           align-items: center;
@@ -1368,7 +1658,7 @@
         style="
           display: none;
           background: #0a0a0a;
-          border: 2px solid #00ff00;
+          border: 2px solid #00d4ff;
           padding: 8px;
           gap: 6px;
           align-items: flex-start;
@@ -1477,11 +1767,11 @@
         bottom: 100px;
         left: 20px;
         background: rgba(10, 10, 10, 0.95);
-        border: 2px solid #00ff00;
+        border: 2px solid #00d4ff;
         padding: 10px 12px;
-        color: #00ff00;
+        color: #00d4ff;
         z-index: 1200;
-        box-shadow: 0 4px 20px rgba(0, 255, 0, 0.3);
+        box-shadow: 0 4px 20px rgba(0, 212, 255, 0.3);
         font-weight: bold;
         font-size: 11px;
       "
@@ -1501,6 +1791,10 @@
 
     <!-- Leaflet JS -->
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <!-- Leaflet MarkerCluster JS -->
+    <script src="https://unpkg.com/leaflet.markercluster@1.5.3/dist/leaflet.markercluster.js"></script>
+    <!-- Leaflet Heatmap JS -->
+    <script src="https://unpkg.com/leaflet.heat@0.2.0/dist/leaflet-heat.js"></script>
 
     <script>
       function closeSidePanel() {
@@ -1514,13 +1808,36 @@
         } else {
           document.body.classList.remove("panel-open");
         }
+        closeCitationPopup();
       }
-      // Initialize map centered on Ann Arbor
+      // Initialize map centered on Ann Arbor with performance optimizations
+      // Define Ann Arbor bounds (roughly 15-20 miles radius)
+      const annArborBounds = L.latLngBounds(
+        [42.15, -83.9], // Southwest corner
+        [42.4, -83.6] // Northeast corner
+      );
+
       const map = L.map("map", {
         zoomControl: true,
         zoom: 13,
         center: [42.2808, -83.743],
-        preferCanvas: true,
+        minZoom: 11, // Don't zoom out too far
+        maxZoom: 19, // Don't zoom in too close
+        maxBounds: annArborBounds, // Restrict panning to Ann Arbor area
+        maxBoundsViscosity: 1.0, // Hard boundary - can't pan outside
+        preferCanvas: true, // Use canvas rendering for better performance
+        fadeAnimation: true, // Enable smooth fade animations
+        zoomAnimation: true, // Enable smooth zoom animation
+        zoomAnimationThreshold: 4, // Smooth zoom for up to 4 levels
+        markerZoomAnimation: true, // Enable marker zoom animation for smoothness
+        // Performance optimizations
+        updateWhenZooming: true, // Update during zoom for smoother experience
+        updateWhenIdle: true, // Update markers when zoom/pan complete
+        keepInView: false, // Don't keep markers in view during pan
+        // Smooth zoom settings
+        wheelPxPerZoomLevel: 60, // Smoother mouse wheel zoom
+        doubleClickZoom: true,
+        scrollWheelZoom: true,
       });
 
       let isDarkMode = true;
@@ -1542,8 +1859,8 @@
       // Icon helpers
       function getSunIcon() {
         return '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">\
-          <circle cx="12" cy="12" r="4" fill="#00ff00"/>\
-          <g stroke="#00ff00" stroke-width="2">\
+          <circle cx="12" cy="12" r="4" fill="#00d4ff"/>\
+          <g stroke="#00d4ff" stroke-width="2">\
             <line x1="12" y1="1" x2="12" y2="4"/>\
             <line x1="12" y1="20" x2="12" y2="23"/>\
             <line x1="1" y1="12" x2="4" y2="12"/>\
@@ -1558,21 +1875,21 @@
 
       function getMoonIcon() {
         return '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">\
-          <path d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z" fill="#00ff00"/>\
+          <path d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z" fill="#00d4ff"/>\
         </svg>';
       }
 
       function getSearchIcon() {
         return '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">\
-          <circle cx="11" cy="11" r="7" stroke="#00ff00" stroke-width="2" fill="none"/>\
-          <line x1="16.5" y1="16.5" x2="22" y2="22" stroke="#00ff00" stroke-width="2"/>\
+          <circle cx="11" cy="11" r="7" stroke="#00d4ff" stroke-width="2" fill="none"/>\
+          <line x1="16.5" y1="16.5" x2="22" y2="22" stroke="#00d4ff" stroke-width="2"/>\
         </svg>';
       }
 
       function getBellIcon() {
         return '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">\
-          <path d="M12 22a2 2 0 002-2H10a2 2 0 002 2z" fill="#00ff00"/>\
-          <path d="M18 16v-5a6 6 0 10-12 0v5l-2 2h16l-2-2z" stroke="#00ff00" stroke-width="2" fill="none"/>\
+          <path d="M12 22a2 2 0 002-2H10a2 2 0 002 2z" fill="#00d4ff"/>\
+          <path d="M18 16v-5a6 6 0 10-12 0v5l-2 2h16l-2-2z" stroke="#00d4ff" stroke-width="2" fill="none"/>\
         </svg>';
       }
 
@@ -1587,17 +1904,338 @@
       })();
 
       // Store citations data
-      let citations = [];
+      let allCitations = []; // Store all citations from API (unfiltered)
+      let citations = []; // Currently visible citations (filtered)
       let markers = [];
       const citationToMarker = new Map();
       let usedCoordinates = new Map(); // Track coordinates to avoid overlap
-      let currentTimeFilter = "all"; // Track current time filter
+      let currentTimeFilter = "week"; // Track current time filter - default to week view
+      let activeCitationPopup = null;
+      let heatmapLayer = null; // Heatmap layer for performance
+      let showHeatmap = true; // Default to heatmap, markers show at high zoom
+      const MARKER_ZOOM_THRESHOLD = 17; // Show individual markers at zoom 15+
+
       let isSearchActive = false;
       let searchCenter = null; // {lat, lon}
       let searchCircle = null;
       let pendingPick = false;
       let mostRecentCitationTime = null; // Store the most recent citation timestamp
       let mostRecentCitationNumber = null; // Store the most recent citation number
+      const rootElement = document.documentElement;
+
+      function updateTopOffsets() {
+        const headerEl = document.querySelector(".header");
+        const timeFilterEl = document.getElementById("timeFilterBar");
+
+        if (headerEl) {
+          rootElement.style.setProperty(
+            "--header-height",
+            `${headerEl.offsetHeight}px`
+          );
+        }
+
+        if (timeFilterEl) {
+          rootElement.style.setProperty(
+            "--time-filter-height",
+            `${timeFilterEl.offsetHeight}px`
+          );
+        }
+      }
+
+      const scheduleTopOffsetUpdate = () =>
+        window.requestAnimationFrame(updateTopOffsets);
+
+      scheduleTopOffsetUpdate();
+      window.addEventListener("resize", scheduleTopOffsetUpdate);
+      window.addEventListener("orientationchange", scheduleTopOffsetUpdate);
+      window.addEventListener("load", scheduleTopOffsetUpdate);
+
+      const zoomRadiusBreakpoints = [
+        { maxZoom: 9, radius: 100 },
+        { maxZoom: 10, radius: 90 },
+        { maxZoom: 11, radius: 80 },
+        { maxZoom: 12, radius: 75 },
+        { maxZoom: 13, radius: 60 },
+        { maxZoom: 14, radius: 50 },
+        { maxZoom: 15, radius: 40 },
+        { maxZoom: 16, radius: 30 },
+        { maxZoom: 17, radius: 20 },
+        { maxZoom: 18, radius: 15 },
+        { maxZoom: 19, radius: 10 },
+      ];
+
+      function getClusterRadiusForZoom(zoom) {
+        for (const bp of zoomRadiusBreakpoints) {
+          if (zoom < bp.maxZoom) {
+            return bp.radius;
+          }
+        }
+        return 18;
+      }
+
+      // Create marker cluster group - clustering disabled, using as a layer group for viewport optimization
+      const markerClusterGroup = L.markerClusterGroup({
+        maxClusterRadius: 0, // Disable clustering - show all markers individually
+        spiderfyOnMaxZoom: false,
+        showCoverageOnHover: false,
+        zoomToBoundsOnClick: false,
+        disableClusteringAtZoom: 0, // Disable clustering at all zoom levels
+        chunkedLoading: true, // Load markers in chunks for better performance
+        chunkInterval: 200, // Process markers every 200ms
+        chunkDelay: 50, // Delay between chunks
+        iconCreateFunction: function (cluster) {
+          const count = cluster.getChildCount();
+          const size = count < 10 ? "small" : count < 100 ? "medium" : "large";
+          const className = "marker-cluster marker-cluster-" + size;
+
+          let totalAmount = 0;
+          let hasAmounts = false;
+          cluster.getAllChildMarkers().forEach(function (marker) {
+            if (marker._amount !== undefined) {
+              totalAmount += marker._amount;
+              hasAmounts = true;
+            }
+          });
+
+          let receiptWidth = 32;
+          let receiptHeight = 40;
+          if (count >= 50) {
+            receiptWidth = 44;
+            receiptHeight = 56;
+          } else if (count >= 25) {
+            receiptWidth = 38;
+            receiptHeight = 48;
+          }
+
+          let colorClass = "";
+          if (hasAmounts && count >= 10) {
+            const avgAmount = totalAmount / count;
+            if (avgAmount >= 40) {
+              colorClass = " cluster-high-amount";
+            } else if (avgAmount >= 25) {
+              colorClass = " cluster-medium-amount";
+            }
+          }
+
+          const totalAmountRounded = hasAmounts ? Math.round(totalAmount) : 0;
+          const displayHTML =
+            hasAmounts && count >= 10
+              ? '<span class="cluster-count">' +
+                count +
+                '</span><span class="cluster-amount">$' +
+                totalAmountRounded.toLocaleString() +
+                "</span>"
+              : '<span class="cluster-count">' + count + "</span>";
+
+          return L.divIcon({
+            html: "<div>" + displayHTML + "</div>",
+            className: className + colorClass,
+            iconSize: L.point(receiptWidth, receiptHeight),
+            iconAnchor: L.point(receiptWidth / 2, 4),
+          });
+        },
+      });
+
+      // Handle cluster clicks - just zoom in instead of spiderfying
+      markerClusterGroup.on("clusterclick", function (a) {
+        const cluster = a.layer;
+        const bounds = cluster.getBounds();
+        const center = bounds.getCenter();
+        // Zoom in smoothly to the cluster center
+        map.flyTo(center, map.getZoom() + 2, {
+          duration: 1.2,
+          easeLinearity: 0.25,
+        });
+      });
+
+      // Event delegation for marker clicks - single listener instead of 10,000+ individual listeners
+      // This dramatically improves performance when many markers are loaded
+      markerClusterGroup.on("click", function (e) {
+        const marker = e.layer;
+        // Check if this is a marker (not a cluster) and has citation data
+        if (
+          marker &&
+          marker._citation &&
+          marker._originalLat &&
+          marker._originalLon
+        ) {
+          const citation = marker._citation;
+          map.flyTo([marker._originalLat, marker._originalLon], 16, {
+            duration: 1.2,
+            easeLinearity: 0.25,
+          });
+          showCitationDetails(citation, marker.getLatLng());
+        }
+      });
+
+      markerClusterGroup.addTo(map);
+
+      // Initialize heatmap layer
+      function updateHeatmap() {
+        const currentZoom = map.getZoom();
+
+        // Remove existing heatmap if it exists
+        if (heatmapLayer) {
+          map.removeLayer(heatmapLayer);
+          heatmapLayer = null;
+        }
+
+        // Show heatmap only when zoomed out (below threshold) and enabled
+        if (
+          !showHeatmap ||
+          citations.length === 0 ||
+          currentZoom >= MARKER_ZOOM_THRESHOLD
+        ) {
+          return;
+        }
+
+        // Convert citations to heatmap points [lat, lng, intensity]
+        // Intensity can be based on amount_due or just count (1.0 for each citation)
+        const heatmapPoints = citations
+          .filter((c) => c.latitude && c.longitude)
+          .map((c) => {
+            const lat = parseFloat(c.latitude);
+            const lon = parseFloat(c.longitude);
+            // Use amount_due as intensity (normalized) or just 1.0 for count
+            const amount = parseFloat(c.amount_due) || 0;
+            // Normalize amount to 0.5-2.0 range for visual variety
+            const intensity =
+              amount > 0 ? Math.min(2.0, 0.5 + amount / 100) : 1.0;
+            return [lat, lon, intensity];
+          });
+
+        if (heatmapPoints.length > 0) {
+          heatmapLayer = L.heatLayer(heatmapPoints, {
+            radius: 25, // Radius of each "point" in pixels
+            blur: 15, // Blur factor
+            maxZoom: MARKER_ZOOM_THRESHOLD, // Hide heatmap at high zoom
+            max: 2.0, // Maximum intensity
+            gradient: {
+              0.0: "blue", // Low intensity
+              0.5: "cyan", // Medium-low
+              0.7: "lime", // Medium
+              0.9: "yellow", // Medium-high
+              1.0: "red", // High intensity
+            },
+          });
+          heatmapLayer.addTo(map);
+        }
+      }
+
+      // Update marker visibility based on zoom level
+      function updateMarkerVisibility() {
+        const currentZoom = map.getZoom();
+        const shouldShowMarkers = currentZoom >= MARKER_ZOOM_THRESHOLD;
+
+        if (shouldShowMarkers) {
+          // Hide heatmap, show markers
+          if (heatmapLayer) {
+            map.removeLayer(heatmapLayer);
+            heatmapLayer = null;
+          }
+
+          // Add filtered markers if not already added
+          if (markerClusterGroup.getLayers().length === 0) {
+            const filteredMarkers = [];
+            citations.forEach((citation) => {
+              if (!citation.citation_number) return;
+              const marker = citationToMarker.get(
+                String(citation.citation_number)
+              );
+              if (marker) {
+                filteredMarkers.push(marker);
+              }
+            });
+
+            // Add markers in batches
+            const BATCH_SIZE = 100;
+            for (let i = 0; i < filteredMarkers.length; i += BATCH_SIZE) {
+              const batch = filteredMarkers.slice(i, i + BATCH_SIZE);
+              markerClusterGroup.addLayers(batch);
+            }
+          }
+        } else {
+          // Hide markers, show heatmap (when zoomed out)
+          // Force remove all markers - use multiple methods to ensure they're gone
+          const allLayers = markerClusterGroup.getLayers();
+          if (allLayers.length > 0) {
+            markerClusterGroup.removeLayers(allLayers);
+          }
+          markerClusterGroup.clearLayers();
+
+          // Also remove from map directly if needed
+          markerClusterGroup.eachLayer(function (layer) {
+            map.removeLayer(layer);
+          });
+
+          // Force heatmap update to ensure it shows
+          if (heatmapLayer) {
+            map.removeLayer(heatmapLayer);
+            heatmapLayer = null;
+          }
+          updateHeatmap();
+        }
+      }
+
+      // Debounce map move events to improve pan performance
+      let updateTimeout;
+      map.on("moveend", function () {
+        clearTimeout(updateTimeout);
+        updateTimeout = setTimeout(function () {
+          // Update visible markers based on new viewport
+          updateVisibleMarkers();
+        }, 150);
+      });
+
+      // Optimize zoom performance - update heatmap/markers based on zoom level
+      let zoomEndTimeout;
+      let isZooming = false;
+      let lastZoomLevel = map.getZoom();
+
+      map.on("zoomstart", function () {
+        isZooming = true;
+        lastZoomLevel = map.getZoom();
+        clearTimeout(zoomEndTimeout);
+      });
+
+      // Update during zoom when crossing threshold for immediate feedback
+      map.on("zoom", function () {
+        const currentZoom = map.getZoom();
+        // Check if we crossed the threshold
+        const wasAboveThreshold = lastZoomLevel >= MARKER_ZOOM_THRESHOLD;
+        const isAboveThreshold = currentZoom >= MARKER_ZOOM_THRESHOLD;
+
+        // If we crossed the threshold, update immediately
+        if (wasAboveThreshold !== isAboveThreshold) {
+          updateMarkerVisibility();
+        }
+        // Also update if we're zooming out below threshold (for safety)
+        else if (
+          !isAboveThreshold &&
+          markerClusterGroup.getLayers().length > 0
+        ) {
+          updateMarkerVisibility();
+        }
+
+        lastZoomLevel = currentZoom;
+      });
+
+      map.on("zoomend", function () {
+        isZooming = false;
+        // Always update at zoom end to ensure correct state
+        clearTimeout(zoomEndTimeout);
+        // Call immediately, no debounce needed for zoom end
+        updateMarkerVisibility();
+      });
+
+      // Disable unnecessary animations during pan/zoom for better performance
+      let isPanning = false;
+      map.on("movestart", function () {
+        isPanning = true;
+      });
+      map.on("moveend", function () {
+        isPanning = false;
+      });
 
       // Search UI logic
       (function initSearchUI() {
@@ -1728,10 +2366,13 @@
               if (radiusM > 0) {
                 searchCircle = L.circle([searchCenter.lat, searchCenter.lon], {
                   radius: radiusM,
-                  color: "#00ff00",
+                  color: "#00d4ff",
                 }).addTo(map);
               }
-              map.setView([searchCenter.lat, searchCenter.lon], 15);
+              map.flyTo([searchCenter.lat, searchCenter.lon], 15, {
+                duration: 1.2,
+                easeLinearity: 0.25,
+              });
               // Auto-run search
               let url = "/api/search?mode=location";
               url += `&lat=${encodeURIComponent(
@@ -1783,7 +2424,7 @@
           if (radiusM > 0) {
             searchCircle = L.circle([searchCenter.lat, searchCenter.lon], {
               radius: radiusM,
-              color: "#00ff00",
+              color: "#00d4ff",
             }).addTo(map);
           }
           if (hint) hint.style.display = "none";
@@ -1825,9 +2466,11 @@
                 if (marker && only.latitude && only.longitude) {
                   const lat = parseFloat(only.latitude);
                   const lon = parseFloat(only.longitude);
-                  map.setView([lat, lon], 16);
-                  marker.openPopup();
-                  showCitationDetails(only);
+                  map.flyTo([lat, lon], 16, {
+                    duration: 1.2,
+                    easeLinearity: 0.25,
+                  });
+                  showCitationDetails(only, marker.getLatLng());
                 }
               } else {
                 const noResultsMsg =
@@ -1955,9 +2598,11 @@
               if (marker && only.latitude && only.longitude) {
                 const lat = parseFloat(only.latitude);
                 const lon = parseFloat(only.longitude);
-                map.setView([lat, lon], 16);
-                marker.openPopup();
-                showCitationDetails(only);
+                map.flyTo([lat, lon], 16, {
+                  duration: 1.2,
+                  easeLinearity: 0.25,
+                });
+                showCitationDetails(only, marker.getLatLng());
               }
             } else {
               const noResultsMsg = document.getElementById("noResultsMessage");
@@ -1985,20 +2630,40 @@
       })();
 
       function clearAllMarkers() {
-        markers.forEach((m) => {
-          if (map.hasLayer(m)) m.removeFrom(map);
-        });
+        markerClusterGroup.clearLayers();
         markers = [];
         citationToMarker.clear();
         usedCoordinates = new Map();
       }
 
-      function showOnlyMarkers(list) {
+      async function showOnlyMarkers(list) {
         clearAllMarkers();
-        list.forEach((c) => {
+
+        // Batch marker creation for search results
+        const BATCH_SIZE = 100;
+        const batchMarkers = [];
+
+        for (let i = 0; i < list.length; i++) {
+          const c = list[i];
           const m = createMarkerForCitation(c);
-          if (m) markers.push(m);
-        });
+          if (m) {
+            markers.push(m);
+            batchMarkers.push(m);
+
+            if (c.citation_number) {
+              citationToMarker.set(String(c.citation_number), m);
+            }
+
+            if (batchMarkers.length >= BATCH_SIZE || i === list.length - 1) {
+              markerClusterGroup.addLayers(batchMarkers);
+              batchMarkers.length = 0;
+
+              // Yield to browser
+              await new Promise((resolve) => requestAnimationFrame(resolve));
+            }
+          }
+        }
+
         focusMap();
 
         // Update stats and legend based on the provided list (search results)
@@ -2115,7 +2780,21 @@
           const data = await response.json();
 
           if (data.status === "success") {
-            citations = data.citations || [];
+            allCitations = data.citations || [];
+
+            // Filter citations based on default time filter (week) before processing
+            // This avoids showing "no results" error and applies filter during load
+            const now = new Date();
+            const cutoffTime = new Date(
+              now.getTime() - 7 * 24 * 60 * 60 * 1000
+            ); // 7 days ago
+            const cutoffTimestamp = cutoffTime.getTime();
+
+            citations = allCitations.filter((c) => {
+              if (!c.issue_date) return false;
+              const issueTimestamp = new Date(c.issue_date).getTime();
+              return issueTimestamp >= cutoffTimestamp;
+            });
 
             // Show error message if there's an auth issue
             if (
@@ -2124,28 +2803,30 @@
                 data.error.includes("SUPABASE_SERVICE_ROLE_KEY"))
             ) {
               document.getElementById("loading").innerHTML = `
-                 <div style="background: rgba(255, 59, 48, 0.9); padding: 20px 30px; border-radius: 16px; color: #fff; max-width: 500px; text-align: center;">
+                 <div style="background: rgba(255, 59, 48, 0.9); padding: 20px 30px; border-radius: 0; color: #fff; max-width: 500px; text-align: center;">
                    <div style="font-size: 24px; margin-bottom: 10px;">🔒</div>
                    <strong>Authentication Required</strong><br>
                    <div style="margin-top: 10px; font-size: 13px;">
                      Please add SUPABASE_SERVICE_ROLE_KEY to your environment variables.<br>
-                     See <code style="background: rgba(0,0,0,0.3); padding: 2px 6px; border-radius: 4px;">FIX_AUTH_ISSUE.md</code> for instructions.
+                     See <code style="background: rgba(0,0,0,0.3); padding: 2px 6px; border-radius: 0;">FIX_AUTH_ISSUE.md</code> for instructions.
                    </div>
                  </div>
                `;
               return;
             }
 
-            // Show message if no citations with coordinates
+            // Show message if no citations with coordinates in filtered set
+            // Check original data.total to see if there are any citations at all
             if (citations.length === 0) {
-              if (data.total > 0) {
+              if (allCitations.length === 0 && (data.total || 0) > 0) {
+                // There are citations in DB but none have coordinates
                 document.getElementById("loading").innerHTML = `
-                   <div style="background: rgba(255, 149, 0, 0.9); padding: 20px 30px; border-radius: 16px; color: #fff; max-width: 500px; text-align: center;">
+                   <div style="background: rgba(255, 149, 0, 0.9); padding: 20px 30px; border-radius: 0; color: #fff; max-width: 500px; text-align: center;">
                      <div style="font-size: 24px; margin-bottom: 10px;">📍</div>
                      <strong>No Geocoded Citations</strong><br>
                      <div style="margin-top: 10px; font-size: 13px;">
                        Found ${data.total} citations but none have coordinates.<br>
-                       Run: <code style="background: rgba(0,0,0,0.3); padding: 2px 6px; border-radius: 4px;">python geocode_citations.py</code>
+                       Run: <code style="background: rgba(0,0,0,0.3); padding: 2px 6px; border-radius: 0;">python geocode_citations.py</code>
                      </div>
                    </div>
                  `;
@@ -2153,6 +2834,7 @@
                 document.getElementById("totalAmount").textContent = "$0";
                 return;
               }
+              // If just no citations in past week, that's fine - show empty state
             }
 
             // Update stats
@@ -2316,12 +2998,98 @@
         usedCoordinates.set(coordKey, count + 1);
 
         // Create a spiral offset: each duplicate gets a slightly larger radius
+        // Use tighter distribution (2 meters per duplicate) and cap max distance
         const angle = count * 137.5; // Golden angle for even distribution
-        const distance = 0.00005 * count; // ~5 meters per duplicate
+        const baseDistance = 0.00002; // ~2 meters per duplicate (tighter)
+        const maxDistance = 0.00008; // Cap at ~8 meters max (prevents straying too far)
+        const distance = Math.min(baseDistance * count, maxDistance);
         const offsetLat = lat + Math.cos((angle * Math.PI) / 180) * distance;
         const offsetLon = lon + Math.sin((angle * Math.PI) / 180) * distance;
 
         return { lat: offsetLat, lon: offsetLon };
+      }
+
+      function closeCitationPopup() {
+        if (activeCitationPopup) {
+          map.closePopup(activeCitationPopup);
+          map.removeLayer(activeCitationPopup);
+          activeCitationPopup = null;
+        }
+      }
+
+      function buildCitationPopupContent(citation) {
+        const amount = (parseFloat(citation.amount_due) || 0).toFixed(2);
+        const issueDate = citation.issue_date
+          ? new Intl.DateTimeFormat("en-US", {
+              timeZone: "America/Detroit",
+              month: "short",
+              day: "numeric",
+              year: "numeric",
+              hour: "numeric",
+              minute: "2-digit",
+              hour12: true,
+            }).format(new Date(citation.issue_date))
+          : "UNKNOWN";
+
+        return `
+          <div class="popup-receipt">
+            <div class="receipt-title">
+              CITATION #${citation.citation_number || "UNKNOWN"}
+            </div>
+            <div class="receipt-row">
+              <span>Location</span>
+              <span>${citation.location || "UNKNOWN"}</span>
+            </div>
+            <div class="receipt-row">
+              <span>Issued</span>
+              <span>${issueDate}</span>
+            </div>
+            <div class="receipt-row">
+              <span>Amount</span>
+              <span>$${amount}</span>
+            </div>
+            <div class="receipt-row">
+              <span>Plate</span>
+              <span>${citation.plate_state || ""} ${
+          citation.plate_number || ""
+        }</span>
+            </div>
+          </div>
+        `;
+      }
+
+      function showCitationPopup(citation, markerLatLng = null) {
+        if (!citation) return;
+
+        let lat = markerLatLng ? markerLatLng.lat : null;
+        let lon = markerLatLng ? markerLatLng.lng : null;
+
+        if (lat === null || lon === null) {
+          if (!citation.latitude || !citation.longitude) {
+            return;
+          }
+          lat = parseFloat(citation.latitude);
+          lon = parseFloat(citation.longitude);
+        }
+
+        if (Number.isNaN(lat) || Number.isNaN(lon)) return;
+
+        closeCitationPopup();
+
+        activeCitationPopup = L.popup({
+          className: "citation-popup",
+          closeButton: true,
+          autoClose: false,
+          closeOnClick: false,
+          maxWidth: 280,
+        })
+          .setLatLng([lat, lon])
+          .setContent(buildCitationPopupContent(citation))
+          .addTo(map);
+
+        activeCitationPopup.on("remove", () => {
+          activeCitationPopup = null;
+        });
       }
 
       // Create marker for citation with coordinates
@@ -2341,54 +3109,83 @@
         // Get offset coordinates if duplicates exist
         const { lat, lon } = getOffsetCoordinates(originalLat, originalLon);
 
-        // Create custom icon - Minimal style
+        // Create custom icon - Minimal style with performance optimizations
         const amount = parseFloat(citation.amount_due) || 0;
         const color = getColorForAmount(citation.amount_due);
-        const size = amount >= 50 ? 12 : amount >= 30 ? 10 : 8;
+        const currentZoom = map.getZoom();
+        // Use smaller markers at lower zoom levels for better performance
+        let size;
+        if (currentZoom < 13) {
+          size = amount >= 50 ? 6 : amount >= 30 ? 5 : 4;
+        } else if (currentZoom < 15) {
+          size = amount >= 50 ? 8 : amount >= 30 ? 7 : 6;
+        } else {
+          size = amount >= 50 ? 12 : amount >= 30 ? 10 : 8;
+        }
         const borderColor =
-          amount >= 50 ? "#ff0040" : amount >= 30 ? "#ff8000" : "#00ff00";
+          amount >= 50 ? "#ff0040" : amount >= 30 ? "#ff8000" : "#00d4ff";
 
+        // Use simpler icon HTML for better performance
         const customIcon = L.divIcon({
           className: "custom-marker",
-          html: `<div style="width: 100%; height: 100%; background: ${color}; border: 1px solid ${borderColor};"></div>`,
+          html: `<div style="width:${size}px;height:${size}px;background:${color};border:1px solid ${borderColor};"></div>`,
           iconSize: [size, size],
           iconAnchor: [size / 2, size / 2],
+          // Optimize rendering
+          popupAnchor: [0, -size / 2],
         });
 
-        // Create marker with retro terminal popup
-        const marker = L.marker([lat, lon], { icon: customIcon })
-          .bindPopup(
-            `
-                    <strong>▶ CITATION #${citation.citation_number}</strong><br>
+        // Create marker - don't bind popup until clicked (lazy loading for performance)
+        const marker = L.marker([lat, lon], {
+          icon: customIcon,
+          // Performance options
+          riseOnHover: false, // Don't raise markers on hover (expensive)
+          keyboard: false, // Disable keyboard navigation for markers (minor perf gain)
+        });
+
+        // Calculate font size based on citation number length
+        const citationNumStr = String(citation.citation_number || "");
+        const digitCount = citationNumStr.replace(/\D/g, "").length;
+        let fontSize = "12px";
+        if (digitCount >= 7) {
+          fontSize = "9px";
+        } else if (digitCount === 6) {
+          fontSize = "10px";
+        } else if (digitCount === 5) {
+          fontSize = "11px";
+        }
+
+        const popupContent = `
+                    <strong style="font-size: ${fontSize};">▶ CITATION #${
+          citation.citation_number
+        }</strong><br>
                     ──────────────────────<br>
                     LOC: ${citation.location || "UNKNOWN"}<br>
                     AMT: $${(parseFloat(citation.amount_due) || 0).toFixed(
                       2
                     )}<br>
                     PLT: ${citation.plate_state || ""} ${
-              citation.plate_number || ""
-            }<br>
+          citation.plate_number || ""
+        }<br>
                     ──────────────────────
-                `,
-            {
-              className: "terminal-popup",
-            }
-          )
-          .addTo(map);
+                `;
+
+        // Store popup content but don't bind until needed
+        marker._popupContent = popupContent;
+        // Store amount for cluster calculations
+        marker._amount = amount;
+        // Store citation data on marker for event delegation (performance optimization)
+        marker._citation = citation;
+        marker._originalLat = originalLat;
+        marker._originalLon = originalLon;
 
         // Keep reference to the marker by citation number
         if (citation.citation_number) {
           citationToMarker.set(String(citation.citation_number), marker);
         }
 
-        // Add click handler - auto-focus and show side panel
-        marker.on("click", () => {
-          // Auto-focus on original coordinates (not offset)
-          map.setView([originalLat, originalLon], 16);
-
-          // Show side panel with citation details
-          showCitationDetails(citation);
-        });
+        // REMOVED: Individual click listener - now using event delegation on markerClusterGroup
+        // This reduces from 10,000+ listeners to just 1 listener for better performance
 
         return marker;
       }
@@ -2455,6 +3252,13 @@
                   const marker = createMarkerForCitation(latest);
                   if (marker) {
                     markers.push(marker);
+                    if (latest.citation_number) {
+                      citationToMarker.set(
+                        String(latest.citation_number),
+                        marker
+                      );
+                    }
+                    markerClusterGroup.addLayer(marker);
                   }
                 }
               } else {
@@ -2521,20 +3325,29 @@
         if (marker) {
           const lat = parseFloat(latest.latitude);
           const lon = parseFloat(latest.longitude);
-          map.setView([lat, lon], 16);
-          marker.openPopup();
-          showCitationDetails(latest);
+          map.flyTo([lat, lon], 16, {
+            duration: 1.2,
+            easeLinearity: 0.25,
+          });
+          showCitationDetails(latest, marker.getLatLng());
         } else if (latest.latitude && latest.longitude) {
           // Marker not found but we have coordinates - create a temporary marker or just focus
           const lat = parseFloat(latest.latitude);
           const lon = parseFloat(latest.longitude);
-          map.setView([lat, lon], 16);
-          showCitationDetails(latest);
+          map.flyTo([lat, lon], 16, {
+            duration: 1.2,
+            easeLinearity: 0.25,
+          });
+          showCitationDetails(latest, { lat, lng: lon });
           // Try to create marker now if it doesn't exist
           const newMarker = createMarkerForCitation(latest);
           if (newMarker) {
             markers.push(newMarker);
-            newMarker.openPopup();
+            if (latest.citation_number) {
+              citationToMarker.set(String(latest.citation_number), newMarker);
+            }
+            markerClusterGroup.addLayer(newMarker);
+            showCitationDetails(latest, newMarker.getLatLng());
           }
         } else {
           console.warn(
@@ -2549,35 +3362,173 @@
         const amt = parseFloat(amount) || 0;
         if (amt >= 50) return "rgba(255, 0, 64, 0.7)"; // Red with opacity
         if (amt >= 30) return "rgba(255, 128, 0, 0.7)"; // Orange with opacity
-        return "rgba(0, 255, 0, 0.7)"; // Green with opacity
+        return "rgba(0, 212, 255, 0.7)"; // Cyan with opacity
       }
 
-      // Place all markers
+      // Place all markers - creates markers for all citations but only adds filtered ones to map
       async function placeMarkers() {
-        // Create markers for all citations
-        citations.forEach((citation) => {
+        // Clear existing markers
+        markerClusterGroup.clearLayers();
+        markers = [];
+        citationToMarker.clear();
+        usedCoordinates.clear();
+
+        // Create markers for ALL citations (so they're ready when switching filters)
+        // But only add the filtered ones (citations array) to the cluster group
+        const BATCH_SIZE = 100; // Process 100 markers at a time
+        const batchMarkersToAdd = [];
+
+        // Performance optimization: Create Set of filtered citation numbers for O(1) lookup
+        // Instead of O(n) array.some() check for each marker (was O(n²) overall)
+        const filteredCitationNumbers = new Set(
+          citations.map((c) => String(c.citation_number))
+        );
+
+        // First, create markers for all citations
+        // Initially show all filtered markers; viewport filtering will handle updates on pan/zoom
+        for (let i = 0; i < allCitations.length; i++) {
+          const citation = allCitations[i];
           const marker = createMarkerForCitation(citation);
           if (marker) {
             markers.push(marker);
+
+            // Store in map for filtering/search
+            if (citation.citation_number) {
+              citationToMarker.set(String(citation.citation_number), marker);
+            }
+
+            // If this citation is in the filtered set, mark it for adding
+            if (filteredCitationNumbers.has(String(citation.citation_number))) {
+              batchMarkersToAdd.push(marker);
+            }
+
+            // Batch add filtered markers to cluster group (only if zoomed in enough)
+            if (
+              batchMarkersToAdd.length >= BATCH_SIZE ||
+              i === allCitations.length - 1
+            ) {
+              // Don't add markers here - updateMarkerVisibility will handle it based on zoom
+              batchMarkersToAdd.length = 0;
+
+              // Yield to browser to prevent blocking
+              await new Promise((resolve) => requestAnimationFrame(resolve));
+            }
+          }
+        }
+
+        // Update marker/heatmap visibility based on current zoom level
+        updateMarkerVisibility();
+      }
+
+      // Update visible markers based on current viewport (performance optimization)
+      async function updateVisibleMarkers() {
+        if (markers.length === 0) return;
+
+        // Don't update markers if we're below zoom threshold (should show heatmap instead)
+        const currentZoom = map.getZoom();
+        if (currentZoom < MARKER_ZOOM_THRESHOLD) {
+          // If markers are visible but shouldn't be, clear them
+          if (markerClusterGroup.getLayers().length > 0) {
+            markerClusterGroup.clearLayers();
+          }
+          return;
+        }
+
+        const bounds = map.getBounds();
+        const padding = 0.1; // 10% padding
+        const extendedBounds = L.latLngBounds(
+          [
+            bounds.getSouth() -
+              (bounds.getNorth() - bounds.getSouth()) * padding,
+            bounds.getWest() - (bounds.getEast() - bounds.getWest()) * padding,
+          ],
+          [
+            bounds.getNorth() +
+              (bounds.getNorth() - bounds.getSouth()) * padding,
+            bounds.getEast() + (bounds.getEast() - bounds.getWest()) * padding,
+          ]
+        );
+
+        // Get currently visible markers
+        const currentlyVisible = new Set();
+        markerClusterGroup.eachLayer(function (marker) {
+          if (marker.getLatLng) {
+            currentlyVisible.add(marker);
           }
         });
+
+        // Determine which markers should be visible
+        const shouldBeVisible = new Set();
+        const markersToAdd = [];
+        const markersToRemove = [];
+
+        // Check all markers
+        for (const marker of markers) {
+          if (!marker._citation) continue;
+
+          const citation = marker._citation;
+          const markerLat = parseFloat(citation.latitude);
+          const markerLon = parseFloat(citation.longitude);
+
+          // Check if marker should be visible (in viewport and in filtered set)
+          const isInFilteredSet = citations.some(
+            (c) =>
+              String(c.citation_number) === String(citation.citation_number)
+          );
+          const isInViewport = extendedBounds.contains([markerLat, markerLon]);
+
+          if (isInFilteredSet && isInViewport) {
+            shouldBeVisible.add(marker);
+            if (!currentlyVisible.has(marker)) {
+              markersToAdd.push(marker);
+            }
+          } else if (currentlyVisible.has(marker)) {
+            markersToRemove.push(marker);
+          }
+        }
+
+        // Batch remove markers outside viewport
+        if (markersToRemove.length > 0) {
+          markerClusterGroup.removeLayers(markersToRemove);
+        }
+
+        // Batch add markers in viewport
+        if (markersToAdd.length > 0) {
+          const BATCH_SIZE = 100;
+          for (let i = 0; i < markersToAdd.length; i += BATCH_SIZE) {
+            const batch = markersToAdd.slice(i, i + BATCH_SIZE);
+            markerClusterGroup.addLayers(batch);
+            if (i + BATCH_SIZE < markersToAdd.length) {
+              await new Promise((resolve) => requestAnimationFrame(resolve));
+            }
+          }
+        }
       }
 
       // Focus map on markers
       function focusMap() {
         if (markers.length > 0) {
-          const group = new L.featureGroup(markers);
-          map.fitBounds(group.getBounds().pad(0.1));
+          // Use the cluster group to get bounds (more efficient)
+          if (markerClusterGroup.getLayers().length > 0) {
+            map.fitBounds(markerClusterGroup.getBounds().pad(0.1));
+          } else {
+            // Fallback to feature group if cluster is empty
+            const group = new L.featureGroup(markers);
+            map.fitBounds(group.getBounds().pad(0.1));
+          }
         }
       }
 
       // Reset view to Ann Arbor
       function resetView() {
-        map.setView([42.2808, -83.743], 13);
+        map.flyTo([42.2808, -83.743], 13, {
+          duration: 1.2,
+          easeLinearity: 0.25,
+        });
       }
 
       // Show citation details in side panel
-      function showCitationDetails(citation) {
+      function showCitationDetails(citation, markerLatLng = null) {
         const panel = document.getElementById("sidePanel");
         const title = document.getElementById("sidePanelTitle");
         const content = document.getElementById("sidePanelContent");
@@ -2597,7 +3548,19 @@
           document.body.classList.add("panel-open");
         }
 
+        // Calculate font size for title based on citation number length
+        const citationNumStr = String(citation.citation_number || "");
+        const digitCount = citationNumStr.replace(/\D/g, "").length;
+        let titleFontSize = "12px"; // Default
+        if (digitCount >= 7) {
+          titleFontSize = "9px";
+        } else if (digitCount === 6) {
+          titleFontSize = "10px";
+        } else if (digitCount === 5) {
+          titleFontSize = "11px";
+        }
         title.textContent = `CITATION #${citation.citation_number}`;
+        title.style.fontSize = titleFontSize;
 
         content.innerHTML = `
            <div class="info-item">
@@ -2657,12 +3620,57 @@
                ? `
            <div class="info-item">
              <div class="info-label"></div>
-             <div class="info-value"><a href="${citation.more_info_url}" target="_blank" style="color: #00ff00;">VIEW MORE INFO →</a></div>
+             <div class="info-value"><a href="${citation.more_info_url}" target="_blank" style="color: #00d4ff;">VIEW MORE INFO →</a></div>
            </div>
            `
                : ""
            }
          `;
+
+        showCitationPopup(citation, markerLatLng);
+      }
+
+      // Toggle between heatmap and markers view
+      function toggleHeatmap() {
+        showHeatmap = !showHeatmap;
+        const toggleBtn = document.getElementById("heatmapToggle");
+
+        if (showHeatmap) {
+          // Show heatmap, hide markers
+          markerClusterGroup.clearLayers();
+          toggleBtn.textContent = "MARKERS";
+          toggleBtn.classList.add("active");
+        } else {
+          // Show markers, hide heatmap
+          if (heatmapLayer) {
+            map.removeLayer(heatmapLayer);
+            heatmapLayer = null;
+          }
+          toggleBtn.textContent = "HEATMAP";
+          toggleBtn.classList.remove("active");
+
+          // Re-add filtered markers
+          const filteredMarkers = [];
+          citations.forEach((citation) => {
+            if (!citation.citation_number) return;
+            const marker = citationToMarker.get(
+              String(citation.citation_number)
+            );
+            if (marker) {
+              filteredMarkers.push(marker);
+            }
+          });
+
+          // Add markers in batches
+          const BATCH_SIZE = 100;
+          for (let i = 0; i < filteredMarkers.length; i += BATCH_SIZE) {
+            const batch = filteredMarkers.slice(i, i + BATCH_SIZE);
+            markerClusterGroup.addLayers(batch);
+          }
+        }
+
+        // Update the display
+        updateHeatmap();
       }
 
       // Toggle between light and dark mode
@@ -2702,7 +3710,7 @@
       }
 
       // Filter citations by time period
-      function filterByTime(period) {
+      async function filterByTime(period) {
         if (isSearchActive) {
           // Ignore time filter while search is active
           return;
@@ -2739,44 +3747,31 @@
         // JavaScript Date objects are internally UTC, but we ensure proper comparison
         const cutoffTimestamp = cutoffTime ? cutoffTime.getTime() : null;
 
-        // Filter and show/hide markers
-        let visibleCount = 0;
-        citations.forEach((citation) => {
-          if (!citation.citation_number) return;
+        // Filter citations based on time period
+        // Use allCitations (full dataset) when showing "all", otherwise filter from allCitations
+        const filteredCitations =
+          cutoffTimestamp === null
+            ? allCitations
+            : allCitations.filter((c) => {
+                if (!c.issue_date) return false;
+                const issueTimestamp = new Date(c.issue_date).getTime();
+                return issueTimestamp >= cutoffTimestamp;
+              });
 
-          const marker = citationToMarker.get(String(citation.citation_number));
-          if (!marker) return;
+        // Update citations array to reflect filtered set
+        citations = filteredCitations;
 
-          if (cutoffTimestamp === null) {
-            // Show all
-            if (!map.hasLayer(marker)) {
-              marker.addTo(map);
-            }
-            visibleCount++;
-          } else {
-            // Check if citation issue_date is within the time period
-            if (citation.issue_date) {
-              const issueDate = new Date(citation.issue_date);
-              // Compare timestamps (UTC) to avoid timezone issues
-              const issueTimestamp = issueDate.getTime();
-              if (issueTimestamp >= cutoffTimestamp) {
-                if (!map.hasLayer(marker)) {
-                  marker.addTo(map);
-                }
-                visibleCount++;
-              } else {
-                if (map.hasLayer(marker)) {
-                  marker.removeFrom(map);
-                }
-              }
-            } else {
-              // No issue date, hide it
-              if (map.hasLayer(marker)) {
-                marker.removeFrom(map);
-              }
-            }
-          }
-        });
+        // Clear existing markers/heatmap - updateMarkerVisibility will handle showing the right one
+        markerClusterGroup.clearLayers();
+        if (heatmapLayer) {
+          map.removeLayer(heatmapLayer);
+          heatmapLayer = null;
+        }
+
+        // Update marker/heatmap visibility based on current zoom level
+        updateMarkerVisibility();
+
+        const visibleCount = filteredCitations.length;
 
         // Show no results message if no citations found
         if (visibleCount === 0 && period !== "all") {
@@ -2850,11 +3845,15 @@
           greenCount.toLocaleString();
       }
 
-      // Initialize filter button - set "all" as active
+      // Initialize filter button - set "week" as active (default view)
       (function initFilterButtons() {
         const filterAllBtn = document.getElementById("filterAll");
+        const filterWeekBtn = document.getElementById("filterWeek");
         if (filterAllBtn) {
-          filterAllBtn.classList.add("active");
+          filterAllBtn.classList.remove("active");
+        }
+        if (filterWeekBtn) {
+          filterWeekBtn.classList.add("active");
         }
       })();
 
@@ -2886,7 +3885,7 @@
           const tip = document.createElement("div");
           tip.id = "notifyTip";
           tip.style.cssText =
-            "margin-top:6px; padding:8px; border:1px dashed #00ff00; color:#00ff00; font-size:10px; background:rgba(0,255,0,0.05)";
+            "margin-top:6px; padding:8px; border:1px dashed #00d4ff; color:#00d4ff; font-size:10px; background:rgba(0,255,0,0.05)";
           tip.textContent =
             "Tip: Subscribe by plate, or pick a center & radius to get alerts for that area.";
           panel.appendChild(tip);
@@ -3004,7 +4003,10 @@
                   dashArray: "6 6",
                 }).addTo(map);
               }
-              map.setView([searchCenter.lat, searchCenter.lon], 15);
+              map.flyTo([searchCenter.lat, searchCenter.lon], 15, {
+                duration: 1.2,
+                easeLinearity: 0.25,
+              });
             } catch (_) {
               // ignore geolocation errors silently
             }
@@ -3122,6 +4124,9 @@
             document.getElementById("filterWeek").textContent = "PAST WEEK";
             document.getElementById("filterDay").textContent = "PAST 24 HOURS";
             document.getElementById("filterHour").textContent = "PAST HOUR";
+          }
+          if (typeof scheduleTopOffsetUpdate === "function") {
+            scheduleTopOffsetUpdate();
           }
         }
         function checkWidth() {

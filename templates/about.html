@@ -47,27 +47,41 @@
     </script>
 
     <style>
+      @import url("https://fonts.cdnfonts.com/css/ocr-a-std");
+      @import url("https://fonts.cdnfonts.com/css/ocr-b-std");
+      @import url("https://fonts.cdnfonts.com/css/nk57-monospace");
+      @import url("https://fonts.cdnfonts.com/css/profont");
+      @import url("https://fonts.cdnfonts.com/css/terminus-ttf");
+
+      :root {
+        --font-display: "OCR A Std", "OCR A Extended", "Courier New", monospace;
+        --font-secondary: "OCR B Std", "NK57 Monospace", "ProFontWindows",
+          "Terminus (TTF)", monospace;
+        --font-body: "NK57 Monospace", "OCR B Std", "ProFontWindows",
+          "Terminus (TTF)", monospace;
+        --font-micro: "ProFontWindows", "Terminus (TTF)", "OCR A Std",
+          "Courier New", monospace;
+      }
       * {
         margin: 0;
         padding: 0;
         box-sizing: border-box;
       }
 
-      /* Custom text selection - vibrant magenta */
+      /* Custom text selection */
       ::selection {
-        background: rgba(255, 0, 170, 0.35);
-        color: #0a0a0a;
+        background: rgba(255, 255, 255, 0.85);
+        color: #050505;
       }
       ::-moz-selection {
-        background: rgba(255, 0, 170, 0.35);
-        color: #0a0a0a;
+        background: rgba(255, 255, 255, 0.85);
+        color: #050505;
       }
 
       body {
-        font-family: "SF Mono", "Monaco", "Menlo", "Consolas", "Liberation Mono",
-          monospace;
+        font-family: var(--font-body);
         background: #0a0a0a;
-        color: #00ff00;
+        color: #00d4ff;
         line-height: 1.6;
         padding: 40px 20px;
         max-width: 900px;
@@ -77,51 +91,60 @@
       .header {
         margin-bottom: 40px;
         padding-bottom: 20px;
-        border-bottom: 2px solid #00ff00;
+        border-bottom: 2px solid #00d4ff;
+        font-family: var(--font-display);
       }
 
       h1 {
         font-size: 24px;
-        color: #00ff00;
-        text-shadow: 0 0 10px #00ff00;
+        color: #00d4ff;
+        text-shadow: 0 0 10px #00d4ff;
         margin-bottom: 10px;
+        font-family: var(--font-display);
       }
 
       .back-link {
         display: inline-block;
         margin-bottom: 20px;
-        color: #00ff00;
+        color: #00d4ff;
         text-decoration: none;
-        border: 1px solid #00ff00;
+        border: 1px solid #00d4ff;
         padding: 8px 16px;
         transition: all 0.2s;
+        font-family: var(--font-display);
+        letter-spacing: 1px;
+        text-transform: uppercase;
       }
 
       .back-link:hover {
-        background: #00ff00;
+        background: #00d4ff;
         color: #0a0a0a;
       }
 
       .content {
         margin-bottom: 40px;
+        font-family: var(--font-secondary);
       }
 
       p {
         margin-bottom: 20px;
         font-size: 14px;
+        font-family: var(--font-body);
       }
 
       .methodology {
-        background: rgba(0, 255, 0, 0.05);
-        border: 1px solid #00ff00;
+        background: rgba(0, 212, 255, 0.05);
+        border: 1px solid #00d4ff;
         padding: 20px;
         margin: 30px 0;
+        font-family: var(--font-secondary);
       }
 
       .methodology h2 {
         font-size: 18px;
         margin-bottom: 15px;
-        color: #00ff00;
+        color: #00d4ff;
+        font-family: var(--font-display);
       }
 
       .methodology p {
@@ -139,6 +162,7 @@
         position: relative;
         font-size: 14px;
         color: #ffffff;
+        font-family: var(--font-secondary);
       }
 
       .methodology li:before {
@@ -156,8 +180,8 @@
       .receipt-image img {
         max-width: 400px;
         width: 100%;
-        border: 2px solid #00ff00;
-        box-shadow: 0 0 20px rgba(0, 255, 0, 0.3);
+        border: 2px solid #00d4ff;
+        box-shadow: 0 0 20px rgba(0, 212, 255, 0.3);
       }
 
       .receipt-image figcaption {
@@ -168,10 +192,11 @@
       }
 
       code {
-        background: rgba(0, 255, 0, 0.1);
+        background: rgba(0, 212, 255, 0.1);
         padding: 2px 6px;
-        border: 1px solid #00ff00;
+        border: 1px solid #00d4ff;
         font-size: 13px;
+        font-family: var(--font-micro);
       }
 
       @media (max-width: 768px) {
@@ -275,7 +300,7 @@
         text-align: center;
         margin-top: 40px;
         padding-top: 30px;
-        border-top: 2px solid #00ff00;
+        border-top: 2px solid #00d4ff;
       "
     >
       <a href="/a2-parking/" class="back-link">← Back to Map</a>
