@@ -2060,11 +2060,24 @@
           marker._originalLon
         ) {
           const citation = marker._citation;
-          map.flyTo([marker._originalLat, marker._originalLon], 16, {
-            duration: 1.2,
+          const currentZoom = map.getZoom();
+          const targetLatLng = [marker._originalLat, marker._originalLon];
+          const markerLatLng = marker.getLatLng();
+
+          // Close any existing popup immediately so the next one can render
+          closeCitationPopup();
+
+          // Fly the map (without changing zoom) and show popup when movement completes
+          map.flyTo(targetLatLng, currentZoom, {
+            animate: true,
+            duration: 0.6,
             easeLinearity: 0.25,
+            noMoveStart: false,
           });
-          showCitationDetails(citation, marker.getLatLng());
+
+          map.once("moveend", function handleMarkerPan() {
+            showCitationDetails(citation, markerLatLng);
+          });
         }
       });
 
