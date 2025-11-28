@@ -1907,6 +1907,8 @@
       let allCitations = []; // Store all citations from API (unfiltered)
       let citations = []; // Currently visible citations (filtered)
       let markers = [];
+      const citationDetailsCache = new Map(); // Cache of detailed citation data
+      let detailRequestCounter = 0; // Track in-flight detail requests
       const citationToMarker = new Map();
       let usedCoordinates = new Map(); // Track coordinates to avoid overlap
       let currentTimeFilter = "week"; // Track current time filter - default to week view
@@ -1914,6 +1916,50 @@
       let heatmapLayer = null; // Heatmap layer for performance
       let showHeatmap = true; // Default to heatmap, markers show at high zoom
       const MARKER_ZOOM_THRESHOLD = 17; // Show individual markers at zoom 15+
+      function registerCitationDetails(citation, hasFullDetails) {
+        if (!citation) return citation;
+        citation._hasFullDetails = Boolean(hasFullDetails);
+        if (citation._hasFullDetails && citation.citation_number) {
+          citationDetailsCache.set(String(citation.citation_number), citation);
+        }
+        return citation;
+      }
+
+      function hydrateSummaryCitation(citation) {
+        if (!citation) return citation;
+        const target = { ...citation };
+        const cacheKey = target.citation_number
+          ? String(target.citation_number)
+          : null;
+        if (cacheKey && citationDetailsCache.has(cacheKey)) {
+          const cached = citationDetailsCache.get(cacheKey);
+          Object.assign(target, cached);
+          return registerCitationDetails(target, true);
+        }
+        return registerCitationDetails(target, false);
+      }
+
+      async function fetchCitationDetailsByNumber(citationNumber) {
+        if (!citationNumber) return null;
+        try {
+          const response = await fetch(
+            `/api/citations/${encodeURIComponent(citationNumber)}`
+          );
+          const data = await response.json();
+          if (data.status === "success" && data.citation) {
+            return data.citation;
+          }
+        } catch (err) {
+          console.error("Failed to fetch citation details", err);
+        }
+        return null;
+      }
+
+      function mergeCitationDetails(target, source) {
+        if (!target || !source) return target;
+        Object.assign(target, source);
+        return registerCitationDetails(target, true);
+      }
 
       let isSearchActive = false;
       let searchCenter = null; // {lat, lon}
@@ -2401,7 +2447,9 @@
               const data = await resp.json();
               if (data.status !== "success") return;
               isSearchActive = true;
-              const results = data.citations || [];
+              const results = (data.citations || []).map((c) =>
+                registerCitationDetails(c, true)
+              );
               showOnlyMarkers(results);
               const noResultsMsg = document.getElementById("noResultsMessage");
               const intervalEl = document.getElementById("noResultsInterval");
@@ -2461,7 +2509,9 @@
               const data = await resp.json();
               if (data.status !== "success") return;
               isSearchActive = true;
-              const results = data.citations || [];
+              const results = (data.citations || []).map((c) =>
+                registerCitationDetails(c, true)
+              );
               showOnlyMarkers(results);
               if (!results.length) {
                 const noResultsMsg =
@@ -2531,7 +2581,9 @@
               const data = await resp.json();
               if (data.status !== "success") return;
               isSearchActive = true;
-              const results = data.citations || [];
+              const results = (data.citations || []).map((c) =>
+                registerCitationDetails(c, true)
+              );
               showOnlyMarkers(results);
               const noResultsMsg = document.getElementById("noResultsMessage");
               if (results.length === 0) {
@@ -2591,7 +2643,9 @@
             if (data.status !== "success") return;
 
             isSearchActive = true;
-            const results = data.citations || [];
+            const results = (data.citations || []).map((c) =>
+              registerCitationDetails(c, true)
+            );
             showOnlyMarkers(results);
             updateRadiusDisplay(
               mode === "location" ? radiusEl.value || "0" : null
@@ -2789,11 +2843,16 @@
         // Use slightly longer estimate to account for "Today, " format
         startRecentScramble(Math.max(estimated.length, 25));
         try {
-          const response = await fetch("/api/citations");
+          const response = await fetch("/api/citations?view=summary");
           const data = await response.json();
 
           if (data.status === "success") {
-            allCitations = data.citations || [];
+            const rawCitations = Array.isArray(data.citations)
+              ? data.citations
+              : [];
+            allCitations = rawCitations.map((citation) =>
+              hydrateSummaryCitation(citation)
+            );
 
             // Filter citations based on default time filter (week) before processing
             // This avoids showing "no results" error and applies filter during load
@@ -3071,8 +3130,9 @@
         `;
       }
 
-      function showCitationPopup(citation, markerLatLng = null) {
+      function showCitationPopup(citation, markerLatLng = null, options = {}) {
         if (!citation) return;
+        const { updateOnly = false } = options;
 
         let lat = markerLatLng ? markerLatLng.lat : null;
         let lon = markerLatLng ? markerLatLng.lng : null;
@@ -3087,6 +3147,12 @@
 
         if (Number.isNaN(lat) || Number.isNaN(lon)) return;
 
+        const popupContent = buildCitationPopupContent(citation);
+        if (updateOnly && activeCitationPopup) {
+          activeCitationPopup.setContent(popupContent);
+          return;
+        }
+
         closeCitationPopup();
 
         activeCitationPopup = L.popup({
@@ -3097,7 +3163,7 @@
           maxWidth: 280,
         })
           .setLatLng([lat, lon])
-          .setContent(buildCitationPopupContent(citation))
+          .setContent(popupContent)
           .addTo(map);
 
         activeCitationPopup.on("remove", () => {
@@ -3248,7 +3314,7 @@
                 data.citations &&
                 data.citations.length > 0
               ) {
-                latest = data.citations[0];
+                latest = registerCitationDetails(data.citations[0], true);
                 console.log(
                   "Fetched citation from API:",
                   latest.citation_number
@@ -3540,11 +3606,12 @@
         });
       }
 
-      // Show citation details in side panel
-      function showCitationDetails(citation, markerLatLng = null) {
+      function renderCitationPanel(citation) {
+        if (!citation) return;
         const panel = document.getElementById("sidePanel");
         const title = document.getElementById("sidePanelTitle");
         const content = document.getElementById("sidePanelContent");
+        if (!panel || !title || !content) return;
 
         // Check if mobile
         const isMobile =
@@ -3575,6 +3642,23 @@
         title.textContent = `CITATION #${citation.citation_number}`;
         title.style.fontSize = titleFontSize;
 
+        let formattedIssueDate = "UNKNOWN";
+        if (citation.issue_date) {
+          try {
+            formattedIssueDate = new Intl.DateTimeFormat("en-US", {
+              timeZone: "America/Detroit",
+              month: "short",
+              day: "numeric",
+              year: "numeric",
+              hour: "numeric",
+              minute: "2-digit",
+              hour12: true,
+            }).format(new Date(citation.issue_date));
+          } catch (_) {
+            formattedIssueDate = "UNKNOWN";
+          }
+        }
+
         content.innerHTML = `
            <div class="info-item">
              <div class="info-label">LOCATION</div>
@@ -3582,15 +3666,7 @@
            </div>
            <div class="info-item">
              <div class="info-label">ISSUE DATE</div>
-             <div class="info-value">${new Intl.DateTimeFormat("en-US", {
-               timeZone: "America/Detroit",
-               month: "short",
-               day: "numeric",
-               year: "numeric",
-               hour: "numeric",
-               minute: "2-digit",
-               hour12: true,
-             }).format(new Date(citation.issue_date))}</div>
+             <div class="info-value">${formattedIssueDate}</div>
            </div>
            <div class="info-item">
              <div class="info-label">AMOUNT DUE</div>
@@ -3639,8 +3715,47 @@
                : ""
            }
          `;
+      }
 
+      // Show citation details in side panel
+      function showCitationDetails(citation, markerLatLng = null) {
+        if (!citation) return;
+
+        renderCitationPanel(citation);
         showCitationPopup(citation, markerLatLng);
+
+        if (!citation.citation_number) {
+          return;
+        }
+
+        const citationKey = String(citation.citation_number);
+
+        if (citation._hasFullDetails) {
+          return;
+        }
+
+        if (citationDetailsCache.has(citationKey)) {
+          mergeCitationDetails(citation, citationDetailsCache.get(citationKey));
+          renderCitationPanel(citation);
+          showCitationPopup(citation, markerLatLng, { updateOnly: true });
+          return;
+        }
+
+        const citationNumberInt = Number.parseInt(citationKey, 10);
+        if (Number.isNaN(citationNumberInt)) {
+          return;
+        }
+
+        const requestId = ++detailRequestCounter;
+
+        fetchCitationDetailsByNumber(citationNumberInt).then((detail) => {
+          if (!detail || requestId !== detailRequestCounter) {
+            return;
+          }
+          mergeCitationDetails(citation, detail);
+          renderCitationPanel(citation);
+          showCitationPopup(citation, markerLatLng, { updateOnly: true });
+        });
       }
 
       // Toggle between heatmap and markers view
