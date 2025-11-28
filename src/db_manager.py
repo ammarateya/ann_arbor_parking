@@ -1,8 +1,11 @@
 import os
-import json
 import logging
 from datetime import datetime, timezone
+from decimal import Decimal
 from typing import Dict, Optional, List, Tuple
+
+import psycopg
+from psycopg.rows import dict_row
 from supabase import create_client, Client
 
 logger = logging.getLogger(__name__)
@@ -12,6 +15,7 @@ class DatabaseManager:
     def __init__(self, db_config):
         self.db_config = db_config
         self.supabase: Client = None
+        self._pg_conn = None
         self._initialize_supabase()
 
     def _initialize_supabase(self):
@@ -39,10 +43,309 @@ class DatabaseManager:
             logger.error(f"Failed to initialize Supabase client: {e}")
             raise
 
+    def _get_pg_connection(self):
+        """Create (or reuse) a psycopg connection for analytical queries."""
+        if self._pg_conn and not self._pg_conn.closed:
+            return self._pg_conn
+        try:
+            self._pg_conn = psycopg.connect(
+                host=self.db_config.get('host'),
+                dbname=self.db_config.get('database'),
+                user=self.db_config.get('user'),
+                password=self.db_config.get('password'),
+                port=self.db_config.get('port'),
+                autocommit=True,
+                row_factory=dict_row,
+            )
+            logger.info("✓ PostgreSQL connection established for analytics")
+            return self._pg_conn
+        except Exception as e:
+            logger.error(f"Failed to connect to PostgreSQL for analytics: {e}")
+            raise
+
     def get_connection(self):
-        """Legacy method for compatibility - returns None since we use Supabase client directly"""
-        logger.warning("get_connection() called - using Supabase client instead of direct psycopg connection")
-        return None
+        """Backwards-compatible accessor for psycopg connection."""
+        return self._get_pg_connection()
+
+    def close_connection(self):
+        """Close the psycopg connection if open."""
+        if self._pg_conn and not self._pg_conn.closed:
+            try:
+                self._pg_conn.close()
+            except Exception:
+                pass
+            finally:
+                self._pg_conn = None
+
+    @staticmethod
+    def _to_float(value: Optional[Decimal]) -> Optional[float]:
+        if value is None:
+            return None
+        if isinstance(value, Decimal):
+            return float(value)
+        try:
+            return float(value)
+        except (TypeError, ValueError):
+            return None
+
+    @staticmethod
+    def _to_int(value):
+        try:
+            return int(value)
+        except (TypeError, ValueError):
+            return None
+
+    def get_fun_facts(self, lookback_days: int = 30) -> Dict:
+        """
+        Return aggregated statistics used by the fun facts UI.
+        Uses Supabase to fetch data and performs aggregations in Python.
+
+        Args:
+            lookback_days: How far back to query data.
+        """
+        lookback_days = max(1, min(lookback_days, 180))
+        
+        facts: Dict = {
+            'generated_at': datetime.utcnow().replace(tzinfo=timezone.utc).isoformat(),
+            'lookback_days': lookback_days,
+            'worst_blocks': [],
+            'repeat_offenders': [],
+            'spicy_windows': [],
+            'ticket_pressure': {'last_24h': 0, 'last_7d': 0, 'avg_amount': 0.0, 'total_revenue': 0.0, 'total_tickets': 0},
+            'out_of_state_heat': [],
+            'champions': {'worst_plate': None, 'worst_location': None},
+            'insights': {'most_expensive': 0.0, 'worst_day': None, 'worst_hour': None},
+        }
+
+        try:
+            from datetime import timedelta
+            cutoff_date = (datetime.now(timezone.utc) - timedelta(days=lookback_days)).isoformat()
+            
+            # Fetch all citations in the time range using Supabase
+            citations = []
+            page_size = 1000
+            offset = 0
+            max_iterations = 100  # Safety limit
+            
+            while offset < max_iterations * page_size:
+                result = (
+                    self.supabase
+                    .table('citations')
+                    .select('location,plate_state,plate_number,issue_date,amount_due')
+                    .gte('issue_date', cutoff_date)
+                    .order('issue_date', desc=False)
+                    .range(offset, offset + page_size - 1)
+                    .execute()
+                )
+                page_data = result.data if result.data else []
+                if not page_data:
+                    break
+                citations.extend(page_data)
+                offset += page_size
+                if len(page_data) == 0:
+                    break
+            
+            if not citations:
+                return facts
+            
+            # Calculate cutoff times for ticket pressure
+            now = datetime.now(timezone.utc)
+            last_24h = (now - timedelta(hours=24)).isoformat()
+            last_7d = (now - timedelta(days=7)).isoformat()
+            
+            # Aggregate in Python
+            from collections import defaultdict
+            import math
+            
+            location_counts = defaultdict(lambda: {'count': 0, 'amounts': [], 'last_seen': None})
+            plate_counts = defaultdict(lambda: {'count': 0, 'amounts': [], 'last_seen': None, 'state': None})
+            time_buckets = defaultdict(int)
+            hour_buckets = defaultdict(int)
+            day_buckets = defaultdict(int)
+            out_of_state_counts = defaultdict(int)
+            all_amounts = []
+            max_amount = 0.0
+            last_24h_count = 0
+            last_7d_count = 0
+            total_revenue = 0.0
+            
+            for citation in citations:
+                issue_date_str = citation.get('issue_date')
+                if not issue_date_str:
+                    continue
+                    
+                try:
+                    issue_date = self._parse_timestamp(issue_date_str)
+                    if not issue_date:
+                        continue
+                except:
+                    continue
+                
+                amount = citation.get('amount_due')
+                if amount is not None:
+                    amount_float = float(amount)
+                    all_amounts.append(amount_float)
+                    total_revenue += amount_float
+                    if amount_float > max_amount:
+                        max_amount = amount_float
+                
+                # Ticket pressure
+                if issue_date_str >= last_24h:
+                    last_24h_count += 1
+                if issue_date_str >= last_7d:
+                    last_7d_count += 1
+                
+                # Worst locations
+                location = citation.get('location')
+                if location:
+                    location_counts[location]['count'] += 1
+                    if amount is not None:
+                        location_counts[location]['amounts'].append(float(amount))
+                    if not location_counts[location]['last_seen'] or issue_date > location_counts[location]['last_seen']:
+                        location_counts[location]['last_seen'] = issue_date
+                
+                # Repeat offenders
+                plate_state = citation.get('plate_state')
+                plate_number = citation.get('plate_number')
+                if plate_state and plate_number:
+                    plate_key = f"{plate_state.upper()}|{plate_number}"
+                    plate_counts[plate_key]['count'] += 1
+                    plate_counts[plate_key]['state'] = plate_state.upper()
+                    if amount is not None:
+                        plate_counts[plate_key]['amounts'].append(float(amount))
+                    if not plate_counts[plate_key]['last_seen'] or issue_date > plate_counts[plate_key]['last_seen']:
+                        plate_counts[plate_key]['last_seen'] = issue_date
+                    
+                    # Out of state
+                    if plate_state.upper() != 'MI':
+                        out_of_state_counts[plate_state.upper()] += 1
+                
+                # Time buckets (30-minute windows)
+                if issue_date:
+                    # Round down to nearest 30-minute bucket
+                    minute = issue_date.minute
+                    bucket_minute = (minute // 30) * 30
+                    bucket_start = issue_date.replace(minute=bucket_minute, second=0, microsecond=0)
+                    time_buckets[bucket_start.isoformat()] += 1
+                    
+                    # Hour buckets (for worst hour insight)
+                    hour = issue_date.hour
+                    hour_buckets[hour] += 1
+                    
+                    # Day of week buckets (0=Monday, 6=Sunday)
+                    day_of_week = issue_date.weekday()
+                    day_names = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday']
+                    day_buckets[day_names[day_of_week]] += 1
+            
+            # Worst blocks
+            worst_blocks = sorted(
+                [
+                    {
+                        'location': loc,
+                        'citation_count': data['count'],
+                        'avg_amount': sum(data['amounts']) / len(data['amounts']) if data['amounts'] else 0.0,
+                        'last_seen': data['last_seen'].isoformat() if data['last_seen'] else None,
+                    }
+                    for loc, data in location_counts.items()
+                    if loc and loc.strip()
+                ],
+                key=lambda x: (x['citation_count'], x['last_seen'] or ''),
+                reverse=True
+            )[:5]
+            facts['worst_blocks'] = worst_blocks
+            
+            # Repeat offenders
+            repeat_offenders = sorted(
+                [
+                    {
+                        'plate_state': data['state'],
+                        'plate_number': key.split('|')[1],
+                        'citation_count': data['count'],
+                        'total_amount': sum(data['amounts']) if data['amounts'] else 0.0,
+                        'last_seen': data['last_seen'].isoformat() if data['last_seen'] else None,
+                    }
+                    for key, data in plate_counts.items()
+                    if data['count'] > 1
+                ],
+                key=lambda x: (x['citation_count'], x['last_seen'] or ''),
+                reverse=True
+            )[:5]
+            facts['repeat_offenders'] = repeat_offenders
+            
+            # Spicy time windows
+            spicy_windows = sorted(
+                [
+                    {
+                        'bucket_start': bucket_start,
+                        'bucket_end': (self._parse_timestamp(bucket_start) + timedelta(minutes=30)).isoformat() if self._parse_timestamp(bucket_start) else None,
+                        'citation_count': count,
+                    }
+                    for bucket_start, count in time_buckets.items()
+                ],
+                key=lambda x: (x['citation_count'], x['bucket_start'] or ''),
+                reverse=True
+            )[:3]
+            facts['spicy_windows'] = spicy_windows
+            
+            # Champions (worst plate and worst location)
+            if worst_blocks:
+                facts['champions']['worst_location'] = {
+                    'location': worst_blocks[0]['location'],
+                    'citation_count': worst_blocks[0]['citation_count'],
+                    'avg_amount': worst_blocks[0]['avg_amount'],
+                }
+            
+            if repeat_offenders:
+                facts['champions']['worst_plate'] = {
+                    'plate_state': repeat_offenders[0]['plate_state'],
+                    'plate_number': repeat_offenders[0]['plate_number'],
+                    'citation_count': repeat_offenders[0]['citation_count'],
+                    'total_amount': repeat_offenders[0]['total_amount'],
+                }
+            
+            # Ticket pressure
+            facts['ticket_pressure'] = {
+                'last_24h': last_24h_count,
+                'last_7d': last_7d_count,
+                'avg_amount': sum(all_amounts) / len(all_amounts) if all_amounts else 0.0,
+                'total_revenue': total_revenue,
+                'total_tickets': len(citations),
+            }
+            
+            # Additional insights
+            worst_hour = max(hour_buckets.items(), key=lambda x: x[1]) if hour_buckets else None
+            worst_day = max(day_buckets.items(), key=lambda x: x[1]) if day_buckets else None
+            
+            facts['insights'] = {
+                'most_expensive': max_amount,
+                'worst_hour': worst_hour[0] if worst_hour else None,
+                'worst_hour_count': worst_hour[1] if worst_hour else 0,
+                'worst_day': worst_day[0] if worst_day else None,
+                'worst_day_count': worst_day[1] if worst_day else 0,
+            }
+            
+            # Out of state heat
+            out_of_state_heat = sorted(
+                [
+                    {
+                        'plate_state': state,
+                        'citation_count': count,
+                    }
+                    for state, count in out_of_state_counts.items()
+                ],
+                key=lambda x: x['citation_count'],
+                reverse=True
+            )[:3]
+            facts['out_of_state_heat'] = out_of_state_heat
+            
+        except Exception as e:
+            logger.error(f"Failed to build fun facts: {e}")
+            import traceback
+            logger.error(traceback.format_exc())
+            # Return facts with empty lists instead of raising
+            return facts
+
+        return facts
 
     @staticmethod
     def _parse_timestamp(value) -> Optional[datetime]:

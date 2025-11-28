@@ -429,6 +429,22 @@ def stats():
             'error': str(e)
         }), 500
 
+@app.route('/api/fun-facts')
+def fun_facts():
+    """Return aggregated 'fun facts' for the about page."""
+    try:
+        lookback_days = request.args.get('days', default=30, type=int)
+        if lookback_days is None:
+            lookback_days = 30
+        lookback_days = max(1, min(lookback_days, 180))
+
+        db_manager = get_db_manager()
+        facts = db_manager.get_fun_facts(lookback_days=lookback_days)
+        return jsonify({'status': 'success', 'data': facts})
+    except Exception as e:
+        logger.error(f"Error fetching fun facts: {e}")
+        return jsonify({'status': 'error', 'error': str(e)}), 500
+
 @app.route('/api/subscribe', methods=['POST'])
 def subscribe():
     """Create or upsert a subscription to notifications.

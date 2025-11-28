@@ -8,7 +8,7 @@
       name="description"
       content="How the Ann Arbor parking citation scraper works. Learn about the methodology behind real-time parking citation tracking and mapping."
     />
-    
+
     <!-- Open Graph Tags -->
     <meta property="og:title" content="About - Ann Arbor Parking Citations" />
     <meta
@@ -199,6 +199,107 @@
         font-family: var(--font-micro);
       }
 
+      .fun-facts {
+        background: rgba(0, 212, 255, 0.05);
+        border: 1px solid #00d4ff;
+        padding: 20px;
+        margin: 30px 0;
+        font-family: var(--font-secondary);
+      }
+
+      .fun-facts h2 {
+        font-size: 18px;
+        margin-bottom: 20px;
+        color: #00d4ff;
+        font-family: var(--font-display);
+        text-align: center;
+      }
+
+      .fun-facts-section {
+        margin-bottom: 30px;
+      }
+
+      .fun-facts-section h3 {
+        font-size: 16px;
+        color: #00d4ff;
+        margin-bottom: 12px;
+        font-family: var(--font-display);
+        border-bottom: 1px solid rgba(0, 212, 255, 0.3);
+        padding-bottom: 8px;
+      }
+
+      .fun-facts-list {
+        list-style: none;
+        padding: 0;
+      }
+
+      .fun-facts-list li {
+        padding: 10px;
+        margin-bottom: 8px;
+        background: rgba(0, 212, 255, 0.03);
+        border-left: 3px solid #00d4ff;
+        font-size: 14px;
+        color: #ffffff;
+      }
+
+      .fun-facts-list li strong {
+        color: #00d4ff;
+        font-family: var(--font-display);
+      }
+
+      .loading {
+        text-align: center;
+        color: #888;
+        font-style: italic;
+        padding: 20px;
+      }
+
+      .error {
+        text-align: center;
+        color: #ff0040;
+        padding: 20px;
+        border: 1px solid #ff0040;
+        background: rgba(255, 0, 64, 0.1);
+      }
+
+      .stat-highlight {
+        color: #00d4ff;
+        font-weight: bold;
+        font-family: var(--font-display);
+      }
+
+      .champions-section {
+        background: rgba(0, 212, 255, 0.1);
+        border: 2px solid #00d4ff;
+        padding: 20px;
+        margin: 30px 0;
+        text-align: center;
+      }
+
+      .champions-section h3 {
+        font-size: 20px;
+        margin-bottom: 20px;
+        color: #00d4ff;
+        font-family: var(--font-display);
+        text-transform: uppercase;
+        letter-spacing: 2px;
+      }
+
+      .champion-item {
+        margin: 15px 0;
+        padding: 15px;
+        background: rgba(0, 212, 255, 0.05);
+        border-left: 4px solid #00d4ff;
+      }
+
+      .champion-item strong {
+        color: #00d4ff;
+        font-family: var(--font-display);
+        font-size: 16px;
+        display: block;
+        margin-bottom: 8px;
+      }
+
       @media (max-width: 768px) {
         body {
           padding: 20px 15px;
@@ -221,6 +322,14 @@
     </div>
 
     <div class="content">
+      <div class="fun-facts" id="funFacts">
+        <h2>Stats for Nerds</h2>
+        <div class="loading" id="loadingFacts">Loading stats...</div>
+        <div id="factsContent" style="display: none">
+          <!-- Content will be populated by JavaScript -->
+        </div>
+      </div>
+
       <p>
         This map displays parking citations issued in Ann Arbor, Michigan. The
         data is collected through automated scraping of the city's public
@@ -230,33 +339,15 @@
       <div class="methodology">
         <h2>How It Works</h2>
         <p>
-          The citation numbers in Ann Arbor's system increment sequentially by
-          1. This means I can scrape the data at any moment by:
+          Citation numbers in Ann Arbor's system increment sequentially, but
+          they're organized into separate ranges of approximately 20,000
+          citations each. Different officers issue tickets across different
+          "beats" - UM (University of Michigan) and AA (Ann Arbor) - and each
+          beat/officer uses their own citation number ranges. The scraper
+          searches multiple windows across these ranges every few minutes to
+          capture new citations as they're issued. Each citation is geocoded and
+          displayed on this interactive map.
         </p>
-        <ul>
-          <li>
-            Starting from a known citation number and incrementing to find new
-            citations
-          </li>
-          <li>
-            Covering both Central Campus and North Campus: the scraper now
-            searches two windows centered on known seeds (the latest Ann Arbor
-            citation and a North Campus citation we have seen at 2081673),
-            scanning ±200 around each to capture new activity in both areas
-          </li>
-          <li>
-            The system doesn't require authentication or special access—the
-            citations are publicly accessible
-          </li>
-          <li>
-            Each citation contains location data, violation details, amount due,
-            and other relevant information
-          </li>
-          <li>
-            The scraper runs automatically every couple minutes to capture new
-            citations as they're issued
-          </li>
-        </ul>
       </div>
 
       <p>
@@ -275,17 +366,10 @@
       </figure>
 
       <p>
-        The scraped data includes location information which is then geocoded to
+        The scraped data includes location info which is then geocoded to
         display citations on this interactive map. Citation images are stored
-        and compressed for efficient access. OCR (Optical Character Recognition)
-        is used to extract text from citation images when needed, allowing for
-        automated processing of the data contained in the receipts.
-      </p>
-
-      <p>
-        This project is open-source and available for educational purposes. The
-        methodology demonstrates how sequential ID systems can make public data
-        more accessible.
+        and compressed for efficient access. OCR is used to extract text from
+        citation images when needed.
       </p>
       <p>
         Inspired by
@@ -305,5 +389,191 @@
     >
       <a href="/a2-parking/" class="back-link">← Back to Map</a>
     </div>
+
+    <script>
+      async function loadFunFacts() {
+        const loadingEl = document.getElementById("loadingFacts");
+        const contentEl = document.getElementById("factsContent");
+
+        try {
+          const response = await fetch("/api/fun-facts?days=30");
+          const result = await response.json();
+
+          if (result.status !== "success" || !result.data) {
+            throw new Error(result.error || "Failed to load stats");
+          }
+
+          const facts = result.data;
+          loadingEl.style.display = "none";
+          contentEl.style.display = "block";
+
+          let html = "";
+
+          // Champions section (worst plate and worst location)
+          if (
+            facts.champions &&
+            (facts.champions.worst_plate || facts.champions.worst_location)
+          ) {
+            html += '<div class="champions-section">';
+            html += "<h3>Ann Arbor's Favorite Citizens & Places</h3>";
+
+            if (facts.champions.worst_plate) {
+              const plate = facts.champions.worst_plate;
+              html += '<div class="champion-item">';
+              html += `<strong>🥇 Most Ticketed Plate</strong>`;
+              html += `${plate.plate_state} ${
+                plate.plate_number
+              } — <span class="stat-highlight">${
+                plate.citation_count
+              } tickets</span> ($${plate.total_amount?.toFixed(2) || "0.00"})`;
+              html += "</div>";
+            }
+
+            if (facts.champions.worst_location) {
+              const location = facts.champions.worst_location;
+              html += '<div class="champion-item">';
+              html += `<strong>📍 Most Ticketed Location</strong>`;
+              html += `${location.location} — <span class="stat-highlight">${
+                location.citation_count
+              } tickets</span> (avg $${
+                location.avg_amount?.toFixed(2) || "0.00"
+              })`;
+              html += "</div>";
+            }
+
+            html += "</div>";
+          }
+
+          // Additional insights
+          if (facts.insights) {
+            html += '<div class="fun-facts-section">';
+            html += "<h3>Overview</h3>";
+            html += '<ul class="fun-facts-list">';
+
+            if (
+              facts.insights.most_expensive &&
+              facts.insights.most_expensive > 0
+            ) {
+              html += `<li>Most expensive ticket: <span class="stat-highlight">$${facts.insights.most_expensive.toFixed(
+                2
+              )}</span></li>`;
+            }
+
+            if (facts.ticket_pressure && facts.ticket_pressure.total_revenue) {
+              html += `<li>Total revenue (last ${
+                facts.lookback_days
+              } days): <span class="stat-highlight">$${facts.ticket_pressure.total_revenue.toFixed(
+                2
+              )}</span></li>`;
+            }
+
+            if (facts.ticket_pressure && facts.ticket_pressure.total_tickets) {
+              html += `<li>Total tickets (last ${facts.lookback_days} days): <span class="stat-highlight">${facts.ticket_pressure.total_tickets}</span></li>`;
+            }
+
+            if (facts.insights.worst_day) {
+              html += `<li>Worst day of week: <span class="stat-highlight">${facts.insights.worst_day}</span> (${facts.insights.worst_day_count} tickets)</li>`;
+            }
+
+            if (
+              facts.insights.worst_hour !== null &&
+              facts.insights.worst_hour !== undefined
+            ) {
+              const hour = facts.insights.worst_hour;
+              const hour12 = hour === 0 ? 12 : hour > 12 ? hour - 12 : hour;
+              const ampm = hour >= 12 ? "PM" : "AM";
+              html += `<li>Worst hour of day: <span class="stat-highlight">${hour12}:00 ${ampm}</span> (${facts.insights.worst_hour_count} tickets)</li>`;
+            }
+
+            html += "</ul></div>";
+          }
+
+          // Worst places to park
+          if (facts.worst_blocks && facts.worst_blocks.length > 0) {
+            html += '<div class="fun-facts-section">';
+            html += "<h3>Hottest places to park?</h3>";
+            html += '<ol class="fun-facts-list">';
+            facts.worst_blocks.forEach((block, idx) => {
+              html += `<li><strong>#${idx + 1}:</strong> ${
+                block.location
+              } — <span class="stat-highlight">${
+                block.citation_count
+              } tickets</span> (avg $${
+                block.avg_amount?.toFixed(2) || "N/A"
+              })</li>`;
+            });
+            html += "</ol></div>";
+          }
+
+          // Repeat offenders
+          if (facts.repeat_offenders && facts.repeat_offenders.length > 0) {
+            html += '<div class="fun-facts-section">';
+            html += "<h3>Top 5 most wanted plates</h3>";
+            html += '<ol class="fun-facts-list">';
+            facts.repeat_offenders.forEach((offender, idx) => {
+              html += `<li><strong>#${idx + 1}:</strong> ${
+                offender.plate_state
+              } ${offender.plate_number} — <span class="stat-highlight">${
+                offender.citation_count
+              } tickets</span> ($${
+                offender.total_amount?.toFixed(2) || "0.00"
+              })</li>`;
+            });
+            html += "</ol></div>";
+          }
+
+          // Spicy time windows
+          if (facts.spicy_windows && facts.spicy_windows.length > 0) {
+            html += '<div class="fun-facts-section">';
+            html += "<h3>Worst time to park?</h3>";
+            html += '<ol class="fun-facts-list">';
+            facts.spicy_windows.forEach((window, idx) => {
+              const start = new Date(window.bucket_start);
+              const end = new Date(window.bucket_end);
+              const timeStr = start.toLocaleTimeString("en-US", {
+                hour: "numeric",
+                minute: "2-digit",
+                hour12: true,
+              });
+              html += `<li><strong>#${
+                idx + 1
+              }:</strong> ${timeStr} — <span class="stat-highlight">${
+                window.citation_count
+              } tickets</span> in 30 minutes</li>`;
+            });
+            html += "</ol></div>";
+          }
+
+          // Out of state heat
+          if (facts.out_of_state_heat && facts.out_of_state_heat.length > 0) {
+            html += '<div class="fun-facts-section">';
+            html += "<h3>Which states (not MI) are worst at parking?</h3>";
+            html += '<ol class="fun-facts-list">';
+            facts.out_of_state_heat.forEach((state, idx) => {
+              html += `<li><strong>#${idx + 1}:</strong> ${
+                state.plate_state
+              } — <span class="stat-highlight">${
+                state.citation_count
+              } tickets</span></li>`;
+            });
+            html += "</ol></div>";
+          }
+
+          if (html === "") {
+            html =
+              '<div class="fun-facts-section"><p style="text-align: center; color: #888;">No stats available yet. Check back soon!</p></div>';
+          }
+
+          contentEl.innerHTML = html;
+        } catch (error) {
+          loadingEl.style.display = "none";
+          contentEl.style.display = "block";
+          contentEl.innerHTML = `<div class="error">Failed to load stats: ${error.message}</div>`;
+        }
+      }
+
+      // Load stats when page loads
+      loadFunFacts();
+    </script>
   </body>
 </html>
