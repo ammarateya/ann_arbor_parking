@@ -586,45 +586,6 @@ def ongoing_scraper_job():
             except Exception as e:
                 logger.error(f"Failed to record citation activity: {e}")
                 logger.error(f"Traceback: {traceback.format_exc()}")
-        else:
-            final_last_seen = latest_citation_seen_at or last_citation_seen_at
-            if not final_last_seen:
-                try:
-                    final_last_seen = db_manager.get_last_citation_seen_at()
-                except Exception as state_error:
-                    logger.warning(f"Unable to refresh last citation seen timestamp: {state_error}")
-                    final_last_seen = None
-
-            if final_last_seen:
-                dry_span = now_utc - final_last_seen
-                if dry_span >= timedelta(hours=24):
-                    should_send_alert = False
-                    if not last_no_citation_email_sent_at:
-                        should_send_alert = True
-                    elif last_no_citation_email_sent_at < final_last_seen:
-                        should_send_alert = True
-                    elif (now_utc - last_no_citation_email_sent_at) >= timedelta(hours=24):
-                        should_send_alert = True
-
-                    if should_send_alert:
-                        try:
-                            logger.info("No citations detected for 24h — sending alert email...")
-                            if email_notifier.send_no_citation_alert(final_last_seen):
-                                db_manager.mark_no_citation_email_sent(now_utc)
-                                last_no_citation_email_sent_at = now_utc
-                                logger.info("✓ No-citation alert email sent")
-                        except Exception as alert_error:
-                            logger.error(f"Failed to send no-citation alert email: {alert_error}")
-                            logger.error(f"Traceback: {traceback.format_exc()}")
-
-        if errors:
-            try:
-                logger.info("Sending error notification email...")
-                email_notifier.send_notification(successful_citations, total_processed, errors, images_uploaded)
-                logger.info("✓ Error notification email sent")
-            except Exception as e:
-                logger.error(f"Failed to send error notification email: {e}")
-                logger.error(f"Traceback: {traceback.format_exc()}")
 
         found_count = len(successful_citations)
         logger.info(f"Scraper job completed. Processed: {total_processed}, Found: {found_count}, Skipped (existing): {skipped_existing}, Images uploaded: {images_uploaded}, Errors: {errors_count}")
