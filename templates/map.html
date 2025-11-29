@@ -50,7 +50,14 @@
         dataLayer.push(arguments);
       }
       gtag("js", new Date());
-      gtag("config", "G-J001JG2NJ1");
+      gtag("config", "G-J001JG2NJ1", {
+        page_title: "Main Page",
+        page_location: window.location.href,
+      });
+      gtag("event", "page_view", {
+        page_title: "Main Page",
+        page_location: window.location.href,
+      });
     </script>
 
     <!-- Leaflet CSS -->

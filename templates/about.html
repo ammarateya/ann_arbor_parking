@@ -43,7 +43,14 @@
         dataLayer.push(arguments);
       }
       gtag("js", new Date());
-      gtag("config", "G-J001JG2NJ1");
+      gtag("config", "G-J001JG2NJ1", {
+        page_title: "About Page",
+        page_location: window.location.href,
+      });
+      gtag("event", "page_view", {
+        page_title: "About Page",
+        page_location: window.location.href,
+      });
     </script>
 
     <style>
