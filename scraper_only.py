@@ -79,7 +79,7 @@ def ongoing_scraper_job():
     """Run scraper job across multiple ranges with configurable ± range.
 
     Ranges:
-      - AA (Ann Arbor): [10,000,000, 20,000,000) - auto-updates from DB max
+      - AA (Ann Arbor): [10,000,000, 20,000,000) - auto-updates from DB max (legacy large window)
       - NC (North Campus): [2,080,000, 3,000,000) - auto-updates from DB max
       - Third: [1,000,000, 2,000,000) - auto-updates from DB max
       - Fourth: [2,000,000, 2,080,000) - auto-updates from DB max
@@ -87,11 +87,12 @@ def ongoing_scraper_job():
       - Sixth: Center 1,048,162 - uses 1.04M-1.05M window to find max, scrapes 50 in either direction
       - Seventh: Center 1,072,744 - uses 1.07M-1.08M window to find max, scrapes 50 in either direction
       - Eighth: Center 1,123,252 - uses 1.12M-1.13M window to find max, scrapes 50 in either direction
+      - Ninth: Center 10,913,791 - uses 10.91M-10.92M window to find max, scrapes 50 in either direction
 
     Range size:
       - SCRAPE_RANGE_SIZE env var (defaults to 50 for all ranges)
       - All ranges scrape 50 citations in either direction (100 total per range)
-      - New ranges use 10k windows (1.02M-1.03M, 1.04M-1.05M, etc.) to find max citation for center updates
+      - New ranges use 10k windows (1.02M-1.03M, 1.04M-1.05M, 10.91M-10.92M, etc.) to find max citation for center updates
     
     Note: Range 1039342 (ends at 1039399) should be run locally once up to 1039400.
           This is a one-time historical backfill, not added as a recurring range.
@@ -193,6 +194,8 @@ def ongoing_scraper_job():
         sixth_db_max = db_manager.get_max_citation_between(1_040_000, 1_050_000)  # 1.04M to 1.05M
         seventh_db_max = db_manager.get_max_citation_between(1_070_000, 1_080_000)  # 1.07M to 1.08M
         eighth_db_max = db_manager.get_max_citation_between(1_120_000, 1_130_000)  # 1.12M to 1.13M
+        # Ninth range: AA range split into 10k windows (10.91M-10.92M window)
+        ninth_db_max = db_manager.get_max_citation_between(10_910_000, 10_920_000)  # 10.91M to 10.92M
         
         logger.info(f"NC DB max [2,080,000..3,000,000): {nc_db_max}")
         logger.info(f"AA DB max [10,000,000..20,000,000): {aa_db_max}")
@@ -202,6 +205,7 @@ def ongoing_scraper_job():
         logger.info(f"Sixth range DB max [1,040,000..1,050,000): {sixth_db_max}")
         logger.info(f"Seventh range DB max [1,070,000..1,080,000): {seventh_db_max}")
         logger.info(f"Eighth range DB max [1,120,000..1,130,000): {eighth_db_max}")
+        logger.info(f"Ninth range DB max [10,910,000..10,920,000): {ninth_db_max}")
 
         # Configure range size from environment
         # All ranges use the same scraping range size (50 in either direction = 100 total)
@@ -222,6 +226,7 @@ def ongoing_scraper_job():
         sixth_center = sixth_db_max if sixth_db_max is not None else 1_048_162
         seventh_center = seventh_db_max if seventh_db_max is not None else 1_072_744
         eighth_center = eighth_db_max if eighth_db_max is not None else 1_123_252
+        ninth_center = ninth_db_max if ninth_db_max is not None else 10_913_791
 
         # All ranges use the same scraping range size (50 in either direction)
         aa_range = (aa_center - range_size, aa_center + range_size)
@@ -232,14 +237,15 @@ def ongoing_scraper_job():
         sixth_range = (sixth_center - range_size, sixth_center + range_size)
         seventh_range = (seventh_center - range_size, seventh_center + range_size)
         eighth_range = (eighth_center - range_size, eighth_center + range_size)
+        ninth_range = (ninth_center - range_size, ninth_center + range_size)
         
-        ranges = [aa_range, nc_range, third_range, fourth_range, fifth_range, sixth_range, seventh_range, eighth_range]
+        ranges = [aa_range, nc_range, third_range, fourth_range, fifth_range, sixth_range, seventh_range, eighth_range, ninth_range]
 
         overall_start = min(start for start, _ in ranges)
         overall_end = max(end for _, end in ranges)
 
         logger.info(
-            f"Processing eight ranges: "
+            f"Processing nine ranges: "
             f"AA[{aa_range[0]}..{aa_range[1]}], "
             f"NC[{nc_range[0]}..{nc_range[1]}], "
             f"Third[{third_range[0]}..{third_range[1]}], "
@@ -247,7 +253,8 @@ def ongoing_scraper_job():
             f"Fifth[{fifth_range[0]}..{fifth_range[1]}], "
             f"Sixth[{sixth_range[0]}..{sixth_range[1]}], "
             f"Seventh[{seventh_range[0]}..{seventh_range[1]}], "
-            f"Eighth[{eighth_range[0]}..{eighth_range[1]}] "
+            f"Eighth[{eighth_range[0]}..{eighth_range[1]}], "
+            f"Ninth[{ninth_range[0]}..{ninth_range[1]}] "
             f"(overall {overall_start}..{overall_end})"
         )
 
@@ -262,12 +269,13 @@ def ongoing_scraper_job():
                 f"Sixth range: {sixth_range[0]}..{sixth_range[1]}",
                 f"Seventh range: {seventh_range[0]}..{seventh_range[1]}",
                 f"Eighth range: {eighth_range[0]}..{eighth_range[1]}",
+                f"Ninth range: {ninth_range[0]}..{ninth_range[1]}",
                 f"Overall: {overall_start}..{overall_end}",
             ]
         )
 
         def process_range(label: str, start_range: int, end_range: int, update_last_successful: bool) -> None:
-            nonlocal last_citation, total_processed, images_uploaded, skipped_existing, aa_db_max, nc_db_max, third_db_max, fourth_db_max, fifth_db_max, sixth_db_max, seventh_db_max, eighth_db_max, citation_batch, latest_citation_number, latest_citation_seen_at
+            nonlocal last_citation, total_processed, images_uploaded, skipped_existing, aa_db_max, nc_db_max, third_db_max, fourth_db_max, fifth_db_max, sixth_db_max, seventh_db_max, eighth_db_max, ninth_db_max, citation_batch, latest_citation_number, latest_citation_seen_at
             logger.info(f"Fetching existing citations for {label} range {start_range}-{end_range}...")
             existing_citations = db_manager.get_existing_citation_numbers_in_range(start_range, end_range)
             logger.info(f"Found {len(existing_citations)} existing citations in {label} range. Will skip these.")
@@ -444,6 +452,9 @@ def ongoing_scraper_job():
                         elif label == "Eighth" and 1_120_000 <= citation_num < 1_130_000:
                             if eighth_db_max is None or citation_num > eighth_db_max:
                                 eighth_db_max = citation_num
+                        elif label == "Ninth" and 10_910_000 <= citation_num < 10_920_000:
+                            if ninth_db_max is None or citation_num > ninth_db_max:
+                                ninth_db_max = citation_num
 
                         logger.info(f"✓ [{label}] Found citation {citation_num} (added to batch)")
                     else:
@@ -552,6 +563,12 @@ def ongoing_scraper_job():
             process_range("Eighth", eighth_range[0], eighth_range[1], update_last_successful=False)
         except Exception as e:
             logger.error(f"Eighth range processing failed: {e}")
+            logger.error(f"Traceback: {traceback.format_exc()}")
+
+        try:
+            process_range("Ninth", ninth_range[0], ninth_range[1], update_last_successful=False)
+        except Exception as e:
+            logger.error(f"Ninth range processing failed: {e}")
             logger.error(f"Traceback: {traceback.format_exc()}")
             
     except Exception as e:
