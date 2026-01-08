@@ -505,6 +505,9 @@ body.panel-open #map {
 .side-panel.collapsed {
   width: 0;
   overflow: hidden;
+  box-shadow: none;
+  border: none;
+  visibility: hidden;
 }
 
 .side-panel.collapsed .side-panel-content,
@@ -935,8 +938,8 @@ body.right-viewer-active .right-image-viewer {
 
 /* Adjust right viewer when side panel is collapsed */
 body.right-viewer-active.side-panel-collapsed .right-image-viewer {
-  left: 24px !important;
-  /* Start after the collapse button width */
+  left: 0 !important;
+  /* Start at left edge when panel collapsed */
   width: auto;
   /* Let right: 0 handle the width */
 }
@@ -968,6 +971,19 @@ body.right-viewer-active .side-panel.active {
   box-shadow: 0 0 20px rgba(0, 0, 0, 0.3);
   overflow: hidden;
   /* Prevent box-shadow from extending beyond */
+}
+
+/* When side panel is collapsed AND right viewer is active, fully hide */
+body.right-viewer-active.side-panel-collapsed .side-panel {
+  width: 0 !important;
+  visibility: hidden !important;
+  box-shadow: none !important;
+  display: none !important;
+}
+
+/* Hide map controls (reset button) when right viewer is active */
+body.right-viewer-active .map-controls {
+  display: none !important;
 }
 
 /* Hide the main image in side panel gallery when right viewer is active */
