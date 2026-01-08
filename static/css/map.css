@@ -459,6 +459,17 @@ body.panel-open #map {
   font-weight: 400;
 }
 
+/* Info pill styling */
+.info-pill {
+  text-decoration: none;
+  color: inherit;
+}
+
+.info-pill:hover {
+  text-decoration: none;
+  color: inherit;
+}
+
 /* ===== STATS BAR (hidden - replaced by pills row) ===== */
 .stats-bar {
   display: none;
