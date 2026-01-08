@@ -558,12 +558,9 @@ async function loadCitations() {
 
       // Update stats pills
       const statsPillToday = document.getElementById("statsPillTodayValue");
-      const statsPillTodayAmount = document.getElementById(
-        "statsPillTodayAmountValue"
-      );
+      const statsPillTodayTotal = document.getElementById("statsPillTodayTotalValue");
       if (statsPillToday) statsPillToday.textContent = countTodayFormatted;
-      if (statsPillTodayAmount)
-        statsPillTodayAmount.textContent = amountTodayFormatted;
+      if (statsPillTodayTotal) statsPillTodayTotal.textContent = amountTodayFormatted;
 
       // Update most recent citation time (America/Detroit)
       if (data.most_recent_citation_time) {
