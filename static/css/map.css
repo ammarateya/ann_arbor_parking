@@ -1511,6 +1511,17 @@ body.panel-open .location-search-controls {
   background: rgba(60, 64, 67, 1);
 }
 
+/* Citation Title */
+.citation-title {
+  padding: 16px 16px 8px 16px;
+  font-family: var(--font-display);
+  font-size: 18px;
+  font-weight: 500;
+  color: var(--color-text);
+  border-bottom: 1px solid var(--color-border);
+  margin-bottom: 16px;
+}
+
 .see-photos-icon {
   color: white;
   flex-shrink: 0;

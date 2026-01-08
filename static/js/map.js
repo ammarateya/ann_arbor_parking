@@ -1,6 +1,11 @@
 function closeSidePanel() {
   const panel = document.getElementById("sidePanel");
   panel.classList.remove("active");
+  
+  // Hide citation title
+  const citationTitle = document.getElementById("citationTitle");
+  if (citationTitle) citationTitle.style.display = "none";
+  
   // Check if mobile
   const isMobile =
     window.matchMedia && window.matchMedia("(max-width: 768px)").matches;
@@ -1244,6 +1249,14 @@ async function showCitationDetails(citation, markerLatLng = null) {
   const heroImage = document.getElementById("heroImage");
   const heroLoading = document.getElementById("heroLoadingSpinner");
   const seePhotosPopup = document.getElementById("seePhotosPopup");
+  
+  // ===== UPDATE CITATION TITLE =====
+  const citationTitle = document.getElementById("citationTitle");
+  const citationNumber = document.getElementById("citationNumber");
+  if (citationTitle && citationNumber) {
+    citationNumber.textContent = citation.citation_number || "Unknown";
+    citationTitle.style.display = "block";
+  }
 
   if (images.length > 0 && preloadedImageUrl) {
     // Image already preloaded - show immediately with no loading spinner
