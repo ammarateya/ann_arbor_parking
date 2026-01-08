@@ -1,11 +1,11 @@
 function closeSidePanel() {
   const panel = document.getElementById("sidePanel");
   panel.classList.remove("active");
-  
+
   // Hide citation title
   const citationTitle = document.getElementById("citationTitle");
   if (citationTitle) citationTitle.style.display = "none";
-  
+
   // Check if mobile
   const isMobile =
     window.matchMedia && window.matchMedia("(max-width: 768px)").matches;
@@ -1094,11 +1094,34 @@ async function showCitationDetails(citation, markerLatLng = null) {
     if (images.length > 0) {
       preloadedImageUrl = await new Promise((resolve) => {
         const preloader = new Image();
-        preloader.onload = () => resolve(preloader.src);
-        preloader.onerror = () => resolve(null);
+        let resolved = false;
+        
+        preloader.onload = () => {
+          if (!resolved) {
+            resolved = true;
+            console.log("[image] Successfully preloaded:", images[0].url);
+            resolve(preloader.src);
+          }
+        };
+        
+        preloader.onerror = (error) => {
+          if (!resolved) {
+            resolved = true;
+            console.error("[image] Failed to preload:", images[0].url, error);
+            resolve(null); // Signal failure
+          }
+        };
+        
         preloader.src = images[0].url;
-        // Timeout fallback - don't wait forever
-        setTimeout(() => resolve(images[0].url), 3000);
+        
+        // Longer timeout for slow connections
+        setTimeout(() => {
+          if (!resolved) {
+            resolved = true;
+            console.warn("[image] Preload timeout, proceeding anyway:", images[0].url);
+            resolve(images[0].url); // Try anyway on timeout
+          }
+        }, 5000); // Increased from 3s to 5s
       });
     }
   } catch (err) {
@@ -1249,7 +1272,7 @@ async function showCitationDetails(citation, markerLatLng = null) {
   const heroImage = document.getElementById("heroImage");
   const heroLoading = document.getElementById("heroLoadingSpinner");
   const seePhotosPopup = document.getElementById("seePhotosPopup");
-  
+
   // ===== UPDATE CITATION TITLE =====
   const citationTitle = document.getElementById("citationTitle");
   const citationNumber = document.getElementById("citationNumber");
@@ -1258,13 +1281,37 @@ async function showCitationDetails(citation, markerLatLng = null) {
     citationTitle.style.display = "block";
   }
 
-  if (images.length > 0 && preloadedImageUrl) {
-    // Image already preloaded - show immediately with no loading spinner
+  if (images.length > 0) {
     photosHero.style.display = "block";
-    heroLoading.style.display = "none";
-    heroImage.src = preloadedImageUrl;
-    heroImage.alt = images[0].caption || `Citation ${citation.citation_number}`;
-    heroImage.style.display = "block";
+    
+    if (preloadedImageUrl) {
+      // Image successfully preloaded - show immediately
+      heroLoading.style.display = "none";
+      heroImage.src = preloadedImageUrl;
+      heroImage.alt = images[0].caption || `Citation ${citation.citation_number}`;
+      heroImage.style.display = "block";
+    } else {
+      // Preload failed - try loading with spinner as fallback
+      console.warn("[image] Preload failed, trying direct load with spinner");
+      heroLoading.style.display = "flex";
+      heroImage.style.display = "none";
+      
+      heroImage.onload = () => {
+        heroLoading.style.display = "none";
+        heroImage.style.display = "block";
+      };
+      
+      heroImage.onerror = () => {
+        console.error("[image] Direct load also failed:", images[0].url);
+        heroLoading.style.display = "none";
+        // Show placeholder or hide hero entirely
+        photosHero.style.display = "none";
+        return;
+      };
+      
+      heroImage.src = images[0].url;
+      heroImage.alt = images[0].caption || `Citation ${citation.citation_number}`;
+    }
 
     // Click on hero image opens side panel gallery
     heroImage.onclick = () => openSidePanelGallery(images, 0, citation);
@@ -1418,6 +1465,15 @@ function loadSidePanelGalleryPhoto(index) {
     if (galleryLoading) galleryLoading.style.display = "none";
     galleryMainPhoto.style.display = "block";
   };
+  
+  preloader.onerror = () => {
+    console.error("[gallery] Failed to load image:", imgObj.url);
+    if (galleryLoading) galleryLoading.style.display = "none";
+    // Try direct load as fallback
+    galleryMainPhoto.src = imgObj.url;
+    galleryMainPhoto.style.display = "block";
+  };
+  
   preloader.src = imgObj.url;
   galleryMainPhoto.decoding = "async";
 
