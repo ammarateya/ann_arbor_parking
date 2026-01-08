@@ -1095,7 +1095,7 @@ async function showCitationDetails(citation, markerLatLng = null) {
       preloadedImageUrl = await new Promise((resolve) => {
         const preloader = new Image();
         let resolved = false;
-        
+
         preloader.onload = () => {
           if (!resolved) {
             resolved = true;
@@ -1103,7 +1103,7 @@ async function showCitationDetails(citation, markerLatLng = null) {
             resolve(preloader.src);
           }
         };
-        
+
         preloader.onerror = (error) => {
           if (!resolved) {
             resolved = true;
@@ -1111,14 +1111,17 @@ async function showCitationDetails(citation, markerLatLng = null) {
             resolve(null); // Signal failure
           }
         };
-        
+
         preloader.src = images[0].url;
-        
+
         // Longer timeout for slow connections
         setTimeout(() => {
           if (!resolved) {
             resolved = true;
-            console.warn("[image] Preload timeout, proceeding anyway:", images[0].url);
+            console.warn(
+              "[image] Preload timeout, proceeding anyway:",
+              images[0].url
+            );
             resolve(images[0].url); // Try anyway on timeout
           }
         }, 5000); // Increased from 3s to 5s
@@ -1283,24 +1286,25 @@ async function showCitationDetails(citation, markerLatLng = null) {
 
   if (images.length > 0) {
     photosHero.style.display = "block";
-    
+
     if (preloadedImageUrl) {
       // Image successfully preloaded - show immediately
       heroLoading.style.display = "none";
       heroImage.src = preloadedImageUrl;
-      heroImage.alt = images[0].caption || `Citation ${citation.citation_number}`;
+      heroImage.alt =
+        images[0].caption || `Citation ${citation.citation_number}`;
       heroImage.style.display = "block";
     } else {
       // Preload failed - try loading with spinner as fallback
       console.warn("[image] Preload failed, trying direct load with spinner");
       heroLoading.style.display = "flex";
       heroImage.style.display = "none";
-      
+
       heroImage.onload = () => {
         heroLoading.style.display = "none";
         heroImage.style.display = "block";
       };
-      
+
       heroImage.onerror = () => {
         console.error("[image] Direct load also failed:", images[0].url);
         heroLoading.style.display = "none";
@@ -1308,9 +1312,10 @@ async function showCitationDetails(citation, markerLatLng = null) {
         photosHero.style.display = "none";
         return;
       };
-      
+
       heroImage.src = images[0].url;
-      heroImage.alt = images[0].caption || `Citation ${citation.citation_number}`;
+      heroImage.alt =
+        images[0].caption || `Citation ${citation.citation_number}`;
     }
 
     // Click on hero image opens side panel gallery
@@ -1465,7 +1470,7 @@ function loadSidePanelGalleryPhoto(index) {
     if (galleryLoading) galleryLoading.style.display = "none";
     galleryMainPhoto.style.display = "block";
   };
-  
+
   preloader.onerror = () => {
     console.error("[gallery] Failed to load image:", imgObj.url);
     if (galleryLoading) galleryLoading.style.display = "none";
@@ -1473,7 +1478,7 @@ function loadSidePanelGalleryPhoto(index) {
     galleryMainPhoto.src = imgObj.url;
     galleryMainPhoto.style.display = "block";
   };
-  
+
   preloader.src = imgObj.url;
   galleryMainPhoto.decoding = "async";
 
@@ -2399,6 +2404,7 @@ loadCitations();
   const searchSpinner = document.getElementById("searchSpinner");
   const searchClearBtn = document.getElementById("searchClearBtn");
   const searchSubmitBtn = document.getElementById("searchSubmitBtn");
+  const searchCloseBtn = document.getElementById("searchCloseBtn");
   let searchTimeout = null;
   let lastSearchQuery = "";
 
@@ -2434,6 +2440,20 @@ loadCitations();
         performSearch(query);
         lastSearchQuery = query;
       }
+    });
+  }
+
+  // Close button handler - closes side panel and returns to main view
+  if (searchCloseBtn) {
+    searchCloseBtn.addEventListener("click", function () {
+      // Close the side panel
+      closeSidePanel();
+      // Clear the search input
+      searchInput.value = "";
+      if (searchClearBtn) searchClearBtn.style.display = "none";
+      lastSearchQuery = "";
+      // Reset to show all citations for current time filter
+      filterCitationsByTime(window.currentTimeFilter || "week");
     });
   }
 
