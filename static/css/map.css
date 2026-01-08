@@ -388,7 +388,7 @@ body.panel-open #map {
   display: flex;
   align-items: center;
   padding: 8px 16px;
-  padding-right: 32px; /* Space for dropdown arrow */
+  padding-right: 28px; /* Space for dropdown arrow */
   background: var(--color-white);
   border: none;
   border-radius: 999px; /* Pill shape like stats pills */
