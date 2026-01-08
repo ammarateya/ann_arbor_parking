@@ -501,10 +501,10 @@ body.panel-open #map {
   /* Ensure no transform is affecting positioning */
 }
 
-/* Collapsed state - show only tab */
+/* Collapsed state - hide completely */
 .side-panel.collapsed {
-  width: 48px;
-  overflow: visible;
+  width: 0;
+  overflow: hidden;
 }
 
 .side-panel.collapsed .side-panel-content,
@@ -533,36 +533,30 @@ body.panel-open #map {
 
 /* Side panel header removed - search bar is now outside */
 
-/* Collapse/Expand Tab (Google Maps style) */
+/* Collapse/Expand Tab (Google Maps style - minimal) */
 .side-panel-collapse-tab {
   position: fixed;
   top: 50%;
   left: 429px;
-  /* Matches fixed side panel width */
   transform: translateY(-50%);
-  width: 48px;
-  height: 80px;
+  width: 24px;
+  height: 48px;
   background: var(--color-white);
-  border: 1px solid var(--color-border);
-  border-left: none;
+  border: none;
   border-radius: 0 8px 8px 0;
-  box-shadow: 2px 0 8px rgba(0, 0, 0, 0.15);
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.3);
   cursor: pointer;
   display: none;
-  /* Hidden by default */
-  flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 4px;
   z-index: 1002;
-  /* Above right viewer so it's clickable */
-  transition: left 0.3s ease, background 0.2s, box-shadow 0.2s;
-  padding: 8px 4px;
+  transition: left 0.3s ease, background 0.2s ease;
+  padding: 0;
 }
 
-/* Adjust position when side panel is collapsed */
+/* Adjust position when side panel is collapsed - button at left edge */
 body.side-panel-collapsed .side-panel-collapse-tab {
-  left: 48px;
+  left: 0;
 }
 
 /* Show collapse tab when right viewer is active */
@@ -571,24 +565,53 @@ body.right-viewer-active .side-panel-collapse-tab {
 }
 
 .side-panel-collapse-tab:hover {
-  background: #f8f9fa;
-  box-shadow: 2px 0 12px rgba(0, 0, 0, 0.2);
+  background: #f1f3f4;
 }
 
 .side-panel-collapse-tab svg {
-  color: var(--color-text-secondary);
-  transition: transform 0.3s ease;
+  display: none;
 }
 
+.side-panel-collapse-tab::before {
+  content: "◂";
+  font-size: 14px;
+  color: #5f6368;
+  line-height: 1;
+}
 
+body.side-panel-collapsed .side-panel-collapse-tab::before {
+  content: "▸";
+}
+
+/* Tooltip bubble on hover (Google Maps style) */
+.side-panel-collapse-tab::after {
+  content: "Collapse side panel";
+  position: absolute;
+  left: calc(100% + 8px);
+  top: 50%;
+  transform: translateY(-50%);
+  background: #202124;
+  color: white;
+  font-size: 12px;
+  font-weight: 500;
+  padding: 6px 10px;
+  border-radius: 4px;
+  white-space: nowrap;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.15s ease;
+}
+
+body.side-panel-collapsed .side-panel-collapse-tab::after {
+  content: "Expand side panel";
+}
+
+.side-panel-collapse-tab:hover::after {
+  opacity: 1;
+}
 
 .collapse-text {
-  font-size: 10px;
-  font-weight: 500;
-  color: var(--color-text-secondary);
-  writing-mode: vertical-rl;
-  text-orientation: mixed;
-  white-space: nowrap;
+  display: none;
 }
 
 .side-panel-title {
@@ -912,8 +935,8 @@ body.right-viewer-active .right-image-viewer {
 
 /* Adjust right viewer when side panel is collapsed */
 body.right-viewer-active.side-panel-collapsed .right-image-viewer {
-  left: 48px !important;
-  /* Start after the collapsed tab width */
+  left: 24px !important;
+  /* Start after the collapse button width */
   width: auto;
   /* Let right: 0 handle the width */
 }
