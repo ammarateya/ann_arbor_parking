@@ -80,7 +80,7 @@ body.panel-open #map {
 .top-bar {
   position: fixed;
   top: 0;
-  left: 395px; /* To the right of search bar (8px + 375px + 12px gap) */
+  left: 433px; /* To the right of search bar (8px + 413px + 12px gap) */
   z-index: 1003;
   display: flex;
   align-items: flex-start;
@@ -103,7 +103,7 @@ body.panel-open #map {
   border-radius: 999px; /* Pill shape */
   padding: 0 8px 0 8px;
   height: 40px;
-  width: 375px; /* 25% wider: 300px * 1.25 = 375px */
+  width: 413px; /* 375px * 1.10 = 412.5px, rounded to 413px */
   max-width: calc(100vw - 16px);
   box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15), 0 0 1px rgba(0, 0, 0, 0.1);
   transition: box-shadow 0.2s;
@@ -470,7 +470,7 @@ body.panel-open #map {
   position: fixed;
   top: 0;
   left: 0;
-  width: 391px; /* 8px + 375px search bar + 8px = equidistant padding */
+  width: 429px; /* 8px + 413px search bar + 8px = equidistant padding */
   height: 100vh;
   background: var(--color-white);
   z-index: 1001;
