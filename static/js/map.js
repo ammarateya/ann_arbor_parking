@@ -1069,47 +1069,42 @@ async function showCitationDetails(citation, markerLatLng = null) {
   const isMobile =
     window.matchMedia && window.matchMedia("(max-width: 768px)").matches;
 
-  // #region agent log (debug)
+  // ===== PRELOAD IMAGE BEFORE OPENING PANEL =====
+  // Fetch images first so we can preload before showing panel
+  let images = [];
+  let preloadedImageUrl = null;
+  
   try {
-    const rect = panel.getBoundingClientRect();
-    const style = window.getComputedStyle(panel);
-    fetch("http://127.0.0.1:7242/ingest/e36ef556-bd8a-4e44-88f5-708e512b1239", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        sessionId: "debug-session",
-        runId: "pre-fix",
-        hypothesisId: "H2",
-        location: "static/js/map.js:showCitationDetails:beforeBranch",
-        message: "before mobile/desktop branch",
-        data: {
-          innerWidth: window.innerWidth,
-          isMobileMq: isMobile,
-          bodyClass: document.body.className,
-          panelActive: panel.classList.contains("active"),
-          panelRect: { w: rect.width, h: rect.height, x: rect.x, y: rect.y },
-          panelCss: {
-            width: style.width,
-            height: style.height,
-            top: style.top,
-            bottom: style.bottom,
-            position: style.position,
-          },
-          citationNumber: citation.citation_number || null,
-        },
-        timestamp: Date.now(),
-      }),
-    }).catch(() => {});
-  } catch (e) {}
-  // #endregion agent log (debug)
+    const response = await fetch(`/api/citation/${citation.citation_number}`);
+    const data = await response.json();
+    
+    // Support both response shapes
+    if (data && Array.isArray(data.images) && data.images.length > 0) {
+      images = data.images;
+    } else if (data?.citation?.images?.length > 0) {
+      images = data.citation.images;
+    }
+    
+    // Preload the hero image BEFORE opening panel
+    if (images.length > 0) {
+      preloadedImageUrl = await new Promise((resolve) => {
+        const preloader = new Image();
+        preloader.onload = () => resolve(preloader.src);
+        preloader.onerror = () => resolve(null);
+        preloader.src = images[0].url;
+        // Timeout fallback - don't wait forever
+        setTimeout(() => resolve(images[0].url), 3000);
+      });
+    }
+  } catch (err) {
+    console.error("Error preloading citation images:", err);
+  }
 
+  // ===== NOW OPEN THE PANEL (image is ready) =====
   if (isMobile) {
-    // On mobile: just slide up from bottom, no layout shift
     panel.classList.add("active");
-    document.body.classList.add("mobile-panel-open"); // For map controls positioning
-    // Don't add panel-open class on mobile to prevent layout shifts
+    document.body.classList.add("mobile-panel-open");
   } else {
-    // On desktop: shift layout as before
     panel.classList.add("active");
     document.body.classList.add("panel-open");
   }
@@ -1244,75 +1239,34 @@ async function showCitationDetails(citation, markerLatLng = null) {
             }
            `;
 
-  // Fetch and show images for this citation
-  try {
-    console.log(
-      "[gallery] fetching images for citation",
-      citation.citation_number
-    );
-    const response = await fetch(`/api/citation/${citation.citation_number}`);
-    console.log("[gallery] fetch response status", response.status);
-    const data = await response.json();
-    console.log("[gallery] response JSON", data);
-    // Support both response shapes: { images: [...] } and { citation: { images: [...] } }
-    let images = [];
-    if (data && Array.isArray(data.images) && data.images.length > 0) {
-      images = data.images;
-    } else if (
-      data &&
-      data.citation &&
-      Array.isArray(data.citation.images) &&
-      data.citation.images.length > 0
-    ) {
-      images = data.citation.images;
-    }
-    console.log("[gallery] resolved images count", images.length);
+  // ===== DISPLAY PRELOADED IMAGE (already fetched above) =====
+  const photosHero = document.getElementById("photosHero");
+  const heroImage = document.getElementById("heroImage");
+  const heroLoading = document.getElementById("heroLoadingSpinner");
+  const seePhotosPopup = document.getElementById("seePhotosPopup");
 
-    // Hero image handling (Google Maps-style with "See photos" popup)
-    const photosHero = document.getElementById("photosHero");
-    const heroImage = document.getElementById("heroImage");
-    const heroLoading = document.getElementById("heroLoadingSpinner");
-    const seePhotosPopup = document.getElementById("seePhotosPopup");
+  if (images.length > 0 && preloadedImageUrl) {
+    // Image already preloaded - show immediately with no loading spinner
+    photosHero.style.display = "block";
+    heroLoading.style.display = "none";
+    heroImage.src = preloadedImageUrl;
+    heroImage.alt = images[0].caption || `Citation ${citation.citation_number}`;
+    heroImage.style.display = "block";
 
-    if (images.length > 0) {
-      // Show hero and set first image
-      photosHero.style.display = "block";
-      heroLoading.style.display = "flex";
-      heroImage.style.display = "none";
-      
-      // Preload image for faster display
-      const preloader = new Image();
-      preloader.onload = () => {
-        heroImage.src = preloader.src;
-        heroLoading.style.display = "none";
-        heroImage.style.display = "block";
+    // Click on hero image opens side panel gallery
+    heroImage.onclick = () => openSidePanelGallery(images, 0, citation);
+
+    // Update "See photos" popup
+    if (seePhotosPopup) {
+      const seePhotosText = seePhotosPopup.querySelector(".see-photos-text");
+      if (seePhotosText) seePhotosText.textContent = `See photos`;
+      seePhotosPopup.onclick = (e) => {
+        e.stopPropagation();
+        openSidePanelGallery(images, 0, citation);
       };
-      preloader.src = images[0].url;
-      heroImage.alt =
-        images[0].caption || `Citation ${citation.citation_number}`;
-      heroImage.decoding = "async";
-
-      // Click on hero image opens side panel gallery (Google Maps style)
-      heroImage.onclick = () => openSidePanelGallery(images, 0, citation);
-
-      // Update "See photos" popup text and click handler
-      if (seePhotosPopup) {
-        const seePhotosText = seePhotosPopup.querySelector(".see-photos-text");
-        if (seePhotosText) {
-          seePhotosText.textContent = `See photos`;
-        }
-        seePhotosPopup.onclick = (e) => {
-          e.stopPropagation();
-          openSidePanelGallery(images, 0, citation);
-        };
-      }
-    } else {
-      // No images - hide hero
-      photosHero.style.display = "none";
     }
-  } catch (err) {
-    console.error("Error fetching citation images:", err);
-    const photosHero = document.getElementById("photosHero");
+  } else {
+    // No images - hide hero
     if (photosHero) photosHero.style.display = "none";
   }
 
