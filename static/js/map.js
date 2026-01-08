@@ -1203,56 +1203,94 @@ async function showCitationDetails(citation, markerLatLng = null) {
   let images = [];
   let preloadedImageUrl = null;
 
-  try {
-    const response = await fetch(`/api/citation/${citation.citation_number}`);
-    const data = await response.json();
+  // OPTIMIZATION: Check if we already have the first image URL from the list view
+  if (citation.image_urls && citation.image_urls.length > 0) {
+      // Use the image URL we already have!
+      console.log("[image] Using pre-fetched image URL:", citation.image_urls[0].url || citation.image_urls[0]);
+      // Normalize format (might be string or object depending on source)
+      const url = citation.image_urls[0].url || citation.image_urls[0];
+      images = [{ url: url }];
+      preloadedImageUrl = url;
+  }
 
-    // Support both response shapes
-    if (data && Array.isArray(data.images) && data.images.length > 0) {
-      images = data.images;
-    } else if (data?.citation?.images?.length > 0) {
-      images = data.citation.images;
+  // If we don't have images yet, OR we want to fetch the full list (which we do need for the gallery)
+  // we still fire the API call, but we don't *wait* for it to show the panel if we have a preloaded image.
+  const fetchPromise = (async () => {
+    try {
+        const response = await fetch(`/api/citation/${citation.citation_number}`);
+        const data = await response.json();
+        
+        // Support both response shapes
+        let fetchedImages = [];
+        if (data && Array.isArray(data.images) && data.images.length > 0) {
+            fetchedImages = data.images;
+        } else if (data?.citation?.images?.length > 0) {
+            fetchedImages = data.citation.images;
+        }
+        return fetchedImages;
+    } catch (err) {
+        console.error("Error fetching citation images:", err);
+        return [];
     }
+  })();
 
-    // Preload the hero image BEFORE opening panel
-    if (images.length > 0) {
-      preloadedImageUrl = await new Promise((resolve) => {
-        const preloader = new Image();
-        let resolved = false;
+  // If we didn't have a preloaded image, we MUST wait for the fetch to try and get one
+  if (!preloadedImageUrl) {
+      try {
+          const fetchedImages = await fetchPromise;
+          if (fetchedImages.length > 0) {
+              images = fetchedImages;
+              
+              // Preload the hero image BEFORE opening panel
+              preloadedImageUrl = await new Promise((resolve) => {
+                const preloader = new Image();
+                let resolved = false;
 
-        preloader.onload = () => {
-          if (!resolved) {
-            resolved = true;
-            console.log("[image] Successfully preloaded:", images[0].url);
-            resolve(preloader.src);
+                preloader.onload = () => {
+                  if (!resolved) {
+                    resolved = true;
+                    console.log("[image] Successfully preloaded:", images[0].url);
+                    resolve(preloader.src);
+                  }
+                };
+
+                preloader.onerror = (error) => {
+                  if (!resolved) {
+                    resolved = true;
+                    // If failed to load, we'll still resolve so we can show the panel (maybe with placeholder)
+                    console.error("[image] Failed to preload:", images[0].url, error);
+                    resolve(null); 
+                  }
+                };
+
+                preloader.src = images[0].url;
+
+                // Longer timeout for slow connections
+                setTimeout(() => {
+                  if (!resolved) {
+                    resolved = true;
+                    console.warn(
+                      "[image] Preload timeout, proceeding anyway:",
+                      images[0].url
+                    );
+                    resolve(images[0].url); // Try anyway on timeout
+                  }
+                }, 5000); 
+              });
           }
-        };
-
-        preloader.onerror = (error) => {
-          if (!resolved) {
-            resolved = true;
-            console.error("[image] Failed to preload:", images[0].url, error);
-            resolve(null); // Signal failure
+      } catch (e) {
+          console.error("Error awaiting fetch for images:", e);
+      }
+  } else {
+      // We have a preloaded image, but we should let the full list update in the background
+      fetchPromise.then(fetchedImages => {
+          if (fetchedImages.length > 0) {
+              // Update our images list with the full set
+              images = fetchedImages;
+              // If the hero image was just a string, update it to the full object if matched?
+              // Actually, just having the list is enough for the gallery later.
           }
-        };
-
-        preloader.src = images[0].url;
-
-        // Longer timeout for slow connections
-        setTimeout(() => {
-          if (!resolved) {
-            resolved = true;
-            console.warn(
-              "[image] Preload timeout, proceeding anyway:",
-              images[0].url
-            );
-            resolve(images[0].url); // Try anyway on timeout
-          }
-        }, 5000); // Increased from 3s to 5s
       });
-    }
-  } catch (err) {
-    console.error("Error preloading citation images:", err);
   }
 
   // ===== NOW OPEN THE PANEL (image is ready) =====
@@ -1408,55 +1446,58 @@ async function showCitationDetails(citation, markerLatLng = null) {
     citationTitle.style.display = "block";
   }
 
-  if (images.length > 0) {
+  if (photosHero) {
     photosHero.style.display = "block";
-
+    
+    // Check if we have a valid image URL
     if (preloadedImageUrl) {
-      // Image successfully preloaded - show immediately
-      heroLoading.style.display = "none";
-      heroImage.src = preloadedImageUrl;
-      heroImage.alt =
-        images[0].caption || `Citation ${citation.citation_number}`;
-      heroImage.style.display = "block";
-    } else {
-      // Preload failed - try loading with spinner as fallback
-      console.warn("[image] Preload failed, trying direct load with spinner");
-      heroLoading.style.display = "flex";
-      heroImage.style.display = "none";
-
-      heroImage.onload = () => {
-        heroLoading.style.display = "none";
+        heroImage.src = preloadedImageUrl;
         heroImage.style.display = "block";
-      };
-
-      heroImage.onerror = () => {
-        console.error("[image] Direct load also failed:", images[0].url);
-        heroLoading.style.display = "none";
-        // Show placeholder or hide hero entirely
-        photosHero.style.display = "none";
-        return;
-      };
-
-      heroImage.src = images[0].url;
-      heroImage.alt =
-        images[0].caption || `Citation ${citation.citation_number}`;
+        heroImage.alt = images[0]?.caption || `Citation ${citation.citation_number}`;
+        
+        // Show "See photos" button
+        if (seePhotosPopup) {
+            seePhotosPopup.style.display = "flex";
+        }
+        
+        // Enable gallery click interactions
+        heroImage.style.cursor = "pointer";
+        heroImage.onclick = () => {
+           // wait for full images list if it's still loading in background
+           if (images.length === 0 && citation.image_urls && citation.image_urls.length > 0) {
+               // Fallback if full fetch hasn't finished but we have local partial
+               openSidePanelGallery([{url: preloadedImageUrl}], 0, citation);
+           } else {
+               openSidePanelGallery(images, 0, citation);
+           }
+        };
+        if (seePhotosPopup) {
+            seePhotosPopup.onclick = (e) => {
+                e.stopPropagation();
+                if (images.length === 0 && citation.image_urls && citation.image_urls.length > 0) {
+                     openSidePanelGallery([{url: preloadedImageUrl}], 0, citation);
+                } else {
+                     openSidePanelGallery(images, 0, citation);
+                }
+            };
+        }
+    } else {
+        // NO IMAGES - SHOW PLACEHOLDER
+        heroImage.src = "https://maps.gstatic.com/tactile/pane/default_geocode-2x.png";
+        heroImage.style.display = "block";
+        heroImage.alt = "No photo available";
+        
+        // Hide "See photos" button
+        if (seePhotosPopup) {
+            seePhotosPopup.style.display = "none";
+        }
+        
+        // Disable gallery interactions
+        heroImage.style.cursor = "default";
+        heroImage.onclick = null;
     }
-
-    // Click on hero image opens side panel gallery
-    heroImage.onclick = () => openSidePanelGallery(images, 0, citation);
-
-    // Update "See photos" popup
-    if (seePhotosPopup) {
-      const seePhotosText = seePhotosPopup.querySelector(".see-photos-text");
-      if (seePhotosText) seePhotosText.textContent = `See photos`;
-      seePhotosPopup.onclick = (e) => {
-        e.stopPropagation();
-        openSidePanelGallery(images, 0, citation);
-      };
-    }
-  } else {
-    // No images - hide hero
-    if (photosHero) photosHero.style.display = "none";
+    
+    if (heroLoading) heroLoading.style.display = "none";
   }
 
   showCitationPopup(citation, markerLatLng);

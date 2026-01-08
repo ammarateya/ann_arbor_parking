@@ -90,7 +90,9 @@ def get_citations():
             # Exclude raw_html to save memory (it's 50-200KB per citation!)
             # Exclude image_urls - images are loaded lazily via /api/citation/<id> endpoint
             # Exclude vin, due_date, issuing_agency, status, scraped_at, and created_at - not used in frontend, reduces payload size
-            fields = 'citation_number,location,plate_state,plate_number,issue_date,amount_due,more_info_url,comments,violations,latitude,longitude'
+            # Include image_urls to get the first one for the list view optimization
+            # Exclude vin, due_date, issuing_agency, status, scraped_at, and created_at - not used in frontend, reduces payload size
+            fields = 'citation_number,location,plate_state,plate_number,issue_date,amount_due,more_info_url,comments,violations,latitude,longitude,image_urls'
             
             # Fetch all citations with pagination
             # Query directly for citations with coordinates to avoid filtering issues
@@ -139,7 +141,9 @@ def get_citations():
                     # Exclude raw_html to save memory
                     # Exclude image_urls - images are loaded lazily via /api/citation/<id> endpoint
                     # Exclude vin, due_date, issuing_agency, status, scraped_at, and created_at - not used in frontend, reduces payload size
-                    fields = 'citation_number,location,plate_state,plate_number,issue_date,amount_due,more_info_url,comments,violations,latitude,longitude'
+                    # Include image_urls to get the first one for the list view optimization
+                    # Exclude vin, due_date, issuing_agency, status, scraped_at, and created_at - not used in frontend, reduces payload size
+                    fields = 'citation_number,location,plate_state,plate_number,issue_date,amount_due,more_info_url,comments,violations,latitude,longitude,image_urls'
                     
                     # Fetch all citations with pagination using service client
                     # Query directly for citations with coordinates to avoid filtering issues
@@ -220,6 +224,16 @@ def get_citations():
                             most_recent_time = issue_date
                             most_recent_citation_number = citation.get('citation_number')
         
+        # Post-process citations to only return the first image URL to save bandwidth
+        # The full list is loaded lazily when opening the citation details
+        for citation in citations_with_coords:
+            image_urls = citation.get('image_urls')
+            if isinstance(image_urls, list) and len(image_urls) > 0:
+                # Keep only the first image for the preview/hero
+                citation['image_urls'] = [image_urls[0]]
+            else:
+                citation['image_urls'] = []
+
         # Return all citations
         logger.info(f"Returning {len(citations_with_coords)} geocoded citations (fetched {len(citations)} total)")
         return jsonify({
