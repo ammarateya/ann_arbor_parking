@@ -1279,15 +1279,18 @@ async function showCitationDetails(citation, markerLatLng = null) {
       photosHero.style.display = "block";
       heroLoading.style.display = "flex";
       heroImage.style.display = "none";
-      heroImage.src = images[0].url;
-      heroImage.alt =
-        images[0].caption || `Citation ${citation.citation_number}`;
-
-      // When hero image loads, hide spinner and show image
-      heroImage.onload = () => {
+      
+      // Preload image for faster display
+      const preloader = new Image();
+      preloader.onload = () => {
+        heroImage.src = preloader.src;
         heroLoading.style.display = "none";
         heroImage.style.display = "block";
       };
+      preloader.src = images[0].url;
+      heroImage.alt =
+        images[0].caption || `Citation ${citation.citation_number}`;
+      heroImage.decoding = "async";
 
       // Click on hero image opens side panel gallery (Google Maps style)
       heroImage.onclick = () => openSidePanelGallery(images, 0, citation);
@@ -1358,6 +1361,8 @@ function openSidePanelGallery(images, startIndex, citation) {
       const thumb = document.createElement("img");
       thumb.src = img.url;
       thumb.alt = img.caption || `Thumbnail ${idx + 1}`;
+      thumb.loading = "lazy";
+      thumb.decoding = "async";
 
       thumbContainer.appendChild(thumb);
       thumbContainer.onclick = () => loadSidePanelGalleryPhoto(idx);
@@ -1434,18 +1439,20 @@ function loadSidePanelGalleryPhoto(index) {
   if (galleryLoading) galleryLoading.style.display = "flex";
   galleryMainPhoto.style.display = "none";
 
-  // Update image
-  galleryMainPhoto.src = imgObj.url;
-  galleryMainPhoto.alt =
-    imgObj.caption ||
-    `Citation ${
-      sidePanelGalleryCitation ? sidePanelGalleryCitation.citation_number : ""
-    }`;
-
-  galleryMainPhoto.onload = () => {
+  // Preload image for faster display
+  const preloader = new Image();
+  preloader.onload = () => {
+    galleryMainPhoto.src = preloader.src;
+    galleryMainPhoto.alt =
+      imgObj.caption ||
+      `Citation ${
+        sidePanelGalleryCitation ? sidePanelGalleryCitation.citation_number : ""
+      }`;
     if (galleryLoading) galleryLoading.style.display = "none";
     galleryMainPhoto.style.display = "block";
   };
+  preloader.src = imgObj.url;
+  galleryMainPhoto.decoding = "async";
 
   // Update active thumbnail
   thumbnails.forEach((thumb, idx) => {
@@ -1500,6 +1507,8 @@ function openPhotoViewer(images, startIndex, citation) {
     t.alt = img.caption || `Image ${idx + 1}`;
     t.className = "photo-thumbnail-vertical";
     t.dataset.index = idx;
+    t.loading = "lazy";
+    t.decoding = "async";
     if (idx === viewerIndex) t.classList.add("active");
     t.addEventListener("click", () => loadViewerPhoto(idx));
     thumbsEl.appendChild(t);

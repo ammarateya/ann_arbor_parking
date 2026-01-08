@@ -369,11 +369,11 @@ body.panel-open #map {
 .filter-dropdown {
   display: flex;
   align-items: center;
-  padding: 8px 16px;
-  padding-right: 28px; /* Space for dropdown arrow */
+  padding: 8px 12px;
+  padding-right: 24px; /* Space for dropdown arrow */
   background: var(--color-white);
   border: none;
-  border-radius: 999px;
+  border-radius: 8px; /* Rounded rectangle, not pill */
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.12), 0 1px 2px rgba(0, 0, 0, 0.24);
   cursor: pointer;
   transition: box-shadow 0.2s, background 0.2s;
