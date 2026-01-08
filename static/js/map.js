@@ -127,6 +127,21 @@ function closeSidePanelGallery() {
     }
   }
 
+  // Restore hamburger menu icon
+  const searchMenuBtn = document.getElementById("searchMenuBtn");
+  if (searchMenuBtn) {
+    // Remove the gallery back handler
+    if (searchMenuBtn._galleryBackHandler) {
+      searchMenuBtn.removeEventListener("click", searchMenuBtn._galleryBackHandler);
+      searchMenuBtn._galleryBackHandler = null;
+    }
+    // Restore original hamburger icon
+    if (searchMenuBtn._originalHTML) {
+      searchMenuBtn.innerHTML = searchMenuBtn._originalHTML;
+      searchMenuBtn.title = "Menu";
+    }
+  }
+
   sidePanelGalleryImages = [];
   sidePanelGalleryCitation = null;
   sidePanelGalleryIndex = 0;
@@ -1497,6 +1512,23 @@ function openSidePanelGallery(images, startIndex, citation) {
     document.body.classList.add("right-viewer-active");
   }
 
+  // Replace hamburger menu with back arrow
+  const searchMenuBtn = document.getElementById("searchMenuBtn");
+  if (searchMenuBtn) {
+    // Store original hamburger icon HTML if not already stored
+    if (!searchMenuBtn._originalHTML) {
+      searchMenuBtn._originalHTML = searchMenuBtn.innerHTML;
+    }
+    // Replace with back arrow
+    searchMenuBtn.innerHTML = `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+      <path d="M19 12H5M12 19l-7-7 7-7"/>
+    </svg>`;
+    searchMenuBtn.title = "Back to details";
+    // Add click handler to go back to citation details
+    searchMenuBtn._galleryBackHandler = () => closeSidePanelGallery();
+    searchMenuBtn.addEventListener("click", searchMenuBtn._galleryBackHandler);
+  }
+
   // Update right viewer header
   if (rightViewerTitle && citation) {
     rightViewerTitle.textContent = `Citation #${citation.citation_number || "Unknown"}`;
@@ -2670,6 +2702,11 @@ loadCitations();
   // Close button handler - closes side panel and returns to main view
   if (searchCloseBtn) {
     searchCloseBtn.addEventListener("click", function () {
+      // If the right viewer (large image viewer) is active, close it first
+      // This ensures we go directly to home without an intermediate white state
+      if (document.body.classList.contains("right-viewer-active")) {
+        closeSidePanelGallery();
+      }
       // Close the side panel
       closeSidePanel();
       // Clear the search input
