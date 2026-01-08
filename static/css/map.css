@@ -318,41 +318,7 @@ body.panel-open #map {
 }
 
 /* ===== INFO LINK ===== */
-.info-link {
-  position: fixed;
-  top: calc(var(--safe-top) + var(--header-height) + 12px);
-  right: 16px;
-  background: var(--color-white);
-  border-radius: 999px;
-  padding: 8px 16px;
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  z-index: 999;
-  text-decoration: none;
-  color: var(--color-text);
-  font-size: 13px;
-  font-weight: 500;
-  box-shadow: var(--shadow-1);
-  transition: box-shadow 0.2s;
-}
-
-.info-link:hover {
-  box-shadow: var(--shadow-2);
-}
-
-.info-icon {
-  width: 20px;
-  height: 20px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: var(--color-primary);
-  color: white;
-  border-radius: 50%;
-  font-size: 12px;
-  font-weight: 700;
-}
+/* Info link now styled as pill in the pills row */
 
 /* ===== FILTER PILLS ===== */
 .filter-pill {
@@ -1944,13 +1910,7 @@ body.panel-open .location-search-controls {
     display: none;
   }
 
-  .info-link span:not(.info-icon) {
-    display: none;
-  }
-
-  .info-link {
-    padding: 8px;
-  }
+  /* Info link mobile styles removed - now uses stats-pill styles */
 }
 
   body.panel-open #map,
