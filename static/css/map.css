@@ -100,8 +100,8 @@ body.panel-open #map {
   display: flex;
   align-items: center;
   background: var(--color-white);
-  border-radius: 8px;
-  padding: 0 4px 0 4px;
+  border-radius: 999px; /* Pill shape */
+  padding: 0 8px 0 8px;
   height: 40px;
   width: 300px;
   max-width: calc(100vw - 16px);
@@ -370,8 +370,8 @@ body.panel-open #map {
   display: flex;
   align-items: center;
   padding: 8px 16px;
-  padding-right: 32px; /* Space for dropdown arrow */
-  background: #1a73e8;
+  padding-right: 28px; /* Space for dropdown arrow */
+  background: var(--color-white);
   border: none;
   border-radius: 999px;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.12), 0 1px 2px rgba(0, 0, 0, 0.24);
@@ -379,13 +379,13 @@ body.panel-open #map {
   transition: box-shadow 0.2s, background 0.2s;
   font-family: var(--font-primary);
   font-size: 14px;
-  color: white;
+  color: var(--color-text);
   white-space: nowrap;
   flex-shrink: 0;
   appearance: none;
   -webkit-appearance: none;
   -moz-appearance: none;
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='white' stroke-width='2'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E");
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='10' viewBox='0 0 24 24' fill='none' stroke='%235f6368' stroke-width='2'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E");
   background-repeat: no-repeat;
   background-position: right 12px center;
   background-size: 12px;
@@ -393,13 +393,12 @@ body.panel-open #map {
 
 .filter-dropdown:hover {
   box-shadow: 0 2px 6px rgba(0, 0, 0, 0.16), 0 1px 3px rgba(0, 0, 0, 0.24);
-  background-color: #1557b0;
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='white' stroke-width='2'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E");
+  background-color: #f8f9fa;
 }
 
 .filter-dropdown:focus {
   outline: none;
-  box-shadow: 0 0 0 2px rgba(26, 115, 232, 0.3), 0 2px 6px rgba(0, 0, 0, 0.16);
+  box-shadow: 0 0 0 2px rgba(0, 0, 0, 0.1), 0 2px 6px rgba(0, 0, 0, 0.16);
 }
 
 .filter-dropdown option {
@@ -471,7 +470,7 @@ body.panel-open #map {
   position: fixed;
   top: 0;
   left: 0;
-  width: 400px;
+  width: 316px; /* 8px + 300px search bar + 8px = equidistant padding */
   height: 100vh;
   background: var(--color-white);
   z-index: 1001;
