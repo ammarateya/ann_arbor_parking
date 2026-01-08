@@ -481,31 +481,14 @@ body.panel-open #map {
   flex-direction: column;
 }
 
-/* Custom scrollbar styling - hidden by default, visible on hover */
+/* Hide scrollbar completely - use overlay scrollbar on hover */
+.side-panel {
+  scrollbar-width: none; /* Firefox */
+  -ms-overflow-style: none; /* IE/Edge */
+}
+
 .side-panel::-webkit-scrollbar {
-  width: 0;
-  background: transparent;
-}
-
-.side-panel:hover::-webkit-scrollbar {
-  width: 8px;
-}
-
-.side-panel::-webkit-scrollbar-track {
-  background: transparent;
-}
-
-.side-panel::-webkit-scrollbar-thumb {
-  background: transparent;
-  border-radius: 4px;
-}
-
-.side-panel:hover::-webkit-scrollbar-thumb {
-  background: #dadce0;
-}
-
-.side-panel::-webkit-scrollbar-thumb:hover {
-  background: #bdc1c6;
+  display: none; /* Chrome/Safari/Opera */
 }
 
 .side-panel.active {
