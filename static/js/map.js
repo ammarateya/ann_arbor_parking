@@ -242,12 +242,13 @@ const pinIcons = {
   red: createPinDataURL("#EA4335"),
 };
 
-// Create canvas icon from SVG location marker
+// Create canvas icon from SVG pin
 function createPinDataURL(color) {
-  const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="40" height="40" viewBox="0 -960 960 960">
-          <path d="M480-480q33 0 56.5-23.5T560-560q0-33-23.5-56.5T480-640q-33 0-56.5 23.5T400-560q0 33 23.5 56.5T480-480Zm0 294q122-112 181-203.5T720-552q0-109-69.5-178.5T480-800q-101 0-170.5 69.5T240-552q0 71 59 162.5T480-186Zm0 106Q319-217 239.5-334.5T160-552q0-150 96.5-239T480-880q127 0 223.5 89T800-552q0 100-79.5 217.5T480-80Zm0-480Z" fill="${color}"/>
+  const svg = `<svg width="32" height="40" viewBox="0 0 32 40" xmlns="http://www.w3.org/2000/svg">
+          <path d="M16 0C7.16 0 0 7.16 0 16c0 8.84 16 24 16 24s16-15.16 16-24C32 7.16 24.84 0 16 0z" fill="${color}" stroke="#fff" stroke-width="2"/>
+          <circle cx="16" cy="14" r="8" fill="#fff"/>
         </svg>`;
-  return "data:image/svg+xml;charset=utf-8," + encodeURIComponent(svg);
+  return "data:image/svg+xml;base64," + btoa(svg);
 }
 
 // Initialize markers layer group for efficient rendering
@@ -803,8 +804,8 @@ function createMarkerForCitation(citation) {
   const marker = L.marker([lat, lon], {
     icon: L.icon({
       iconUrl: iconUrl,
-      iconSize: [40, 40],
-      iconAnchor: [20, 20],
+      iconSize: [32, 40],
+      iconAnchor: [16, 40],
     }),
     riseOnHover: true,
     keyboard: false,

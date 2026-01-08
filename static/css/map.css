@@ -1519,6 +1519,16 @@ body.panel-open .location-search-controls {
   background: rgba(60, 64, 67, 1);
 }
 
+.see-photos-popup .see-photos-icon {
+  color: white;
+  flex-shrink: 0;
+  width: 12px;
+  height: 12px;
+  background: none !important;
+  border-radius: 0 !important;
+  display: inline-block !important;
+}
+
 /* Citation Title */
 .citation-title {
   padding: 16px 16px 8px 16px;
