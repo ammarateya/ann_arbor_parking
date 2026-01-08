@@ -76,7 +76,7 @@
     />
 
     <!-- Custom CSS -->
-    <link rel="stylesheet" href="static/css/map.css" />
+    <link rel="stylesheet" href="/static/css/map.css?v=5" />
   </head>
   <body>
     <!-- Search Bar (fixed at top, always visible) -->
@@ -262,6 +262,59 @@
               </button>
             </div>
           </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Collapse/Expand Tab (moved outside side panel) -->
+    <button class="side-panel-collapse-tab" id="sidePanelCollapseTab" aria-label="Collapse panel">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <path d="M15 18l-6-6 6-6" id="collapseIcon"/>
+      </svg>
+      <span class="collapse-text" id="collapseText">Collapse</span>
+    </button>
+
+    <!-- Right-Side Image Viewer (Google Maps style) -->
+    <div class="right-image-viewer" id="rightImageViewer" style="display: none">
+      <div class="right-viewer-header">
+        <div class="right-viewer-title">
+          <span id="rightViewerCitationTitle"></span>
+          <span class="right-viewer-photo-info" id="rightViewerPhotoInfo"></span>
+        </div>
+        <div class="right-viewer-header-actions">
+          <button class="right-viewer-share-btn" id="rightViewerShareBtn" aria-label="Share">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8M16 6l-4-4-4 4M12 2v13"/>
+            </svg>
+          </button>
+          <button class="right-viewer-close-btn" id="rightViewerCloseBtn" aria-label="Close">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M18 6L6 18M6 6l12 12"/>
+            </svg>
+          </button>
+        </div>
+      </div>
+      <div class="right-viewer-main">
+        <div class="right-viewer-loading" id="rightViewerLoading" style="display: none">
+          <div class="spinner"></div>
+        </div>
+        <img class="right-viewer-image" id="rightViewerImage" src="" alt="" />
+        <div class="right-viewer-nav">
+          <button class="right-viewer-nav-btn right-viewer-nav-prev" id="rightViewerNavPrev" aria-label="Previous">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M15 18l-6-6 6-6"/>
+            </svg>
+          </button>
+          <button class="right-viewer-nav-btn right-viewer-nav-next" id="rightViewerNavNext" aria-label="Next">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M9 18l6-6-6-6"/>
+            </svg>
+          </button>
+        </div>
+      </div>
+      <div class="right-viewer-footer">
+        <div class="right-viewer-copyright">
+          <span>Image may be subject to copyright.</span>
         </div>
       </div>
     </div>
@@ -746,6 +799,6 @@
     </div>
 
     <!-- Custom JS -->
-    <script src="static/js/map.js?v=4" defer></script>
+    <script src="/static/js/map.js?v=5" defer></script>
   </body>
 </html>

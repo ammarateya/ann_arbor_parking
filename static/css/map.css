@@ -17,9 +17,9 @@
   --color-yellow: #FBBC04;
   --color-orange: #FA7B17;
   --color-red: #EA4335;
-  --shadow-1: 0 1px 2px 0 rgba(60,64,67,0.3), 0 1px 3px 1px rgba(60,64,67,0.15);
-  --shadow-2: 0 1px 3px 0 rgba(60,64,67,0.3), 0 4px 8px 3px rgba(60,64,67,0.15);
-  --shadow-3: 0 4px 8px 0 rgba(60,64,67,0.3), 0 8px 16px 4px rgba(60,64,67,0.15);
+  --shadow-1: 0 1px 2px 0 rgba(60, 64, 67, 0.3), 0 1px 3px 1px rgba(60, 64, 67, 0.15);
+  --shadow-2: 0 1px 3px 0 rgba(60, 64, 67, 0.3), 0 4px 8px 3px rgba(60, 64, 67, 0.15);
+  --shadow-3: 0 4px 8px 0 rgba(60, 64, 67, 0.3), 0 8px 16px 4px rgba(60, 64, 67, 0.15);
   --radius-sm: 8px;
   --radius-md: 12px;
   --radius-lg: 24px;
@@ -80,7 +80,8 @@ body.panel-open #map {
 .top-bar {
   position: fixed;
   top: 8px;
-  left: 433px; /* To the right of search bar (8px + 413px + 12px gap) */
+  left: 433px;
+  /* To the right of search bar (8px + 413px + 12px gap) */
   z-index: 1003;
   display: flex;
   align-items: center;
@@ -88,7 +89,8 @@ body.panel-open #map {
   padding: 0;
   flex-wrap: wrap;
   pointer-events: none;
-  height: 40px; /* Match search bar height */
+  height: 40px;
+  /* Match search bar height */
 }
 
 /* ===== SEARCH BAR (Fixed at top, always visible) ===== */
@@ -101,10 +103,12 @@ body.panel-open #map {
   display: flex;
   align-items: center;
   background: var(--color-white);
-  border-radius: 999px; /* Pill shape */
+  border-radius: 999px;
+  /* Pill shape */
   padding: 0 8px 0 8px;
   height: 40px;
-  width: 413px; /* 375px * 1.10 = 412.5px, rounded to 413px */
+  width: 413px;
+  /* 375px * 1.10 = 412.5px, rounded to 413px */
   max-width: calc(100vw - 16px);
   box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15), 0 0 1px rgba(0, 0, 0, 0.1);
   transition: box-shadow 0.2s;
@@ -134,7 +138,7 @@ body.panel-open #map {
 }
 
 .search-menu-btn:hover {
-  background: rgba(0,0,0,0.05);
+  background: rgba(0, 0, 0, 0.05);
 }
 
 .search-submit-btn {
@@ -152,7 +156,7 @@ body.panel-open #map {
 }
 
 .search-submit-btn:hover {
-  background: rgba(0,0,0,0.05);
+  background: rgba(0, 0, 0, 0.05);
   color: var(--color-primary);
 }
 
@@ -196,7 +200,7 @@ body.panel-open #map {
 }
 
 .search-close-btn:hover {
-  background: rgba(0,0,0,0.05);
+  background: rgba(0, 0, 0, 0.05);
 }
 
 .search-clear-btn {
@@ -214,7 +218,7 @@ body.panel-open #map {
 }
 
 .search-clear-btn:hover {
-  background: rgba(0,0,0,0.05);
+  background: rgba(0, 0, 0, 0.05);
 }
 
 /* Google-style search spinner */
@@ -310,7 +314,7 @@ body.panel-open #map {
 }
 
 .icon-btn:hover {
-  background: rgba(0,0,0,0.05);
+  background: rgba(0, 0, 0, 0.05);
 }
 
 .icon-btn.active {
@@ -355,10 +359,12 @@ body.panel-open #map {
   display: flex;
   align-items: center;
   padding: 10px 16px;
-  padding-right: 28px; /* Space for dropdown arrow */
+  padding-right: 28px;
+  /* Space for dropdown arrow */
   background: var(--color-white);
   border: none;
-  border-radius: 999px; /* Pill shape like stats pills */
+  border-radius: 999px;
+  /* Pill shape like stats pills */
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.12), 0 1px 2px rgba(0, 0, 0, 0.24);
   cursor: pointer;
   transition: box-shadow 0.2s, background 0.2s;
@@ -477,7 +483,8 @@ body.panel-open #map {
   position: fixed;
   top: 0;
   left: 0;
-  width: 429px; /* 8px + 413px search bar + 8px = equidistant padding */
+  width: 429px;
+  /* 8px + 413px search bar + 8px = equidistant padding */
   height: 100vh;
   background: var(--color-white);
   z-index: 1001;
@@ -486,16 +493,38 @@ body.panel-open #map {
   box-shadow: 0 0 20px rgba(0, 0, 0, 0.3);
   display: none;
   flex-direction: column;
+  transition: width 0.3s ease, transform 0.3s ease;
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+  transform: none;
+  /* Ensure no transform is affecting positioning */
+}
+
+/* Collapsed state - show only tab */
+.side-panel.collapsed {
+  width: 48px;
+  overflow: visible;
+}
+
+.side-panel.collapsed .side-panel-content,
+.side-panel.collapsed .side-panel-gallery,
+.side-panel.collapsed .photos-hero,
+.side-panel.collapsed .citation-title {
+  display: none !important;
 }
 
 /* Hide scrollbar completely - use overlay scrollbar on hover */
 .side-panel {
-  scrollbar-width: none; /* Firefox */
-  -ms-overflow-style: none; /* IE/Edge */
+  scrollbar-width: none;
+  /* Firefox */
+  -ms-overflow-style: none;
+  /* IE/Edge */
 }
 
 .side-panel::-webkit-scrollbar {
-  display: none; /* Chrome/Safari/Opera */
+  display: none;
+  /* Chrome/Safari/Opera */
 }
 
 .side-panel.active {
@@ -504,8 +533,67 @@ body.panel-open #map {
 
 /* Side panel header removed - search bar is now outside */
 
+/* Collapse/Expand Tab (Google Maps style) */
+.side-panel-collapse-tab {
+  position: fixed;
+  top: 50%;
+  left: 429px;
+  /* Matches fixed side panel width */
+  transform: translateY(-50%);
+  width: 48px;
+  height: 80px;
+  background: var(--color-white);
+  border: 1px solid var(--color-border);
+  border-left: none;
+  border-radius: 0 8px 8px 0;
+  box-shadow: 2px 0 8px rgba(0, 0, 0, 0.15);
+  cursor: pointer;
+  display: none;
+  /* Hidden by default */
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  z-index: 1002;
+  /* Above right viewer so it's clickable */
+  transition: left 0.3s ease, background 0.2s, box-shadow 0.2s;
+  padding: 8px 4px;
+}
+
+/* Adjust position when side panel is collapsed */
+body.side-panel-collapsed .side-panel-collapse-tab {
+  left: 48px;
+}
+
+/* Show collapse tab when right viewer is active */
+body.right-viewer-active .side-panel-collapse-tab {
+  display: flex;
+}
+
+.side-panel-collapse-tab:hover {
+  background: #f8f9fa;
+  box-shadow: 2px 0 12px rgba(0, 0, 0, 0.2);
+}
+
+.side-panel-collapse-tab svg {
+  color: var(--color-text-secondary);
+  transition: transform 0.3s ease;
+}
+
+
+
+.collapse-text {
+  font-size: 10px;
+  font-weight: 500;
+  color: var(--color-text-secondary);
+  writing-mode: vertical-rl;
+  text-orientation: mixed;
+  white-space: nowrap;
+}
+
 .side-panel-title {
-  display: none; /* Hidden - title removed */
+  display: none;
+  /* Hidden - title removed */
   color: var(--color-text);
   font-size: 18px;
   font-weight: 500;
@@ -528,7 +616,7 @@ body.panel-open #map {
 }
 
 .side-panel-close:hover {
-  background: rgba(0,0,0,0.05);
+  background: rgba(0, 0, 0, 0.05);
 }
 
 /* Photos section */
@@ -784,6 +872,255 @@ body.panel-open #map {
   margin-left: auto;
 }
 
+/* ===== RIGHT-SIDE IMAGE VIEWER (Google Maps style) ===== */
+.right-image-viewer {
+  position: fixed;
+  top: 0;
+  left: 429px;
+  /* Start exactly at the right edge of side panel (429px wide) */
+  right: 0;
+  bottom: 0;
+  width: auto;
+  /* Let right: 0 handle the width */
+  min-width: 0;
+  /* Prevent overflow */
+  background: #000;
+  z-index: 999;
+  /* Lower than side panel and collapse tab */
+  display: none;
+  /* Hidden by default */
+  flex-direction: column;
+  overflow: hidden;
+  transition: left 0.3s ease;
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+  transform: none;
+  /* Ensure no transform is affecting positioning */
+}
+
+/* Show right viewer when active - ensure it starts at correct position */
+body.right-viewer-active .right-image-viewer {
+  display: flex !important;
+  left: 429px !important;
+  /* Force exact position matches side panel width */
+  right: 0 !important;
+  margin-left: 0 !important;
+  padding-left: 0 !important;
+  transform: none !important;
+}
+
+/* Adjust right viewer when side panel is collapsed */
+body.right-viewer-active.side-panel-collapsed .right-image-viewer {
+  left: 48px !important;
+  /* Start after the collapsed tab width */
+  width: auto;
+  /* Let right: 0 handle the width */
+}
+
+/* Hide map when right viewer is active */
+body.right-viewer-active #map {
+  display: none;
+}
+
+/* Hide pills when right viewer is active */
+body.right-viewer-active .top-bar {
+  display: none;
+}
+
+/* Hide search bar when side panel is collapsed */
+body.side-panel-collapsed .search-bar-panel {
+  display: none !important;
+}
+
+/* Ensure side panel stays visible on desktop when right viewer is active */
+/* Note: Desktop-specific rule is at the end of the file after mobile media query */
+body.right-viewer-active .side-panel.active {
+  display: flex !important;
+  /* Keep side panel visible on desktop */
+  z-index: 1001 !important;
+  /* Higher than right viewer */
+  visibility: visible !important;
+  opacity: 1 !important;
+  box-shadow: 0 0 20px rgba(0, 0, 0, 0.3);
+  overflow: hidden;
+  /* Prevent box-shadow from extending beyond */
+}
+
+/* Hide the main image in side panel gallery when right viewer is active */
+body.right-viewer-active .gallery-main-image {
+  display: none;
+}
+
+/* Hide citation title when in gallery view */
+.side-panel.gallery-mode .citation-title {
+  display: none !important;
+}
+
+/* Make thumbnails take full width when right viewer is active */
+body.right-viewer-active .gallery-thumbnails-vertical {
+  width: 100%;
+  border-right: none;
+}
+
+.right-viewer-header {
+  position: absolute;
+  top: 0;
+  left: 0;
+  /* Start at the left edge of right-viewer container (which is at 429px) */
+  right: 0;
+  z-index: 10;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 24px;
+  background: linear-gradient(to bottom, rgba(0, 0, 0, 0.8) 0%, rgba(0, 0, 0, 0) 100%);
+  pointer-events: none;
+  box-sizing: border-box;
+}
+
+.right-viewer-header>* {
+  pointer-events: all;
+}
+
+.right-viewer-title {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  color: white;
+  font-family: var(--font-primary);
+  flex: 1;
+  min-width: 0;
+  /* Allow text to truncate if needed */
+}
+
+.right-viewer-title>span:first-child {
+  font-size: 16px;
+  font-weight: 500;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.right-viewer-photo-info {
+  font-size: 13px;
+  color: rgba(255, 255, 255, 0.95);
+  margin-top: 2px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.right-viewer-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.right-viewer-share-btn,
+.right-viewer-close-btn {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: rgba(0, 0, 0, 0.6);
+  border: none;
+  color: white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.right-viewer-share-btn:hover,
+.right-viewer-close-btn:hover {
+  background: rgba(0, 0, 0, 0.8);
+}
+
+.right-viewer-main {
+  flex: 1;
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  min-width: 0;
+  /* Prevent overflow */
+  box-sizing: border-box;
+}
+
+.right-viewer-loading {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  z-index: 5;
+}
+
+.right-viewer-image {
+  max-width: 90%;
+  max-height: 90%;
+  object-fit: contain;
+  user-select: none;
+  display: block;
+}
+
+.right-viewer-nav {
+  position: absolute;
+  bottom: 80px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  gap: 16px;
+  z-index: 10;
+  pointer-events: none;
+}
+
+.right-viewer-nav-btn {
+  pointer-events: all;
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.9);
+  border: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+  transition: background 0.2s, transform 0.2s;
+  color: #333;
+}
+
+.right-viewer-nav-btn:hover {
+  background: rgba(255, 255, 255, 1);
+  transform: scale(1.1);
+}
+
+.right-viewer-nav-btn:active {
+  transform: scale(0.95);
+}
+
+.right-viewer-footer {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  /* Start at the left edge of right-viewer container (which is at 429px) */
+  right: 0;
+  z-index: 10;
+  padding: 16px 24px;
+  background: linear-gradient(to top, rgba(0, 0, 0, 0.8) 0%, rgba(0, 0, 0, 0) 100%);
+  pointer-events: none;
+  box-sizing: border-box;
+}
+
+.right-viewer-copyright {
+  color: rgba(255, 255, 255, 0.9);
+  font-size: 12px;
+  font-family: var(--font-primary);
+  font-weight: 500;
+}
+
 .citation-location {
   font-size: 22px;
   font-weight: 500;
@@ -853,10 +1190,25 @@ body.panel-open #map {
   font-size: 14px;
 }
 
-.amount-badge.green { background: rgba(52, 168, 83, 0.1); color: var(--color-green); }
-.amount-badge.yellow { background: rgba(251, 188, 4, 0.15); color: #E37400; }
-.amount-badge.orange { background: rgba(250, 123, 23, 0.1); color: var(--color-orange); }
-.amount-badge.red { background: rgba(234, 67, 53, 0.1); color: var(--color-red); }
+.amount-badge.green {
+  background: rgba(52, 168, 83, 0.1);
+  color: var(--color-green);
+}
+
+.amount-badge.yellow {
+  background: rgba(251, 188, 4, 0.15);
+  color: #E37400;
+}
+
+.amount-badge.orange {
+  background: rgba(250, 123, 23, 0.1);
+  color: var(--color-orange);
+}
+
+.amount-badge.red {
+  background: rgba(234, 67, 53, 0.1);
+  color: var(--color-red);
+}
 
 /* External link button */
 .external-link-btn {
@@ -1270,7 +1622,9 @@ body.panel-open .location-search-controls {
 }
 
 @keyframes spin {
-  to { transform: rotate(360deg); }
+  to {
+    transform: rotate(360deg);
+  }
 }
 
 .loading-text {
@@ -1328,7 +1682,7 @@ body.panel-open .location-search-controls {
 
 /* Marker pin SVG styling */
 .marker-pin {
-  filter: drop-shadow(0 2px 4px rgba(0,0,0,0.3));
+  filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.3));
 }
 
 /* Cluster icon colors */
@@ -1375,7 +1729,7 @@ body.panel-open .location-search-controls {
 }
 
 .leaflet-container a.leaflet-popup-close-button:hover {
-  background: rgba(0,0,0,0.05);
+  background: rgba(0, 0, 0, 0.05);
   color: var(--color-text);
 }
 
@@ -1412,13 +1766,25 @@ body.panel-open .location-search-controls {
 
 /* ===== ANIMATIONS ===== */
 @keyframes fadeIn {
-  from { opacity: 0; }
-  to { opacity: 1; }
+  from {
+    opacity: 0;
+  }
+
+  to {
+    opacity: 1;
+  }
 }
 
 @keyframes slideUp {
-  from { transform: translateY(20px); opacity: 0; }
-  to { transform: translateY(0); opacity: 1; }
+  from {
+    transform: translateY(20px);
+    opacity: 0;
+  }
+
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
 }
 
 /* ===== MOBILE RESPONSIVE ===== */
@@ -1426,38 +1792,38 @@ body.panel-open .location-search-controls {
   .photo-viewer-sidebar {
     width: 180px;
   }
-  
+
   .sidebar-toggle {
     left: 180px;
   }
-  
-  .photo-viewer-sidebar.collapsed ~ .photo-viewer-main {
+
+  .photo-viewer-sidebar.collapsed~.photo-viewer-main {
     margin-left: -180px;
   }
-  
+
   .photo-thumbnail-vertical {
     height: 80px;
   }
-  
+
   .photo-nav {
     width: 48px;
     height: 48px;
     font-size: 36px;
   }
-  
+
   .photo-nav-prev {
     left: 16px;
   }
-  
+
   .photo-nav-next {
     right: 16px;
   }
-  
+
   .photo-minimap {
     width: 120px;
     height: 120px;
   }
-  
+
   .photo-metadata {
     bottom: 150px;
     font-size: 14px;
@@ -1478,7 +1844,8 @@ body.panel-open .location-search-controls {
   overflow: hidden;
   cursor: pointer;
   background-color: var(--color-bg);
-  z-index: 1; /* Below search bar */
+  z-index: 1;
+  /* Below search bar */
 }
 
 .hero-image {
@@ -1499,7 +1866,8 @@ body.panel-open .location-search-controls {
   position: absolute;
   bottom: 12px;
   left: 12px;
-  display: none; /* Hidden by default */
+  display: none;
+  /* Hidden by default */
   align-items: center;
   gap: 4px;
   padding: 4px 8px;
@@ -1512,7 +1880,8 @@ body.panel-open .location-search-controls {
 }
 
 .photos-hero:hover .see-photos-popup {
-  display: flex; /* Show on hover */
+  display: flex;
+  /* Show on hover */
 }
 
 .see-photos-popup:hover {
@@ -1655,7 +2024,8 @@ body.panel-open .location-search-controls {
 }
 
 .photo-thumbnail-vertical.active {
-  border-color: #1a73e8; /* Cerulean border */
+  border-color: #1a73e8;
+  /* Cerulean border */
 }
 
 /* Sidebar Toggle Button */
@@ -1682,7 +2052,7 @@ body.panel-open .location-search-controls {
   background-color: rgba(0, 0, 0, 0.8);
 }
 
-.photo-viewer-sidebar.collapsed + .sidebar-toggle {
+.photo-viewer-sidebar.collapsed+.sidebar-toggle {
   left: 0;
 }
 
@@ -1691,7 +2061,7 @@ body.panel-open .location-search-controls {
   transition: transform 0.3s ease;
 }
 
-.photo-viewer-sidebar.collapsed + .sidebar-toggle .toggle-icon {
+.photo-viewer-sidebar.collapsed+.sidebar-toggle .toggle-icon {
   transform: rotate(180deg);
 }
 
@@ -1709,7 +2079,7 @@ body.panel-open .location-search-controls {
   transition: margin-left 0.3s ease;
 }
 
-.photo-viewer-sidebar.collapsed ~ .photo-viewer-main {
+.photo-viewer-sidebar.collapsed~.photo-viewer-main {
   margin-left: -250px;
 }
 
@@ -1769,7 +2139,8 @@ body.panel-open .location-search-controls {
 /* Photo Metadata Overlay */
 .photo-metadata {
   position: absolute;
-  bottom: 180px; /* Above mini map */
+  bottom: 180px;
+  /* Above mini map */
   left: 20px;
   background-color: rgba(0, 0, 0, 0.7);
   padding: 12px 16px;
@@ -1834,38 +2205,38 @@ body.panel-open .location-search-controls {
   .photo-viewer-sidebar {
     width: 180px;
   }
-  
+
   .sidebar-toggle {
     left: 180px;
   }
-  
-  .photo-viewer-sidebar.collapsed ~ .photo-viewer-main {
+
+  .photo-viewer-sidebar.collapsed~.photo-viewer-main {
     margin-left: -180px;
   }
-  
+
   .photo-thumbnail-vertical {
     height: 80px;
   }
-  
+
   .photo-nav {
     width: 48px;
     height: 48px;
     font-size: 36px;
   }
-  
+
   .photo-nav-prev {
     left: 16px;
   }
-  
+
   .photo-nav-next {
     right: 16px;
   }
-  
+
   .photo-minimap {
     width: 120px;
     height: 120px;
   }
-  
+
   .photo-metadata {
     bottom: 150px;
     font-size: 14px;
@@ -1878,7 +2249,7 @@ body.panel-open .location-search-controls {
     top: 0;
     left: 0;
   }
-  
+
   /* Full screen gallery mode on mobile */
   .side-panel.gallery-mode {
     height: 100vh;
@@ -1886,139 +2257,221 @@ body.panel-open .location-search-controls {
 }
 
 
-  .header-title {
-    font-size: 14px;
-  }
-
-  .search-container {
-    max-width: none;
-  }
-
-  .search-box {
-    padding: 0 8px 0 12px;
-    height: 40px;
-  }
-
-  .search-input {
-    font-size: 14px;
-  }
-
-  .time-filter-bar {
-    top: calc(var(--safe-top) + var(--header-height) + 8px);
-    left: 8px;
-    padding: 4px;
-    gap: 2px;
-  }
-
-  .time-filter-btn {
-    font-size: 11px;
-    padding: 6px 10px;
-  }
-
-  .stats-bar {
-    bottom: 16px;
-    padding: 8px 12px;
-    gap: 16px;
-  }
-
-  .stat-value {
-    font-size: 14px;
-  }
-
-  .stat-label {
-    font-size: 10px;
-  }
-
-  .legend {
-    display: none;
-  }
-
-  /* Info link mobile styles removed - now uses stats-pill styles */
+.header-title {
+  font-size: 14px;
 }
 
-  body.panel-open #map,
-  body.mobile-panel-open #map {
-    width: 100vw !important;
-    margin-left: 0 !important;
+.search-container {
+  max-width: none;
+}
+
+.search-box {
+  padding: 0 8px 0 12px;
+  height: 40px;
+}
+
+.search-input {
+  font-size: 14px;
+}
+
+.time-filter-bar {
+  top: calc(var(--safe-top) + var(--header-height) + 8px);
+  left: 8px;
+  padding: 4px;
+  gap: 2px;
+}
+
+.time-filter-btn {
+  font-size: 11px;
+  padding: 6px 10px;
+}
+
+.stats-bar {
+  bottom: 16px;
+  padding: 8px 12px;
+  gap: 16px;
+}
+
+.stat-value {
+  font-size: 14px;
+}
+
+.stat-label {
+  font-size: 10px;
+}
+
+.legend {
+  display: none;
+}
+
+/* Info link mobile styles removed - now uses stats-pill styles */
+}
+
+body.panel-open #map,
+body.mobile-panel-open #map {
+  width: 100vw !important;
+  margin-left: 0 !important;
+}
+
+body.panel-open .header,
+body.mobile-panel-open .header {
+  left: 0 !important;
+}
+
+body.panel-open .time-filter-bar,
+body.mobile-panel-open .time-filter-bar {
+  left: 8px !important;
+}
+
+body.panel-open .stats-bar,
+body.mobile-panel-open .stats-bar {
+  left: 50% !important;
+}
+
+body.panel-open .map-controls,
+body.mobile-panel-open .map-controls {
+  right: 8px !important;
+}
+
+.map-controls {
+  bottom: 96px;
+  right: 8px;
+}
+
+/* Zoom controls stay bottom right on mobile */
+.leaflet-control-zoom {
+  bottom: 16px !important;
+  right: 8px !important;
+}
+
+
+.location-search-controls {
+  left: 50% !important;
+  transform: translateX(-50%);
+  width: calc(100% - 32px);
+  flex-wrap: wrap;
+  justify-content: center;
+}
+
+/* Top bar mobile - wrap pills below search */
+.top-bar {
+  flex-direction: row;
+  flex-wrap: wrap;
+}
+
+.search-bar {
+  width: calc(100% - 16px);
+  flex-shrink: 1;
+}
+
+.category-pills {
+  width: 100%;
+  overflow-x: auto;
+  flex-wrap: nowrap;
+  -webkit-overflow-scrolling: touch;
+}
+
+.filter-pill,
+.filter-dropdown,
+.stats-pill {
+  padding: 8px 12px;
+  font-size: 12px;
+}
+
+/* Side panel header mobile */
+/* Side panel header removed */
+
+/* Side panel gallery mobile */
+.gallery-thumbnails-vertical {
+  width: 80px;
+  padding: 8px;
+}
+
+.gallery-nav-btn {
+  width: 40px;
+  height: 40px;
+}
+
+/* Right-side viewer mobile */
+.right-image-viewer {
+  left: 0;
+  /* Full screen on mobile */
+}
+
+/* Hide side panel on mobile when viewer is active */
+body.right-viewer-active .side-panel {
+  display: none !important;
+  /* Hide side panel on mobile when viewer is active */
+}
+}
+
+/* Desktop: Ensure side panel stays visible when right viewer is active */
+/* This must come after mobile media query to override */
+@media (min-width: 769px) {
+  body.right-viewer-active .side-panel.active {
+    display: flex !important;
+    z-index: 1001 !important;
+    visibility: visible !important;
+    opacity: 1 !important;
   }
 
-  body.panel-open .header,
-  body.mobile-panel-open .header {
-    left: 0 !important;
+  /* Ensure right viewer is positioned correctly next to side panel */
+  /* Side panel is exactly 429px wide, so right viewer must start at exactly 429px */
+  body.right-viewer-active .right-image-viewer {
+    position: fixed !important;
+    left: 429px !important;
+    /* Exactly at side panel's right edge - no overlap */
+    right: 0 !important;
+    width: auto !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    transform: none !important;
+    border: none !important;
+    box-shadow: none !important;
   }
 
-  body.panel-open .time-filter-bar,
-  body.mobile-panel-open .time-filter-bar {
-    left: 8px !important;
+  body.right-viewer-active.side-panel-collapsed .right-image-viewer {
+    position: fixed !important;
+    left: 48px !important;
+    /* Exactly at collapsed side panel's right edge */
+    right: 0 !important;
+    width: auto !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    transform: none !important;
+    border: none !important;
+    box-shadow: none !important;
   }
 
-  body.panel-open .stats-bar,
-  body.mobile-panel-open .stats-bar {
-    left: 50% !important;
+  /* Ensure side panel doesn't extend beyond its width */
+  body.right-viewer-active .side-panel.active {
+    width: 429px !important;
+    max-width: 429px !important;
+    box-sizing: border-box !important;
+    border: none !important;
+    margin: 0 !important;
+    padding: 0 !important;
   }
 
-  body.panel-open .map-controls,
-  body.mobile-panel-open .map-controls {
-    right: 8px !important;
+  .right-viewer-nav {
+    bottom: 60px;
   }
 
-  .map-controls {
-    bottom: 96px;
-    right: 8px;
-  }
-
-  /* Zoom controls stay bottom right on mobile */
-  .leaflet-control-zoom {
-    bottom: 16px !important;
-    right: 8px !important;
-  }
-
-
-  .location-search-controls {
-    left: 50% !important;
-    transform: translateX(-50%);
-    width: calc(100% - 32px);
-    flex-wrap: wrap;
-    justify-content: center;
-  }
-
-  /* Top bar mobile - wrap pills below search */
-  .top-bar {
-    flex-direction: row;
-    flex-wrap: wrap;
-  }
-
-  .search-bar {
-    width: calc(100% - 16px);
-    flex-shrink: 1;
-  }
-
-  .category-pills {
-    width: 100%;
-    overflow-x: auto;
-    flex-wrap: nowrap;
-    -webkit-overflow-scrolling: touch;
-  }
-
-  .filter-pill,
-  .filter-dropdown,
-  .stats-pill {
-    padding: 8px 12px;
-    font-size: 12px;
-  }
-
-  /* Side panel header mobile */
-  /* Side panel header removed */
-
-  /* Side panel gallery mobile */
-  .gallery-thumbnails-vertical {
-    width: 80px;
-    padding: 8px;
-  }
-
-  .gallery-nav-btn {
+  .right-viewer-nav-btn {
     width: 40px;
     height: 40px;
+  }
+
+  .right-viewer-header {
+    padding: 12px 16px;
+  }
+
+  .right-viewer-title>span:first-child {
+    font-size: 14px;
+  }
+
+  .right-viewer-photo-info {
+    font-size: 11px;
   }
 
   .radius-slider {

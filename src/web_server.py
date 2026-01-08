@@ -39,7 +39,8 @@ def get_og_image_url(base_url):
     return f"{base_url}/static/parking-icon.png"
 
 @app.route('/')
-def index():
+@app.route('/citation/<citation_number>')
+def index(citation_number=None):
     """Main map page"""
     # Generate absolute URLs for Open Graph meta tags
     base_url = request.url_root.rstrip('/')

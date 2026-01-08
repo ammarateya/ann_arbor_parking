@@ -15,6 +15,12 @@ function closeSidePanel() {
     document.body.classList.remove("panel-open");
   }
   closeCitationPopup();
+  closeSidePanelGallery();
+  
+  // Clear URL deep link if present
+  if (window.location.pathname.includes('/citation/')) {
+    window.history.pushState({}, '', '/');
+  }
 }
 
 // #region agent log (debug)
@@ -85,6 +91,46 @@ function closeSidePanel() {
   } catch (e) {}
 })();
 // #endregion agent log (debug)
+
+// ... existing code ...
+
+// Close side panel gallery
+let sidePanelGalleryKeyHandler = null;
+function closeSidePanelGallery() {
+  const sidePanel = document.getElementById("sidePanel");
+  const sidePanelContent = document.getElementById("sidePanelContent");
+  const sidePanelGallery = document.getElementById("sidePanelGallery");
+  const rightViewer = document.getElementById("rightImageViewer");
+
+  if (sidePanelContent) sidePanelContent.style.display = "block";
+  if (sidePanelGallery) {
+    sidePanelGallery.style.display = "none";
+    // Remove keyboard handler if it exists
+    if (sidePanelGalleryKeyHandler) {
+      document.removeEventListener("keydown", sidePanelGalleryKeyHandler);
+      sidePanelGalleryKeyHandler = null;
+    }
+  }
+
+  // Hide right-side viewer and show map
+  if (rightViewer) {
+    rightViewer.style.display = "none";
+    document.body.classList.remove("right-viewer-active");
+  }
+
+  // Remove gallery-mode class
+  if (sidePanel) {
+    sidePanel.classList.remove("gallery-mode");
+    // Ensure panel is expanded when returning from gallery
+    if (sidePanel.classList.contains("collapsed")) {
+        toggleSidePanelCollapse();
+    }
+  }
+
+  sidePanelGalleryImages = [];
+  sidePanelGalleryCitation = null;
+  sidePanelGalleryIndex = 0;
+}
 // Initialize map centered on Ann Arbor with performance optimizations
 console.log("[map.js] script loaded");
 
@@ -658,12 +704,66 @@ async function loadCitations() {
 
       // Hide loading
       document.getElementById("loading").style.display = "none";
+      
+      // Check for deep link
+      await handleDeepLink();
     }
   } catch (error) {
     console.error("Error loading citations:", error);
     document.getElementById("loading").textContent = "Error loading citations";
   }
 }
+
+// Handle deep linking for citations
+async function handleDeepLink() {
+  const path = window.location.pathname;
+  const match = path.match(/\/citation\/(\d+)/);
+  if (match && match[1]) {
+    const citationNumber = match[1];
+    
+    // First try to find it in the loaded markers
+    if (citationToMarker.has(citationNumber)) {
+      const marker = citationToMarker.get(citationNumber);
+      showCitationDetails(marker._citation);
+      map.setView(marker.getLatLng(), 18);
+    } else {
+      // If not in current view (e.g. filtered out or paginated), fetch it directly
+      try {
+        const response = await fetch(`/api/citation/${citationNumber}`);
+        const data = await response.json();
+        
+        if (data.status === 'success' && data.citation) {
+          showCitationDetails(data.citation);
+          
+          if (data.citation.latitude && data.citation.longitude) {
+            const lat = parseFloat(data.citation.latitude);
+            const lon = parseFloat(data.citation.longitude);
+            map.setView([lat, lon], 18);
+            
+            // Create a temporary marker if one doesn't exist
+            const tempMarker = L.marker([lat, lon], {
+                icon: L.icon({
+                  iconUrl: pinIcons.red, // default to red for deep link
+                  iconSize: [32, 40],
+                  iconAnchor: [16, 40],
+                })
+            }).addTo(map);
+            tempMarker.bindPopup("Filtered citation").openPopup();
+          }
+        }
+      } catch (e) {
+        console.error("Failed to load deep linked citation", e);
+      }
+    }
+  } else if (path === '/') {
+    // If returning to root, ensure side panel is closed
+    closeSidePanel();
+  }
+}
+
+window.addEventListener('popstate', () => {
+  handleDeepLink();
+});
 
 // Get offset for duplicate coordinates
 function getOffsetCoordinates(lat, lon) {
@@ -820,6 +920,12 @@ function createMarkerForCitation(citation) {
   marker.on("click", function () {
     const currentZoom = map.getZoom();
     closeCitationPopup();
+    
+    // Update URL
+    if (citation.citation_number) {
+        window.history.pushState({}, '', '/citation/' + citation.citation_number);
+    }
+    
     map.flyTo([lat, lon], currentZoom, {
       animate: true,
       duration: 0.6,
@@ -1365,12 +1471,41 @@ function openSidePanelGallery(images, startIndex, citation) {
   const galleryNavPrev = document.getElementById("galleryNavPrev");
   const galleryNavNext = document.getElementById("galleryNavNext");
 
+  // Right-side viewer elements
+  const rightViewer = document.getElementById("rightImageViewer");
+  const rightViewerImage = document.getElementById("rightViewerImage");
+  const rightViewerLoading = document.getElementById("rightViewerLoading");
+  const rightViewerTitle = document.getElementById("rightViewerCitationTitle");
+  const rightViewerPhotoInfo = document.getElementById("rightViewerPhotoInfo");
+  const rightViewerCloseBtn = document.getElementById("rightViewerCloseBtn");
+  const rightViewerNavPrev = document.getElementById("rightViewerNavPrev");
+  const rightViewerNavNext = document.getElementById("rightViewerNavNext");
+
+  // Ensure side panel is visible
+  if (sidePanel) {
+    sidePanel.classList.add("active");
+    sidePanel.classList.add("gallery-mode");
+  }
+
   // Hide citation details, show gallery
   if (sidePanelContent) sidePanelContent.style.display = "none";
   if (sidePanelGallery) sidePanelGallery.style.display = "flex";
 
-  // Add gallery-mode class for mobile full-screen
-  if (sidePanel) sidePanel.classList.add("gallery-mode");
+  // Show right-side viewer and hide map
+  if (rightViewer) {
+    rightViewer.style.display = "flex";
+    document.body.classList.add("right-viewer-active");
+  }
+
+  // Update right viewer header
+  if (rightViewerTitle && citation) {
+    rightViewerTitle.textContent = `Citation #${citation.citation_number || "Unknown"}`;
+  }
+  if (rightViewerPhotoInfo && images[startIndex]) {
+    const img = images[startIndex];
+    const dateStr = img.date || img.caption || "";
+    rightViewerPhotoInfo.textContent = dateStr ? `Photo - ${dateStr}` : "Photo";
+  }
 
   // Populate thumbnails
   if (galleryThumbnails) {
@@ -1392,7 +1527,7 @@ function openSidePanelGallery(images, startIndex, citation) {
     });
   }
 
-  // Load initial photo
+  // Load initial photo in both views
   loadSidePanelGalleryPhoto(sidePanelGalleryIndex);
 
   // Attach handlers
@@ -1406,6 +1541,37 @@ function openSidePanelGallery(images, startIndex, citation) {
     galleryNavNext.onclick = () => navigateSidePanelGallery(1);
   }
 
+  // Right viewer handlers
+  if (rightViewerCloseBtn) {
+    rightViewerCloseBtn.onclick = closeSidePanelGallery;
+  }
+  if (rightViewerNavPrev) {
+    rightViewerNavPrev.onclick = () => navigateSidePanelGallery(-1);
+  }
+  if (rightViewerNavNext) {
+    rightViewerNavNext.onclick = () => navigateSidePanelGallery(1);
+  }
+  const rightViewerShareBtn = document.getElementById("rightViewerShareBtn");
+  if (rightViewerShareBtn) {
+    rightViewerShareBtn.onclick = () => {
+      // Placeholder for share functionality
+      if (navigator.share && rightViewerImage && rightViewerImage.src) {
+        navigator.share({
+          title: rightViewerTitle ? rightViewerTitle.textContent : "Citation Photo",
+          url: rightViewerImage.src,
+        }).catch(() => {
+          // Fallback: copy to clipboard
+          navigator.clipboard.writeText(rightViewerImage.src);
+        });
+      } else if (rightViewerImage && rightViewerImage.src) {
+        // Fallback: copy to clipboard
+        navigator.clipboard.writeText(rightViewerImage.src).then(() => {
+          alert("Image URL copied to clipboard");
+        });
+      }
+    };
+  }
+
   // Keyboard navigation
   sidePanelGalleryKeyHandler = (e) => {
     if (e.key === "ArrowLeft") navigateSidePanelGallery(-1);
@@ -1415,30 +1581,61 @@ function openSidePanelGallery(images, startIndex, citation) {
   document.addEventListener("keydown", sidePanelGalleryKeyHandler);
 }
 
-// Close side panel gallery
-let sidePanelGalleryKeyHandler = null;
-function closeSidePanelGallery() {
-  const sidePanel = document.getElementById("sidePanel");
-  const sidePanelContent = document.getElementById("sidePanelContent");
-  const sidePanelGallery = document.getElementById("sidePanelGallery");
 
-  if (sidePanelContent) sidePanelContent.style.display = "block";
-  if (sidePanelGallery) {
-    sidePanelGallery.style.display = "none";
-    // Remove keyboard handler if it exists
-    if (sidePanelGalleryKeyHandler) {
-      document.removeEventListener("keydown", sidePanelGalleryKeyHandler);
-      sidePanelGalleryKeyHandler = null;
+
+// Toggle side panel collapse/expand (Google Maps style)
+function toggleSidePanelCollapse() {
+  const sidePanel = document.getElementById("sidePanel");
+  const rightViewer = document.getElementById("rightImageViewer");
+  const collapseText = document.getElementById("collapseText");
+  const collapseIcon = document.getElementById("collapseIcon");
+  const searchBarPanel = document.getElementById("searchBarPanel");
+  
+  if (!sidePanel) return;
+  
+  const isCollapsed = sidePanel.classList.contains("collapsed");
+  
+  if (isCollapsed) {
+    // Expand
+    sidePanel.classList.remove("collapsed");
+    document.body.classList.remove("side-panel-collapsed");
+    if (rightViewer && rightViewer.style.display !== "none") {
+      rightViewer.style.left = "429px";
+    }
+    // Show search bar when expanded
+    if (searchBarPanel) searchBarPanel.style.display = "";
+    
+    if (collapseText) collapseText.textContent = "Collapse";
+    if (collapseIcon) {
+      collapseIcon.setAttribute("d", "M15 18l-6-6 6-6");
+    }
+  } else {
+    // Collapse
+    sidePanel.classList.add("collapsed");
+    document.body.classList.add("side-panel-collapsed");
+    if (rightViewer && rightViewer.style.display !== "none") {
+      rightViewer.style.left = "48px";
+    }
+    // Hide search bar when collapsed
+    if (searchBarPanel) searchBarPanel.style.display = "none";
+    
+    if (collapseText) collapseText.textContent = "Expand";
+    if (collapseIcon) {
+      collapseIcon.setAttribute("d", "M9 18l6-6-6-6");
     }
   }
-
-  // Remove gallery-mode class
-  if (sidePanel) sidePanel.classList.remove("gallery-mode");
-
-  sidePanelGalleryImages = [];
-  sidePanelGalleryCitation = null;
-  sidePanelGalleryIndex = 0;
 }
+
+// Initialize collapse button handler
+(function initSidePanelCollapse() {
+  const collapseTab = document.getElementById("sidePanelCollapseTab");
+  if (collapseTab) {
+    collapseTab.addEventListener("click", (e) => {
+      e.stopPropagation();
+      toggleSidePanelCollapse();
+    });
+  }
+})();
 
 // Load a specific photo in side panel gallery
 function loadSidePanelGalleryPhoto(index) {
@@ -1455,15 +1652,23 @@ function loadSidePanelGalleryPhoto(index) {
   const galleryLoading = document.getElementById("galleryLoadingSpinner");
   const thumbnails = document.querySelectorAll(".gallery-thumbnail-item");
 
+  // Right-side viewer elements
+  const rightViewerImage = document.getElementById("rightViewerImage");
+  const rightViewerLoading = document.getElementById("rightViewerLoading");
+  const rightViewerPhotoInfo = document.getElementById("rightViewerPhotoInfo");
+
   if (!galleryMainPhoto) return;
 
-  // Show loading
+  // Show loading in both views
   if (galleryLoading) galleryLoading.style.display = "flex";
   galleryMainPhoto.style.display = "none";
+  if (rightViewerLoading) rightViewerLoading.style.display = "flex";
+  if (rightViewerImage) rightViewerImage.style.display = "none";
 
   // Preload image for faster display
   const preloader = new Image();
   preloader.onload = () => {
+    // Update side panel image
     galleryMainPhoto.src = preloader.src;
     galleryMainPhoto.alt =
       imgObj.caption ||
@@ -1472,18 +1677,38 @@ function loadSidePanelGalleryPhoto(index) {
       }`;
     if (galleryLoading) galleryLoading.style.display = "none";
     galleryMainPhoto.style.display = "block";
+
+    // Update right viewer image
+    if (rightViewerImage) {
+      rightViewerImage.src = preloader.src;
+      rightViewerImage.alt = galleryMainPhoto.alt;
+      if (rightViewerLoading) rightViewerLoading.style.display = "none";
+      rightViewerImage.style.display = "block";
+    }
+
+    // Update photo info in right viewer header
+    if (rightViewerPhotoInfo) {
+      const dateStr = imgObj.date || imgObj.caption || "";
+      rightViewerPhotoInfo.textContent = dateStr ? `Photo - ${dateStr}` : "Photo";
+    }
   };
 
   preloader.onerror = () => {
     console.error("[gallery] Failed to load image:", imgObj.url);
     if (galleryLoading) galleryLoading.style.display = "none";
+    if (rightViewerLoading) rightViewerLoading.style.display = "none";
     // Try direct load as fallback
     galleryMainPhoto.src = imgObj.url;
     galleryMainPhoto.style.display = "block";
+    if (rightViewerImage) {
+      rightViewerImage.src = imgObj.url;
+      rightViewerImage.style.display = "block";
+    }
   };
 
   preloader.src = imgObj.url;
   galleryMainPhoto.decoding = "async";
+  if (rightViewerImage) rightViewerImage.decoding = "async";
 
   // Update active thumbnail
   thumbnails.forEach((thumb, idx) => {
@@ -2418,6 +2643,7 @@ loadCitations();
   // Clear button handler
   if (searchClearBtn) {
     searchClearBtn.addEventListener("click", function () {
+      closeSidePanel(); // Close panel and reset view
       searchInput.value = "";
       searchClearBtn.style.display = "none";
       lastSearchQuery = "";
