@@ -1493,8 +1493,8 @@ body.panel-open .location-search-controls {
   left: 12px;
   display: none; /* Hidden by default */
   align-items: center;
-  gap: 8px;
-  padding: 8px 12px;
+  gap: 4px;
+  padding: 4px 8px;
   background: rgba(60, 64, 67, 0.9);
   border: none;
   border-radius: 4px;
@@ -1518,7 +1518,7 @@ body.panel-open .location-search-controls {
 
 .see-photos-text {
   color: white;
-  font-size: 14px;
+  font-size: 12px;
   font-weight: 500;
   font-family: var(--font-primary);
 }
