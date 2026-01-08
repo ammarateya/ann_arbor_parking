@@ -481,8 +481,13 @@ body.panel-open #map {
   flex-direction: column;
 }
 
-/* Custom scrollbar styling */
+/* Custom scrollbar styling - hidden by default, visible on hover */
 .side-panel::-webkit-scrollbar {
+  width: 0;
+  background: transparent;
+}
+
+.side-panel:hover::-webkit-scrollbar {
   width: 8px;
 }
 
@@ -491,8 +496,12 @@ body.panel-open #map {
 }
 
 .side-panel::-webkit-scrollbar-thumb {
-  background: #dadce0;
+  background: transparent;
   border-radius: 4px;
+}
+
+.side-panel:hover::-webkit-scrollbar-thumb {
+  background: #dadce0;
 }
 
 .side-panel::-webkit-scrollbar-thumb:hover {
