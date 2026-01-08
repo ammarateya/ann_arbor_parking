@@ -1073,18 +1073,18 @@ async function showCitationDetails(citation, markerLatLng = null) {
   // Fetch images first so we can preload before showing panel
   let images = [];
   let preloadedImageUrl = null;
-  
+
   try {
     const response = await fetch(`/api/citation/${citation.citation_number}`);
     const data = await response.json();
-    
+
     // Support both response shapes
     if (data && Array.isArray(data.images) && data.images.length > 0) {
       images = data.images;
     } else if (data?.citation?.images?.length > 0) {
       images = data.citation.images;
     }
-    
+
     // Preload the hero image BEFORE opening panel
     if (images.length > 0) {
       preloadedImageUrl = await new Promise((resolve) => {
