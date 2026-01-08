@@ -87,6 +87,17 @@ function closeSidePanel() {
 // #endregion agent log (debug)
 // Initialize map centered on Ann Arbor with performance optimizations
 console.log("[map.js] script loaded");
+
+// Helper function to format dollar amount with SVG icon
+function formatDollarAmount(amount) {
+  const formatted = amount.toLocaleString(undefined, {
+    minimumFractionDigits: 0,
+    maximumFractionDigits: 0,
+  });
+  const dollarIcon = '<svg xmlns="http://www.w3.org/2000/svg" height="14px" viewBox="0 -960 960 960" width="14px" fill="currentColor"><path d="M441-120v-86q-53-12-91.5-46T293-348l74-30q15 48 44.5 73t77.5 25q41 0 69.5-18.5T587-356q0-35-22-55.5T463-458q-86-27-118-64.5T313-614q0-65 42-101t86-41v-84h80v84q50 8 82.5 36.5T651-650l-74 32q-12-32-34-48t-60-16q-44 0-67 19.5T393-614q0 33 30 52t104 40q69 20 104.5 63.5T667-358q0 71-42 108t-104 46v84h-80Z"/></svg>';
+  return dollarIcon + formatted;
+}
+
 // Define Ann Arbor bounds (roughly 15-20 miles radius)
 const annArborBounds = L.latLngBounds(
   [42.15, -83.9], // Southwest corner
@@ -231,13 +242,12 @@ const pinIcons = {
   red: createPinDataURL("#EA4335"),
 };
 
-// Create canvas icon from SVG pin
+// Create canvas icon from SVG location marker
 function createPinDataURL(color) {
-  const svg = `<svg width="32" height="40" viewBox="0 0 32 40" xmlns="http://www.w3.org/2000/svg">
-          <path d="M16 0C7.16 0 0 7.16 0 16c0 8.84 16 24 16 24s16-15.16 16-24C32 7.16 24.84 0 16 0z" fill="${color}" stroke="#fff" stroke-width="2"/>
-          <circle cx="16" cy="14" r="8" fill="#fff"/>
+  const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="40" height="40" viewBox="0 -960 960 960">
+          <path d="M480-480q33 0 56.5-23.5T560-560q0-33-23.5-56.5T480-640q-33 0-56.5 23.5T400-560q0 33 23.5 56.5T480-480Zm0 294q122-112 181-203.5T720-552q0-109-69.5-178.5T480-800q-101 0-170.5 69.5T240-552q0 71 59 162.5T480-186Zm0 106Q319-217 239.5-334.5T160-552q0-150 96.5-239T480-880q127 0 223.5 89T800-552q0 100-79.5 217.5T480-80Zm0-480Z" fill="${color}"/>
         </svg>`;
-  return "data:image/svg+xml;base64," + btoa(svg);
+  return "data:image/svg+xml;charset=utf-8," + encodeURIComponent(svg);
 }
 
 // Initialize markers layer group for efficient rendering
@@ -327,13 +337,8 @@ async function showOnlyMarkers(list) {
       (sum, c) => sum + (parseFloat(c.amount_due) || 0),
       0
     );
-    const totalAmountFormatted =
-      "$" +
-      totalAmount.toLocaleString(undefined, {
-        minimumFractionDigits: 0,
-        maximumFractionDigits: 0,
-      });
-    document.getElementById("totalAmount").textContent = totalAmountFormatted;
+    const totalAmountFormatted = formatDollarAmount(totalAmount);
+    document.getElementById("totalAmount").innerHTML = totalAmountFormatted;
 
     // Update stats pills
     const statsPillCitations = document.getElementById(
@@ -342,7 +347,7 @@ async function showOnlyMarkers(list) {
     const statsPillTotal = document.getElementById("statsPillTotalValue");
     if (statsPillCitations)
       statsPillCitations.textContent = totalCountFormatted;
-    if (statsPillTotal) statsPillTotal.textContent = totalAmountFormatted;
+    if (statsPillTotal) statsPillTotal.innerHTML = totalAmountFormatted;
 
     // Legend buckets
     let redCount = 0; // >= $76
@@ -494,25 +499,27 @@ async function loadCitations() {
                    </div>
                  `;
           document.getElementById("totalCitations").textContent = "0";
-          document.getElementById("totalAmount").textContent = "$0";
+          document.getElementById("totalAmount").innerHTML = formatDollarAmount(0);
           return;
         }
         // If just no citations in past week, that's fine - show empty state
       }
 
       // Update stats
-      document.getElementById("totalCitations").textContent =
-        citations.length.toLocaleString();
+      const totalCountFormatted = citations.length.toLocaleString();
+      document.getElementById("totalCitations").textContent = totalCountFormatted;
       const totalAmount = citations.reduce(
         (sum, c) => sum + (parseFloat(c.amount_due) || 0),
         0
       );
-      document.getElementById("totalAmount").textContent =
-        "$" +
-        totalAmount.toLocaleString(undefined, {
-          minimumFractionDigits: 0,
-          maximumFractionDigits: 0,
-        });
+      const totalAmountFormatted = formatDollarAmount(totalAmount);
+      document.getElementById("totalAmount").innerHTML = totalAmountFormatted;
+
+      // Update stats pills for total citations and total amount
+      const statsPillCitations = document.getElementById("statsPillCitationsValue");
+      const statsPillTotal = document.getElementById("statsPillTotalValue");
+      if (statsPillCitations) statsPillCitations.textContent = totalCountFormatted;
+      if (statsPillTotal) statsPillTotal.innerHTML = totalAmountFormatted;
 
       // Compute today's stats in America/Detroit
       const detroitTZ = "America/Detroit";
@@ -545,22 +552,20 @@ async function loadCitations() {
         }
       });
       const countTodayFormatted = countToday.toLocaleString();
-      const amountTodayFormatted =
-        "$" +
-        amountToday.toLocaleString(undefined, {
-          minimumFractionDigits: 0,
-          maximumFractionDigits: 0,
-        });
+      const amountTodayFormatted = formatDollarAmount(amountToday);
       document.getElementById("totalCitationsToday").textContent =
         countTodayFormatted;
-      document.getElementById("totalAmountToday").textContent =
+      document.getElementById("totalAmountToday").innerHTML =
         amountTodayFormatted;
 
       // Update stats pills
       const statsPillToday = document.getElementById("statsPillTodayValue");
-      const statsPillTodayTotal = document.getElementById("statsPillTodayTotalValue");
+      const statsPillTodayTotal = document.getElementById(
+        "statsPillTodayTotalValue"
+      );
       if (statsPillToday) statsPillToday.textContent = countTodayFormatted;
-      if (statsPillTodayTotal) statsPillTodayTotal.textContent = amountTodayFormatted;
+      if (statsPillTodayTotal)
+        statsPillTodayTotal.innerHTML = amountTodayFormatted;
 
       // Update most recent citation time (America/Detroit)
       if (data.most_recent_citation_time) {
@@ -798,8 +803,8 @@ function createMarkerForCitation(citation) {
   const marker = L.marker([lat, lon], {
     icon: L.icon({
       iconUrl: iconUrl,
-      iconSize: [32, 40],
-      iconAnchor: [16, 40],
+      iconSize: [40, 40],
+      iconAnchor: [20, 20],
     }),
     riseOnHover: true,
     keyboard: false,
@@ -1858,20 +1863,15 @@ function updateStatsForFilter(period, cutoffTimestamp) {
     (sum, c) => sum + (parseFloat(c.amount_due) || 0),
     0
   );
-  const filteredAmountFormatted =
-    "$" +
-    totalAmount.toLocaleString(undefined, {
-      minimumFractionDigits: 0,
-      maximumFractionDigits: 0,
-    });
-  document.getElementById("totalAmount").textContent = filteredAmountFormatted;
+  const filteredAmountFormatted = formatDollarAmount(totalAmount);
+  document.getElementById("totalAmount").innerHTML = filteredAmountFormatted;
 
   // Update stats pills
   const statsPillCitations = document.getElementById("statsPillCitationsValue");
   const statsPillTotal = document.getElementById("statsPillTotalValue");
   if (statsPillCitations)
     statsPillCitations.textContent = filteredCountFormatted;
-  if (statsPillTotal) statsPillTotal.textContent = filteredAmountFormatted;
+  if (statsPillTotal) statsPillTotal.innerHTML = filteredAmountFormatted;
 
   // Update legend counts for filtered citations
   let redCount = 0;
@@ -2568,18 +2568,13 @@ loadCitations();
       (sum, c) => sum + (parseFloat(c.amount_due) || 0),
       0
     );
-    const searchTotalFormatted =
-      "$" +
-      searchTotal.toLocaleString(undefined, {
-        minimumFractionDigits: 0,
-        maximumFractionDigits: 0,
-      });
+    const searchTotalFormatted = formatDollarAmount(searchTotal);
     const statsPillCitations = document.getElementById(
       "statsPillCitationsValue"
     );
     const statsPillTotal = document.getElementById("statsPillTotalValue");
     if (statsPillCitations) statsPillCitations.textContent = searchCount;
-    if (statsPillTotal) statsPillTotal.textContent = searchTotalFormatted;
+    if (statsPillTotal) statsPillTotal.innerHTML = searchTotalFormatted;
 
     // If single result, show it
     if (results.length === 1) {

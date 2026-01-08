@@ -82,33 +82,68 @@
     <!-- Search Bar (fixed at top, always visible) -->
     <div class="search-bar-panel" id="searchBarPanel">
       <button class="search-menu-btn" id="searchMenuBtn" title="Menu">
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-          <line x1="3" y1="6" x2="21" y2="6"/>
-          <line x1="3" y1="12" x2="21" y2="12"/>
-          <line x1="3" y1="18" x2="21" y2="18"/>
+        <svg
+          width="18"
+          height="18"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="2"
+        >
+          <line x1="3" y1="6" x2="21" y2="6" />
+          <line x1="3" y1="12" x2="21" y2="12" />
+          <line x1="3" y1="18" x2="21" y2="18" />
         </svg>
       </button>
-      <div class="search-spinner" id="searchSpinner" style="display: none;"></div>
-      <input 
-        type="text" 
-        class="search-input" 
+      <div
+        class="search-spinner"
+        id="searchSpinner"
+        style="display: none"
+      ></div>
+      <input
+        type="text"
+        class="search-input"
         id="mainSearchInput"
         placeholder="Search plates, citations..."
       />
       <button class="search-submit-btn" id="searchSubmitBtn" title="Search">
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-          <circle cx="11" cy="11" r="8"/>
-          <path d="M21 21l-4.35-4.35"/>
+        <svg
+          xmlns="http://www.w3.org/2000/svg"
+          height="18px"
+          viewBox="0 -960 960 960"
+          width="18px"
+          fill="currentColor"
+        >
+          <path d="M784-120 532-372q-30 24-69 38t-83 14q-109 0-184.5-75.5T120-580q0-109 75.5-184.5T380-840q109 0 184.5 75.5T640-580q0 44-14 83t-38 69l252 252-56 56ZM380-400q75 0 127.5-52.5T560-580q0-75-52.5-127.5T380-760q-75 0-127.5 52.5T200-580q0 75 52.5 127.5T380-400Z"/>
         </svg>
       </button>
       <button class="search-close-btn" id="searchCloseBtn" title="Close panel">
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-          <path d="M18 6L6 18M6 6l12 12"/>
+        <svg
+          width="20"
+          height="20"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="2"
+        >
+          <path d="M18 6L6 18M6 6l12 12" />
         </svg>
       </button>
-      <button class="search-clear-btn" id="searchClearBtn" title="Clear" style="display: none;">
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-          <path d="M18 6L6 18M6 6l12 12"/>
+      <button
+        class="search-clear-btn"
+        id="searchClearBtn"
+        title="Clear"
+        style="display: none"
+      >
+        <svg
+          width="20"
+          height="20"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="2"
+        >
+          <path d="M18 6L6 18M6 6l12 12" />
         </svg>
       </button>
     </div>
@@ -116,27 +151,34 @@
     <!-- Side Panel (Google Maps style) -->
     <div class="side-panel" id="sidePanel">
       <!-- Photos Hero (at top of side panel) -->
-      <div class="photos-hero" id="photosHero" style="display: none;">
+      <div class="photos-hero" id="photosHero" style="display: none">
         <div class="hero-loading-spinner" id="heroLoadingSpinner">
           <div class="spinner"></div>
         </div>
         <img class="hero-image" id="heroImage" src="" alt="Citation photo" />
         <!-- See photos popup (Google Maps style) - shown on hover -->
         <button class="see-photos-popup" id="seePhotosPopup">
-          <svg class="see-photos-icon" width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <rect x="3" y="3" width="18" height="18" rx="2" ry="2"/>
-            <circle cx="8.5" cy="8.5" r="1.5"/>
-            <polyline points="21,15 16,10 5,21"/>
+          <svg
+            class="see-photos-icon"
+            xmlns="http://www.w3.org/2000/svg"
+            height="12px"
+            viewBox="0 -960 960 960"
+            width="12px"
+            fill="currentColor"
+          >
+            <path
+              d="M200-120q-33 0-56.5-23.5T120-200v-560q0-33 23.5-56.5T200-840h560q33 0 56.5 23.5T840-760v560q0 33-23.5 56.5T760-120H200Zm0-80h560v-560H200v560Zm40-80h480L570-480 450-320l-90-120-120 160Zm-40 80v-560 560Zm140-360q25 0 42.5-17.5T400-620q0-25-17.5-42.5T340-680q-25 0-42.5 17.5T280-620q0 25 17.5 42.5T340-560Z"
+            />
           </svg>
           <span class="see-photos-text">See photos</span>
         </button>
       </div>
-      
+
       <!-- Citation Title -->
-      <div class="citation-title" id="citationTitle" style="display: none;">
+      <div class="citation-title" id="citationTitle" style="display: none">
         Citation #<span id="citationNumber"></span>
       </div>
-      
+
       <!-- Scrollable content area -->
       <div class="side-panel-content" id="sidePanelContent">
         <div class="info-item">
@@ -148,29 +190,74 @@
       </div>
 
       <!-- Side Panel Gallery View (Google Maps style) -->
-      <div class="side-panel-gallery" id="sidePanelGallery" style="display: none;">
+      <div
+        class="side-panel-gallery"
+        id="sidePanelGallery"
+        style="display: none"
+      >
         <button class="gallery-back-btn" id="galleryBackBtn">
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <path d="M19 12H5M12 19l-7-7 7-7"/>
+          <svg
+            width="20"
+            height="20"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+          >
+            <path d="M19 12H5M12 19l-7-7 7-7" />
           </svg>
           <span>Back</span>
         </button>
         <div class="gallery-container">
-          <div class="gallery-thumbnails-vertical" id="galleryThumbnailsVertical"></div>
+          <div
+            class="gallery-thumbnails-vertical"
+            id="galleryThumbnailsVertical"
+          ></div>
           <div class="gallery-main-image">
-            <div class="gallery-loading-spinner" id="galleryLoadingSpinner" style="display: none;">
+            <div
+              class="gallery-loading-spinner"
+              id="galleryLoadingSpinner"
+              style="display: none"
+            >
               <div class="spinner"></div>
             </div>
-            <img class="gallery-main-photo" id="galleryMainPhoto" src="" alt="" />
+            <img
+              class="gallery-main-photo"
+              id="galleryMainPhoto"
+              src=""
+              alt=""
+            />
             <div class="gallery-nav">
-              <button class="gallery-nav-btn gallery-nav-prev" id="galleryNavPrev" aria-label="Previous">
-                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                  <path d="M15 18l-6-6 6-6"/>
+              <button
+                class="gallery-nav-btn gallery-nav-prev"
+                id="galleryNavPrev"
+                aria-label="Previous"
+              >
+                <svg
+                  width="24"
+                  height="24"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2"
+                >
+                  <path d="M15 18l-6-6 6-6" />
                 </svg>
               </button>
-              <button class="gallery-nav-btn gallery-nav-next" id="galleryNavNext" aria-label="Next">
-                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                  <path d="M9 18l6-6-6-6"/>
+              <button
+                class="gallery-nav-btn gallery-nav-next"
+                id="galleryNavNext"
+                aria-label="Next"
+              >
+                <svg
+                  width="24"
+                  height="24"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2"
+                >
+                  <path d="M9 18l6-6-6-6" />
                 </svg>
               </button>
             </div>
@@ -185,7 +272,11 @@
     <div class="top-bar" id="topBar">
       <!-- Filter Dropdown + Stats Pills -->
       <div class="category-pills" id="categoryPills">
-        <select class="filter-dropdown" id="filterDropdown" onchange="filterByTime(this.value)">
+        <select
+          class="filter-dropdown"
+          id="filterDropdown"
+          onchange="filterByTime(this.value)"
+        >
           <option value="week" selected>Past Week</option>
           <option value="day">Past 24 Hours</option>
           <option value="hour">Past Hour</option>
@@ -196,7 +287,7 @@
           <span class="stats-pill-label">citations</span>
         </button>
         <button class="stats-pill" id="statsPillTotal">
-          <span class="stats-pill-value" id="statsPillTotalValue">$0</span>
+          <span class="stats-pill-value" id="statsPillTotalValue">0</span>
           <span class="stats-pill-label">total</span>
         </button>
         <button class="stats-pill" id="statsPillToday">
@@ -204,7 +295,7 @@
           <span class="stats-pill-label">today</span>
         </button>
         <button class="stats-pill" id="statsPillTodayTotal">
-          <span class="stats-pill-value" id="statsPillTodayTotalValue">$0</span>
+          <span class="stats-pill-value" id="statsPillTodayTotalValue">0</span>
           <span class="stats-pill-label">today</span>
         </button>
         <a
@@ -212,7 +303,17 @@
           class="stats-pill info-pill"
           title="Fun facts & project info"
         >
-          <span class="stats-pill-value">?</span>
+          <span class="stats-pill-value">
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              height="14px"
+              viewBox="0 -960 960 960"
+              width="14px"
+              fill="currentColor"
+            >
+              <path d="M424-320q0-81 14.5-116.5T500-514q41-36 62.5-62.5T584-637q0-41-27.5-68T480-732q-51 0-77.5 31T365-638l-103-44q21-64 77-111t141-47q105 0 161.5 58.5T698-641q0 50-21.5 85.5T609-475q-49 47-59.5 71.5T539-320H424Zm56 240q-33 0-56.5-23.5T400-160q0-33 23.5-56.5T480-240q33 0 56.5 23.5T560-160q0 33-23.5 56.5T480-80Z"/>
+            </svg>
+          </span>
           <span class="stats-pill-label">Learn more</span>
         </a>
       </div>
@@ -225,7 +326,7 @@
         <span class="stat-label">citations</span>
       </div>
       <div class="stat-item">
-        <span class="stat-value" id="totalAmount">$0</span>
+        <span class="stat-value" id="totalAmount">0</span>
         <span class="stat-label">total</span>
       </div>
       <div class="stat-item">
@@ -233,7 +334,7 @@
         <span class="stat-label">today</span>
       </div>
       <div class="stat-item">
-        <span class="stat-value" id="totalAmountToday">$0</span>
+        <span class="stat-value" id="totalAmountToday">0</span>
         <span class="stat-label">today $</span>
       </div>
     </div>
@@ -243,20 +344,26 @@
       <div class="legend-header">Fine Amount</div>
       <div class="legend-items-row">
         <div class="legend-item">
-          <div class="legend-marker" style="background: #EA4335;"></div>
+          <div class="legend-marker" style="background: #ea4335"></div>
           <span class="legend-text">$76+: <span id="legendRed">0</span></span>
         </div>
         <div class="legend-item">
-          <div class="legend-marker" style="background: #FA7B17;"></div>
-          <span class="legend-text">$46-75: <span id="legendOrange">0</span></span>
+          <div class="legend-marker" style="background: #fa7b17"></div>
+          <span class="legend-text"
+            >$46-75: <span id="legendOrange">0</span></span
+          >
         </div>
         <div class="legend-item">
-          <div class="legend-marker" style="background: #FBBC04;"></div>
-          <span class="legend-text">$26-45: <span id="legendYellow">0</span></span>
+          <div class="legend-marker" style="background: #fbbc04"></div>
+          <span class="legend-text"
+            >$26-45: <span id="legendYellow">0</span></span
+          >
         </div>
         <div class="legend-item">
-          <div class="legend-marker" style="background: #34A853;"></div>
-          <span class="legend-text">$0-25: <span id="legendGreen">0</span></span>
+          <div class="legend-marker" style="background: #34a853"></div>
+          <span class="legend-text"
+            >$0-25: <span id="legendGreen">0</span></span
+          >
         </div>
       </div>
     </div>
@@ -270,21 +377,16 @@
         title="Reset view"
         aria-label="Reset view"
       >
-        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-          <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/>
-          <path d="M3 3v5h5"/>
-        </svg>
-      </button>
-      <button
-        class="control-btn"
-        id="riskScoreToggleBtn"
-        title="Parking Risk Score"
-        aria-label="Parking Risk Score"
-      >
-        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-          <path d="M12 2L2 7l10 5 10-5-10-5z"/>
-          <path d="M2 17l10 5 10-5"/>
-          <path d="M2 12l10 5 10-5"/>
+        <svg
+          width="20"
+          height="20"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="2"
+        >
+          <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8" />
+          <path d="M3 3v5h5" />
         </svg>
       </button>
     </div>
@@ -292,64 +394,109 @@
     <!-- Location search controls (floating) -->
     <div class="location-search-controls" id="locationSearchControls">
       <div class="radius-control">
-        <button class="radius-btn" id="searchRadiusMinus" title="Decrease radius">-</button>
-        <input type="range" class="radius-slider" id="searchRadiusSlider" min="50" max="2000" value="250" />
-        <button class="radius-btn" id="searchRadiusPlus" title="Increase radius">+</button>
+        <button
+          class="radius-btn"
+          id="searchRadiusMinus"
+          title="Decrease radius"
+        >
+          -
+        </button>
+        <input
+          type="range"
+          class="radius-slider"
+          id="searchRadiusSlider"
+          min="50"
+          max="2000"
+          value="250"
+        />
+        <button
+          class="radius-btn"
+          id="searchRadiusPlus"
+          title="Increase radius"
+        >
+          +
+        </button>
         <span class="radius-value" id="radiusValue">250m</span>
       </div>
       <button class="near-me-btn" id="useMyLocationBtn">
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-          <circle cx="12" cy="12" r="3"/>
-          <path d="M12 2v3m0 14v3M2 12h3m14 0h3"/>
+        <svg
+          width="16"
+          height="16"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="2"
+        >
+          <circle cx="12" cy="12" r="3" />
+          <path d="M12 2v3m0 14v3M2 12h3m14 0h3" />
         </svg>
         Near me
       </button>
-      <button class="cancel-location-btn" id="clearLocationSearch">Cancel</button>
+      <button class="cancel-location-btn" id="clearLocationSearch">
+        Cancel
+      </button>
     </div>
 
     <!-- Notification panel -->
     <div class="notify-panel" id="notifyPanel">
       <div class="notify-panel-title">Get notified</div>
-      
+
       <div class="notify-panel-section">
         <div class="notify-panel-label">Subscribe by</div>
-        <select id="notifyMode" class="notify-input" style="margin-bottom: 12px;">
+        <select
+          id="notifyMode"
+          class="notify-input"
+          style="margin-bottom: 12px"
+        >
           <option value="plate">License Plate</option>
           <option value="location">Location</option>
         </select>
       </div>
-      
+
       <div id="notifyPlate">
-        <div class="notify-panel-section" style="display: flex; gap: 8px;">
+        <div class="notify-panel-section" style="display: flex; gap: 8px">
           <input
             id="notifyPlateState"
             placeholder="MI"
             maxlength="2"
             class="notify-input"
-            style="width: 60px; text-transform: uppercase;"
+            style="width: 60px; text-transform: uppercase"
           />
           <input
             id="notifyPlateNumber"
             placeholder="ABC1234"
             class="notify-input"
-            style="flex: 1;"
+            style="flex: 1"
           />
         </div>
       </div>
-      
-      <div id="notifyLocation" style="display: none;">
+
+      <div id="notifyLocation" style="display: none">
         <div class="notify-panel-section">
-          <div style="display: flex; gap: 8px; margin-bottom: 8px;">
-            <button class="near-me-btn" id="notifyUseMyLocationBtn" style="flex: 1;">
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <circle cx="12" cy="12" r="3"/>
-                <path d="M12 2v3m0 14v3M2 12h3m14 0h3"/>
+          <div style="display: flex; gap: 8px; margin-bottom: 8px">
+            <button
+              class="near-me-btn"
+              id="notifyUseMyLocationBtn"
+              style="flex: 1"
+            >
+              <svg
+                width="16"
+                height="16"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+              >
+                <circle cx="12" cy="12" r="3" />
+                <path d="M12 2v3m0 14v3M2 12h3m14 0h3" />
               </svg>
               Use my location
             </button>
-            <button class="near-me-btn" id="notifyPickCenterBtn">Pick on map</button>
+            <button class="near-me-btn" id="notifyPickCenterBtn">
+              Pick on map
+            </button>
           </div>
-          <div style="display: flex; gap: 8px; align-items: center;">
+          <div style="display: flex; gap: 8px; align-items: center">
             <input
               id="notifyRadiusMeters"
               type="number"
@@ -357,14 +504,17 @@
               max="5000"
               value="250"
               class="notify-input"
-              style="width: 80px;"
+              style="width: 80px"
             />
-            <span style="color: #5f6368; font-size: 14px;">meters radius</span>
+            <span style="color: #5f6368; font-size: 14px">meters radius</span>
           </div>
-          <div id="notifyPickedText" style="color: #5f6368; font-size: 12px; margin-top: 8px;"></div>
+          <div
+            id="notifyPickedText"
+            style="color: #5f6368; font-size: 12px; margin-top: 8px"
+          ></div>
         </div>
       </div>
-      
+
       <div class="notify-panel-section">
         <input
           id="notifyEmail"
@@ -373,36 +523,55 @@
           class="notify-input"
         />
       </div>
-      
+
       <button class="notify-btn" id="notifySubmitBtn">Subscribe</button>
-      <div id="notifyMsg" style="font-size: 12px; color: #5f6368; margin-top: 8px; text-align: center;"></div>
+      <div
+        id="notifyMsg"
+        style="
+          font-size: 12px;
+          color: #5f6368;
+          margin-top: 8px;
+          text-align: center;
+        "
+      ></div>
     </div>
 
     <!-- Risk score panel -->
-    <div class="notify-panel" id="riskScorePanel" style="display: none;">
+    <div class="notify-panel" id="riskScorePanel" style="display: none">
       <div class="notify-panel-title">Parking Risk Assessment</div>
-      
+
       <div class="notify-panel-section">
         <div class="notify-panel-label">Location</div>
-        <div style="display: flex; gap: 8px;">
+        <div style="display: flex; gap: 8px">
           <input
             id="riskAddress"
             placeholder="Enter address..."
             class="notify-input"
-            style="flex: 1;"
+            style="flex: 1"
           />
-          <button class="near-me-btn" id="riskUseMyLocationBtn" title="Use my location">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <circle cx="12" cy="12" r="3"/>
-              <path d="M12 2v3m0 14v3M2 12h3m14 0h3"/>
+          <button
+            class="near-me-btn"
+            id="riskUseMyLocationBtn"
+            title="Use my location"
+          >
+            <svg
+              width="16"
+              height="16"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+            >
+              <circle cx="12" cy="12" r="3" />
+              <path d="M12 2v3m0 14v3M2 12h3m14 0h3" />
             </svg>
           </button>
         </div>
       </div>
-      
+
       <div class="notify-panel-section">
         <div class="notify-panel-label">Duration</div>
-        <div style="display: flex; gap: 8px;">
+        <div style="display: flex; gap: 8px">
           <input
             id="riskDuration"
             type="number"
@@ -411,19 +580,19 @@
             step="0.25"
             value="1"
             class="notify-input"
-            style="width: 80px;"
+            style="width: 80px"
           />
-          <select id="riskDurationUnit" class="notify-input" style="flex: 1;">
+          <select id="riskDurationUnit" class="notify-input" style="flex: 1">
             <option value="hours">hours</option>
             <option value="days">days</option>
           </select>
         </div>
       </div>
-      
+
       <div class="notify-panel-section">
         <div class="notify-panel-label">When</div>
-        <div style="display: flex; gap: 8px;">
-          <select id="riskDay" class="notify-input" style="flex: 1;">
+        <div style="display: flex; gap: 8px">
+          <select id="riskDay" class="notify-input" style="flex: 1">
             <option value="0">Monday</option>
             <option value="1">Tuesday</option>
             <option value="2">Wednesday</option>
@@ -436,18 +605,47 @@
             id="riskTime"
             type="time"
             class="notify-input"
-            style="width: 120px;"
+            style="width: 120px"
           />
         </div>
       </div>
-      
+
       <button class="notify-btn" id="riskCalculateBtn">Calculate Risk</button>
-      
-      <div id="riskResult" style="display: none; margin-top: 16px; padding: 16px; background: #f8f9fa; border-radius: 8px;">
-        <div id="riskResultText" style="font-size: 14px; line-height: 1.6; color: #202124;"></div>
-        <div id="riskResultDetails" style="margin-top: 12px; padding-top: 12px; border-top: 1px solid #dadce0; font-size: 12px; color: #5f6368;"></div>
+
+      <div
+        id="riskResult"
+        style="
+          display: none;
+          margin-top: 16px;
+          padding: 16px;
+          background: #f8f9fa;
+          border-radius: 8px;
+        "
+      >
+        <div
+          id="riskResultText"
+          style="font-size: 14px; line-height: 1.6; color: #202124"
+        ></div>
+        <div
+          id="riskResultDetails"
+          style="
+            margin-top: 12px;
+            padding-top: 12px;
+            border-top: 1px solid #dadce0;
+            font-size: 12px;
+            color: #5f6368;
+          "
+        ></div>
       </div>
-      <div id="riskMsg" style="font-size: 12px; color: #5f6368; margin-top: 8px; text-align: center;"></div>
+      <div
+        id="riskMsg"
+        style="
+          font-size: 12px;
+          color: #5f6368;
+          margin-top: 8px;
+          text-align: center;
+        "
+      ></div>
     </div>
 
     <!-- Loading indicator -->
@@ -459,14 +657,23 @@
     <!-- No results message -->
     <div class="no-results-message" id="noResultsMessage">
       <div class="no-results-icon">
-        <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#5f6368" stroke-width="1.5">
-          <circle cx="11" cy="11" r="8"/>
-          <path d="M21 21l-4.35-4.35"/>
-          <path d="M8 8l6 6M14 8l-6 6"/>
+        <svg
+          width="48"
+          height="48"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="#5f6368"
+          stroke-width="1.5"
+        >
+          <circle cx="11" cy="11" r="8" />
+          <path d="M21 21l-4.35-4.35" />
+          <path d="M8 8l6 6M14 8l-6 6" />
         </svg>
       </div>
       <div class="no-results-title">No citations found</div>
-      <div class="no-results-subtitle" id="noResultsInterval">Try adjusting your search or time filter</div>
+      <div class="no-results-subtitle" id="noResultsInterval">
+        Try adjusting your search or time filter
+      </div>
     </div>
 
     <!-- Hidden legacy elements for JS compatibility -->
@@ -474,28 +681,61 @@
     <input type="hidden" id="searchPlateState" />
     <input type="hidden" id="searchPlateNumber" />
     <input type="hidden" id="searchCitationNumber" />
-    <div id="searchPickedLocationText" style="display:none;"></div>
-    <div id="searchPanel" style="display:none;"></div>
-    <div id="searchHint" style="display:none;"></div>
+    <div id="searchPickedLocationText" style="display: none"></div>
+    <div id="searchPanel" style="display: none"></div>
+    <div id="searchHint" style="display: none"></div>
 
     <!-- Leaflet JS -->
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 
     <!-- Photo Viewer Modal -->
-    <div id="photoViewer" class="photo-viewer" style="display: none;">
+    <div id="photoViewer" class="photo-viewer" style="display: none">
       <div class="photo-viewer-header">
-        <button class="photo-viewer-close" id="photoViewerClose" aria-label="Close">×</button>
+        <button
+          class="photo-viewer-close"
+          id="photoViewerClose"
+          aria-label="Close"
+        >
+          ×
+        </button>
       </div>
       <div class="photo-viewer-content">
         <div class="photo-viewer-sidebar" id="photoViewerSidebar">
-          <div class="photo-thumbnails-vertical" id="photoThumbnailsVertical"></div>
+          <div
+            class="photo-thumbnails-vertical"
+            id="photoThumbnailsVertical"
+          ></div>
         </div>
-        <button class="sidebar-toggle" id="sidebarToggle" aria-label="Toggle sidebar"><span class="toggle-icon">◀</span></button>
+        <button
+          class="sidebar-toggle"
+          id="sidebarToggle"
+          aria-label="Toggle sidebar"
+        >
+          <span class="toggle-icon">◀</span>
+        </button>
         <div class="photo-viewer-main" id="photoViewerMain">
-          <div class="viewer-loading-spinner" id="viewerLoadingSpinner" style="display: none;"><div class="spinner"></div></div>
-          <button class="photo-nav photo-nav-prev" id="photoNavPrev" aria-label="Previous">‹</button>
+          <div
+            class="viewer-loading-spinner"
+            id="viewerLoadingSpinner"
+            style="display: none"
+          >
+            <div class="spinner"></div>
+          </div>
+          <button
+            class="photo-nav photo-nav-prev"
+            id="photoNavPrev"
+            aria-label="Previous"
+          >
+            ‹
+          </button>
           <img class="viewer-main-photo" id="viewerMainPhoto" src="" alt="" />
-          <button class="photo-nav photo-nav-next" id="photoNavNext" aria-label="Next">›</button>
+          <button
+            class="photo-nav photo-nav-next"
+            id="photoNavNext"
+            aria-label="Next"
+          >
+            ›
+          </button>
           <div class="photo-metadata">
             <div class="photo-caption" id="photoCaption"></div>
             <div class="photo-date" id="photoDate"></div>
