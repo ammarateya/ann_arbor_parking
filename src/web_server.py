@@ -39,7 +39,8 @@ def get_og_image_url(base_url):
     return f"{base_url}/static/parking-icon.png"
 
 @app.route('/')
-def index():
+@app.route('/citation/<citation_number>')
+def index(citation_number=None):
     """Main map page"""
     # Generate absolute URLs for Open Graph meta tags
     base_url = request.url_root.rstrip('/')
@@ -87,8 +88,11 @@ def get_citations():
         # Supabase PostgREST has a default limit of 1000, so we need to paginate
         try:
             # Exclude raw_html to save memory (it's 50-200KB per citation!)
-            # Exclude vin, due_date, issuing_agency, status, scraped_at, image_urls, and created_at - not used in frontend, reduces payload size
-            fields = 'citation_number,location,plate_state,plate_number,issue_date,amount_due,more_info_url,comments,violations,latitude,longitude'
+            # Exclude image_urls - images are loaded lazily via /api/citation/<id> endpoint
+            # Exclude vin, due_date, issuing_agency, status, scraped_at, and created_at - not used in frontend, reduces payload size
+            # Include image_urls to get the first one for the list view optimization
+            # Exclude vin, due_date, issuing_agency, status, scraped_at, and created_at - not used in frontend, reduces payload size
+            fields = 'citation_number,location,plate_state,plate_number,issue_date,amount_due,more_info_url,comments,violations,latitude,longitude,image_urls'
             
             # Fetch all citations with pagination
             # Query directly for citations with coordinates to avoid filtering issues
@@ -135,8 +139,11 @@ def get_citations():
                 if supabase_url:
                     service_client = create_client(supabase_url, service_key)
                     # Exclude raw_html to save memory
-                    # Exclude vin, due_date, issuing_agency, status, scraped_at, image_urls, and created_at - not used in frontend, reduces payload size
-                    fields = 'citation_number,location,plate_state,plate_number,issue_date,amount_due,more_info_url,comments,violations,latitude,longitude'
+                    # Exclude image_urls - images are loaded lazily via /api/citation/<id> endpoint
+                    # Exclude vin, due_date, issuing_agency, status, scraped_at, and created_at - not used in frontend, reduces payload size
+                    # Include image_urls to get the first one for the list view optimization
+                    # Exclude vin, due_date, issuing_agency, status, scraped_at, and created_at - not used in frontend, reduces payload size
+                    fields = 'citation_number,location,plate_state,plate_number,issue_date,amount_due,more_info_url,comments,violations,latitude,longitude,image_urls'
                     
                     # Fetch all citations with pagination using service client
                     # Query directly for citations with coordinates to avoid filtering issues
@@ -217,6 +224,16 @@ def get_citations():
                             most_recent_time = issue_date
                             most_recent_citation_number = citation.get('citation_number')
         
+        # Post-process citations to only return the first image URL to save bandwidth
+        # The full list is loaded lazily when opening the citation details
+        for citation in citations_with_coords:
+            image_urls = citation.get('image_urls')
+            if isinstance(image_urls, list) and len(image_urls) > 0:
+                # Keep only the first image for the preview/hero
+                citation['image_urls'] = [image_urls[0]]
+            else:
+                citation['image_urls'] = []
+
         # Return all citations
         logger.info(f"Returning {len(citations_with_coords)} geocoded citations (fetched {len(citations)} total)")
         return jsonify({
@@ -234,16 +251,93 @@ def get_citations():
             'status': 'error',
             'error': str(e),
             'tip': 'Check that SUPABASE_SERVICE_ROLE_KEY is set for reading data'
-        }), 500
+         }), 500
+
+@app.route('/api/citation/<int:citation_number>')
+def get_citation(citation_number):
+    """Get single citation with full details including image URLs (lazy loading)"""
+    try:
+        db_manager = get_db_manager()
+        
+        # Fetch citation with all fields including image_urls
+        fields = 'citation_number,location,plate_state,plate_number,issue_date,amount_due,more_info_url,comments,violations,latitude,longitude,image_urls'
+        
+        try:
+            result = (
+                db_manager.supabase
+                .table('citations')
+                .select(fields)
+                .eq('citation_number', citation_number)
+                .single()
+                .execute()
+            )
+        except Exception as e:
+            # Try with service role key if available
+            service_key = os.getenv('SUPABASE_SERVICE_ROLE_KEY')
+            if service_key:
+                from supabase import create_client
+                supabase_url = os.getenv('SUPABASE_URL')
+                if supabase_url:
+                    service_client = create_client(supabase_url, service_key)
+                    result = (
+                        service_client
+                        .table('citations')
+                        .select(fields)
+                        .eq('citation_number', citation_number)
+                        .single()
+                        .execute()
+                    )
+                else:
+                    return jsonify({'status': 'error', 'error': 'Supabase URL not configured'}), 500
+            else:
+                raise e
+        
+        if not result.data:
+            return jsonify({'status': 'error', 'error': 'Citation not found'}), 404
+        
+        citation = result.data
+        
+        # Format image URLs from image_urls JSON array
+        images = []
+        if citation.get('image_urls') and isinstance(citation['image_urls'], list):
+            for url in citation['image_urls']:
+                if url and isinstance(url, str):
+                    images.append({
+                        'url': url,
+                        'caption': f"Citation #{citation_number}"
+                    })
+        
+        return jsonify({
+            'status': 'success',
+            'citation': {
+                'citation_number': citation['citation_number'],
+                'location': citation.get('location'),
+                'plate_state': citation.get('plate_state'),
+                'plate_number': citation.get('plate_number'),
+                'issue_date': citation.get('issue_date'),
+                'amount_due': citation.get('amount_due'),
+                'violations': citation.get('violations'),
+                'comments': citation.get('comments'),
+                'more_info_url': citation.get('more_info_url'),
+                'latitude': citation.get('latitude'),
+                'longitude': citation.get('longitude'),
+                'images': images
+            }
+        })
+    except Exception as e:
+        import traceback
+        logger.error(f"Error fetching citation {citation_number}: {e}\n{traceback.format_exc()}")
+        return jsonify({'status': 'error', 'error': str(e)}), 500
 
 @app.route('/api/search')
 def search_citations():
-    """Search citations by plate+state, citation number, or by location radius.
+    """Search citations by plate+state, citation number, location name, or by location radius.
 
     Query params (any one mode):
       - mode=plate & plate_state=MI & plate_number=ABC123
       - mode=citation & citation_number=12345678
       - mode=location & lat=42.28 & lon=-83.74 & radius_m=500
+      - mode=address & address=Kerrytown (case-insensitive partial match on location field)
 
     Notes:
       - Uses Supabase PostgREST filters (parameterized under the hood) to avoid injection.
@@ -267,8 +361,8 @@ def search_citations():
 
             # Case-insensitive match for plate_number; exact for state
             # Exclude raw_html to save memory
-            # Exclude vin, due_date, issuing_agency, status, scraped_at, image_urls, and created_at - not used in frontend, reduces payload size
-            fields = 'citation_number,location,plate_state,plate_number,issue_date,amount_due,more_info_url,comments,violations,latitude,longitude'
+            # Exclude vin, due_date, issuing_agency, status, scraped_at, and created_at - not used in frontend, reduces payload size
+            fields = 'citation_number,location,plate_state,plate_number,issue_date,amount_due,more_info_url,comments,violations,latitude,longitude,image_urls'
             query = db_manager.supabase.table('citations').select(fields)
             query = query.eq('plate_state', plate_state).ilike('plate_number', plate_number)
             if since_iso:
@@ -286,8 +380,8 @@ def search_citations():
                 return jsonify({'status': 'error', 'error': 'citation_number must be an integer'}), 400
 
             # Exclude raw_html to save memory
-            # Exclude vin, due_date, issuing_agency, status, scraped_at, image_urls, and created_at - not used in frontend, reduces payload size
-            fields = 'citation_number,location,plate_state,plate_number,issue_date,amount_due,more_info_url,comments,violations,latitude,longitude'
+            # Exclude vin, due_date, issuing_agency, status, scraped_at, and created_at - not used in frontend, reduces payload size
+            fields = 'citation_number,location,plate_state,plate_number,issue_date,amount_due,more_info_url,comments,violations,latitude,longitude,image_urls'
             result = (
                 db_manager
                 .supabase
@@ -324,8 +418,8 @@ def search_citations():
 
             # Filter by bbox and presence of coordinates
             # Exclude raw_html to save memory (it's 50-200KB per citation!)
-            # Exclude vin, due_date, issuing_agency, status, scraped_at, image_urls, and created_at - not used in frontend, reduces payload size
-            fields = 'citation_number,location,plate_state,plate_number,issue_date,amount_due,more_info_url,comments,violations,latitude,longitude'
+            # Exclude vin, due_date, issuing_agency, status, scraped_at, and created_at - not used in frontend, reduces payload size
+            fields = 'citation_number,location,plate_state,plate_number,issue_date,amount_due,more_info_url,comments,violations,latitude,longitude,image_urls'
             bbox_query = (
                 db_manager
                 .supabase
@@ -362,6 +456,29 @@ def search_citations():
                     continue
                 if haversine_m(lat, lon, clat, clon) <= radius_m:
                     citations.append(c)
+
+        elif mode == 'address':
+            # Search by location name (case-insensitive partial match)
+            address = (request.args.get('address') or '').strip()
+            if not address:
+                return jsonify({'status': 'error', 'error': 'address is required'}), 400
+
+            # Exclude raw_html to save memory
+            # Include image_urls for the new UI
+            fields = 'citation_number,location,plate_state,plate_number,issue_date,amount_due,more_info_url,comments,violations,latitude,longitude,image_urls'
+            query = (
+                db_manager
+                .supabase
+                .table('citations')
+                .select(fields)
+                .ilike('location', f'%{address}%')
+                .not_.is_('latitude', 'null')
+                .not_.is_('longitude', 'null')
+            )
+            if since_iso:
+                query = query.gte('issue_date', since_iso)
+            result = query.execute()
+            citations = result.data or []
 
         else:
             return jsonify({'status': 'error', 'error': 'invalid mode'}), 400

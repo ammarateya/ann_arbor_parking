@@ -9,29 +9,6 @@
       content="How the Ann Arbor parking citation scraper works. Learn about the methodology behind real-time parking citation tracking and mapping."
     />
 
-    <!-- Open Graph Tags -->
-    <meta property="og:title" content="About - Ann Arbor Parking Citations" />
-    <meta
-      property="og:description"
-      content="How the Ann Arbor parking citation scraper works. Learn about the methodology behind real-time parking citation tracking and mapping."
-    />
-    <meta property="og:type" content="website" />
-    <meta property="og:url" content="{{ og_url }}" />
-    <meta property="og:image" content="{{ og_image }}" />
-    <meta property="og:image:width" content="1200" />
-    <meta property="og:image:height" content="630" />
-    <meta property="og:image:type" content="image/png" />
-    <meta property="og:site_name" content="Ann Arbor Parking Citations" />
-
-    <!-- Twitter Card Tags -->
-    <meta name="twitter:card" content="summary_large_image" />
-    <meta name="twitter:title" content="About - Ann Arbor Parking Citations" />
-    <meta
-      name="twitter:description"
-      content="How the Ann Arbor parking citation scraper works. Learn about the methodology behind real-time parking citation tracking and mapping."
-    />
-    <meta name="twitter:image" content="{{ og_image }}" />
-
     <!-- Google Analytics -->
     <script
       async
@@ -47,354 +24,408 @@
         page_title: "About Page",
         page_location: window.location.href,
       });
-      gtag("event", "page_view", {
-        page_title: "About Page",
-        page_location: window.location.href,
-      });
     </script>
 
     <style>
-      @import url("https://fonts.cdnfonts.com/css/ocr-a-std");
-      @import url("https://fonts.cdnfonts.com/css/ocr-b-std");
-      @import url("https://fonts.cdnfonts.com/css/nk57-monospace");
-      @import url("https://fonts.cdnfonts.com/css/profont");
-      @import url("https://fonts.cdnfonts.com/css/terminus-ttf");
-
       :root {
-        --font-display: "OCR A Std", "OCR A Extended", "Courier New", monospace;
-        --font-secondary: "OCR B Std", "NK57 Monospace", "ProFontWindows",
-          "Terminus (TTF)", monospace;
-        --font-body: "NK57 Monospace", "OCR B Std", "ProFontWindows",
-          "Terminus (TTF)", monospace;
-        --font-micro: "ProFontWindows", "Terminus (TTF)", "OCR A Std",
-          "Courier New", monospace;
+        --bg-color: #ffffff;
+        --text-color: #202124;
+        --link-color: #1a0dab;
+        --url-color: #202124;
+        --secondary-text: #5f6368;
+        --border-color: #dfe1e5;
+        --hover-bg: #f8f9fa;
+        --blue: #4285f4;
+        --red: #ea4335;
+        --yellow: #fbbc05;
+        --green: #34a853;
       }
+
       * {
-        margin: 0;
-        padding: 0;
         box-sizing: border-box;
       }
 
-      /* Custom text selection */
-      ::selection {
-        background: rgba(255, 255, 255, 0.85);
-        color: #050505;
-      }
-      ::-moz-selection {
-        background: rgba(255, 255, 255, 0.85);
-        color: #050505;
-      }
-
       body {
-        font-family: var(--font-body);
-        background: #0a0a0a;
-        color: #00d4ff;
-        line-height: 1.6;
-        padding: 40px 20px;
-        max-width: 900px;
-        margin: 0 auto;
+        font-family: arial, sans-serif;
+        background: var(--bg-color);
+        color: var(--text-color);
+        margin: 0;
+        padding: 0;
+        font-size: 14px;
+        line-height: 1.58;
       }
 
-      .header {
-        margin-bottom: 40px;
-        padding-bottom: 20px;
-        border-bottom: 2px solid #00d4ff;
-        font-family: var(--font-display);
-      }
-
-      h1 {
-        font-size: 24px;
-        color: #00d4ff;
-        text-shadow: 0 0 10px #00d4ff;
-        margin-bottom: 10px;
-        font-family: var(--font-display);
-      }
-
-      .back-link {
-        display: inline-block;
-        margin-bottom: 20px;
-        color: #00d4ff;
+      a {
         text-decoration: none;
-        border: 1px solid #00d4ff;
-        padding: 8px 16px;
-        transition: all 0.2s;
-        font-family: var(--font-display);
-        letter-spacing: 1px;
-        text-transform: uppercase;
+        color: var(--link-color);
       }
 
-      .back-link:hover {
-        background: #00d4ff;
-        color: #0a0a0a;
+      a:hover {
+        text-decoration: underline;
       }
 
-      .content {
-        margin-bottom: 40px;
-        font-family: var(--font-secondary);
+      /* Header */
+      .header {
+        display: flex;
+        justify-content: flex-end;
+        align-items: center;
+        padding: 6px 15px;
+        height: 60px;
       }
 
-      p {
+      .header a {
+        color: var(--text-color);
+        font-size: 13px;
+        padding: 0 15px;
+        text-decoration: none;
+      }
+
+      .header a:hover {
+        text-decoration: underline;
+      }
+
+      .app-icon {
+        width: 24px;
+        height: 24px;
+        background: rgba(0, 0, 0, 0.05);
+        border-radius: 50%;
+        margin-left: 15px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+      }
+      
+      .app-icon svg {
+        fill: #5f6368;
+      }
+
+      /* Main container */
+      .main {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        margin-top: 60px;
+        padding: 0 20px;
+      }
+
+      /* Logo */
+      .logo {
+        font-size: 60px; /* Scaled down slightly from 90px for mobile friendliness */
+        font-family: 'Product Sans', Arial, sans-serif; /* Fallback */
         margin-bottom: 20px;
-        font-size: 14px;
-        font-family: var(--font-body);
+        letter-spacing: -2px;
+        text-align: center;
+        font-weight: bold;
       }
 
-      .methodology {
-        background: rgba(0, 212, 255, 0.05);
-        border: 1px solid #00d4ff;
-        padding: 20px;
-        margin: 30px 0;
-        font-family: var(--font-secondary);
+      .l-blue { color: var(--blue); }
+      .l-red { color: var(--red); }
+      .l-yellow { color: var(--yellow); }
+      .l-green { color: var(--green); }
+
+      /* Search Bar */
+      .search-container {
+        width: 100%;
+        max-width: 584px;
+        margin-bottom: 40px;
       }
 
-      .methodology h2 {
-        font-size: 18px;
-        margin-bottom: 15px;
-        color: #00d4ff;
-        font-family: var(--font-display);
+      .search-bar {
+        background: #fff;
+        border: 1px solid var(--border-color);
+        border-radius: 24px;
+        height: 44px;
+        display: flex;
+        align-items: center;
+        padding: 0 14px;
+        box-shadow: 0 1px 6px rgba(32, 33, 36, 0.28);
       }
 
-      .methodology p {
-        color: #ffffff;
+      .search-bar:hover {
+        box-shadow: 0 1px 6px rgba(32, 33, 36, 0.28);
+        border-color: rgba(223, 225, 229, 0);
       }
 
-      .methodology ul {
-        list-style: none;
-        padding-left: 0;
+      .search-icon {
+        color: #9aa0a6;
+        margin-right: 12px;
+        font-size: 16px;
       }
 
-      .methodology li {
+      .search-input {
+        flex: 1;
+        border: none;
+        outline: none;
+        font-size: 16px;
+        color: rgba(0,0,0,0.87);
+        font-family: inherit;
+      }
+
+      .search-actions {
+        display: flex;
+        align-items: center;
+      }
+      
+      /* Results container */
+      .results-container {
+        width: 100%;
+        max-width: 652px; /* Standard Google results width */
+        display: flex;
+        flex-direction: column;
+        gap: 30px;
+        padding-bottom: 60px;
+        /* Ensure it matches the search bar alignment */
+        align-self: center;
+      }
+
+      /* Individual Result Item */
+      .result-item {
         margin-bottom: 10px;
-        padding-left: 20px;
-        position: relative;
-        font-size: 14px;
-        color: #ffffff;
-        font-family: var(--font-secondary);
       }
 
-      .methodology li:before {
-        content: "▶";
+      .result-url {
+        color: var(--text-color);
+        font-size: 14px;
+        margin-bottom: 4px;
+        display: flex;
+        align-items: center;
+      }
+      
+      .result-url img {
+        width: 16px;
+        height: 16px;
+        margin-right: 8px;
+        border-radius: 50%;
+        background: #f1f3f4;
+      }
+      
+      .result-site-name {
+          font-weight: 400;
+          color: #202124;
+      }
+
+      .result-title {
+        font-size: 20px;
+        color: var(--link-color);
+        cursor: pointer;
+        margin-bottom: 6px;
+        display: block;
+        line-height: 1.3;
+      }
+
+      .result-title:hover {
+        text-decoration: underline;
+      }
+
+      .result-snippet {
+        color: var(--secondary-text);
+        font-size: 14px;
+        line-height: 1.58;
+      }
+
+      /* Featured Snippet Box */
+      .featured-snippet {
+        border: 1px solid var(--border-color);
+        border-radius: 8px;
+        padding: 20px;
+        margin-bottom: 20px;
+      }
+
+      .featured-snippet h3 {
+        margin-top: 0;
+        font-size: 18px;
+        font-weight: normal;
+        margin-bottom: 10px;
+      }
+
+      .featured-list li {
+        margin-bottom: 8px;
+        position: relative;
+        padding-left: 20px;
+      }
+      
+      .featured-list {
+          list-style: none;
+          padding-left: 0;
+      }
+
+      .featured-list li::before {
+        content: "•";
         position: absolute;
         left: 0;
-        color: #ffffff;
-      }
-
-      .receipt-image {
-        margin: 30px 0;
-        text-align: center;
-      }
-
-      .receipt-image img {
-        max-width: 400px;
-        width: 100%;
-        border: 2px solid #00d4ff;
-        box-shadow: 0 0 20px rgba(0, 212, 255, 0.3);
-      }
-
-      .receipt-image figcaption {
-        margin-top: 10px;
-        font-size: 12px;
-        color: #888;
-        font-style: italic;
-      }
-
-      code {
-        background: rgba(0, 212, 255, 0.1);
-        padding: 2px 6px;
-        border: 1px solid #00d4ff;
-        font-size: 13px;
-        font-family: var(--font-micro);
-      }
-
-      .fun-facts {
-        background: rgba(0, 212, 255, 0.05);
-        border: 1px solid #00d4ff;
-        padding: 20px;
-        margin: 30px 0;
-        font-family: var(--font-secondary);
-      }
-
-      .fun-facts h2 {
-        font-size: 18px;
-        margin-bottom: 20px;
-        color: #00d4ff;
-        font-family: var(--font-display);
-        text-align: center;
-      }
-
-      .fun-facts-section {
-        margin-bottom: 30px;
-      }
-
-      .fun-facts-section h3 {
-        font-size: 16px;
-        color: #00d4ff;
-        margin-bottom: 12px;
-        font-family: var(--font-display);
-        border-bottom: 1px solid rgba(0, 212, 255, 0.3);
-        padding-bottom: 8px;
-      }
-
-      .fun-facts-list {
-        list-style: none;
-        padding: 0;
-      }
-
-      .fun-facts-list li {
-        padding: 10px;
-        margin-bottom: 8px;
-        background: rgba(0, 212, 255, 0.03);
-        border-left: 3px solid #00d4ff;
-        font-size: 14px;
-        color: #ffffff;
-      }
-
-      .fun-facts-list li strong {
-        color: #00d4ff;
-        font-family: var(--font-display);
-      }
-
-      .loading {
-        text-align: center;
-        color: #888;
-        font-style: italic;
-        padding: 20px;
-      }
-
-      .error {
-        text-align: center;
-        color: #ff0040;
-        padding: 20px;
-        border: 1px solid #ff0040;
-        background: rgba(255, 0, 64, 0.1);
-      }
-
-      .stat-highlight {
-        color: #00d4ff;
+        color: var(--secondary-text);
         font-weight: bold;
-        font-family: var(--font-display);
       }
 
-      .champions-section {
-        background: rgba(0, 212, 255, 0.1);
-        border: 2px solid #00d4ff;
-        padding: 20px;
-        margin: 30px 0;
-        text-align: center;
+      /* Knowledge Graph / Stats Cards */
+      .stats-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+        gap: 16px;
+        margin-top: 10px;
+      }
+      
+      .stat-card {
+        border: 1px solid var(--border-color);
+        border-radius: 8px;
+        padding: 16px;
+      }
+      
+      .stat-card-title {
+          font-size: 14px;
+          color: var(--secondary-text);
+          margin-bottom: 8px;
+          text-transform: uppercase;
+          font-weight: 500;
+      }
+      
+      .stat-card-value {
+          font-size: 24px;
+          color: var(--text-color);
+          font-weight: normal;
+      }
+      
+      .stat-card-sub {
+          font-size: 12px;
+          color: var(--secondary-text);
+          margin-top: 4px;
       }
 
-      .champions-section h3 {
-        font-size: 20px;
-        margin-bottom: 20px;
-        color: #00d4ff;
-        font-family: var(--font-display);
-        text-transform: uppercase;
-        letter-spacing: 2px;
+      /* Loading State */
+      .loading-skeleton {
+          height: 100px;
+          background: #f1f3f4;
+          border-radius: 8px;
+          animation: pulse 1.5s infinite ease-in-out;
       }
 
-      .champion-item {
-        margin: 15px 0;
-        padding: 15px;
-        background: rgba(0, 212, 255, 0.05);
-        border-left: 4px solid #00d4ff;
+      @keyframes pulse {
+          0% { opacity: 0.6; }
+          50% { opacity: 1; }
+          100% { opacity: 0.6; }
       }
-
-      .champion-item strong {
-        color: #00d4ff;
-        font-family: var(--font-display);
-        font-size: 16px;
-        display: block;
-        margin-bottom: 8px;
+      
+      /* Mobile override */
+      @media (max-width: 600px) {
+          .logo { font-size: 40px; }
+          .header { justify-content: space-between; }
       }
-
-      @media (max-width: 768px) {
-        body {
-          padding: 20px 15px;
-        }
-
-        h1 {
-          font-size: 20px;
-        }
-
-        p {
-          font-size: 13px;
-        }
+      
+      .receipt-img {
+          max-width: 100%;
+          border: 1px solid var(--border-color);
+          border-radius: 8px;
+          margin-top: 12px;
       }
     </style>
   </head>
   <body>
+    <!-- Top Nav -->
     <div class="header">
-      <a href="/a2-parking/" class="back-link">← Back to Map</a>
-      <h1>About This Project</h1>
+      <a href="/a2-parking/" class="back-link">Back to Map</a>
+      <div class="app-icon" title="Ann Arbor Apps">
+          <svg focusable="false" viewBox="0 0 24 24" width="24" height="24"><path d="M6,8c1.1,0 2,-0.9 2,-2s-0.9,-2 -2,-2 -2,0.9 -2,2 0.9,2 2,2zM12,20c1.1,0 2,-0.9 2,-2s-0.9,-2 -2,-2 -2,0.9 -2,2 0.9,2 2,2zM6,20c1.1,0 2,-0.9 2,-2s-0.9,-2 -2,-2 -2,0.9 -2,2 0.9,2 2,2zM6,14c1.1,0 2,-0.9 2,-2s-0.9,-2 -2,-2 -2,0.9 -2,2 0.9,2 2,2zM12,14c1.1,0 2,-0.9 2,-2s-0.9,-2 -2,-2 -2,0.9 -2,2 0.9,2 2,2zM16,6c0,1.1 0.9,2 2,2s2,-0.9 2,-2 -0.9,-2 -2,-2 -2,0.9 -2,2zM12,8c1.1,0 2,-0.9 2,-2s-0.9,-2 -2,-2 -2,0.9 -2,2 0.9,2 2,2zM18,14c1.1,0 2,-0.9 2,-2s-0.9,-2 -2,-2 -2,0.9 -2,2 0.9,2 2,2zM18,20c1.1,0 2,-0.9 2,-2s-0.9,-2 -2,-2 -2,0.9 -2,2 0.9,2 2,2z"></path></svg>
+      </div>
+       <!-- Avatar placeholder -->
+       <div style="width:32px; height:32px; background:#efefef; border-radius:50%; margin-left:15px; display:flex; align-items:center; justify-content:center; font-size:12px; color:#555;">AA</div>
     </div>
 
-    <div class="content">
-      <div class="fun-facts" id="funFacts">
-        <h2>Stats for Nerds</h2>
-        <div class="loading" id="loadingFacts">Loading stats...</div>
-        <div id="factsContent" style="display: none">
-          <!-- Content will be populated by JavaScript -->
+    <div class="main">
+      <!-- Google Logo style -->
+      <div class="logo">
+        <span class="l-blue">A</span><span class="l-red">n</span><span class="l-yellow">n</span>
+        <span class="l-blue"> </span>
+        <span class="l-green">A</span><span class="l-red">r</span><span class="l-blue">b</span><span class="l-yellow">o</span><span class="l-red">r</span>
+        <br>
+        <span class="l-blue" style="font-size: 0.8em">Parking</span>
+      </div>
+
+      <!-- Search Bar -->
+      <div class="search-container">
+        <div class="search-bar">
+          <span class="search-icon">🔎</span>
+          <input type="text" class="search-input" value="how does the parking scraper work?" readonly>
+          <div class="search-actions">
+              <span style="font-size: 16px; cursor: pointer;">✖</span>
+              <span style="border-left: 1px solid #dfe1e5; height: 20px; margin: 0 12px;"></span>
+              <svg class="goxjub" focusable="false" viewBox="0 0 24 24" height="24px" width="24px"><path d="m12 15c1.66 0 3-1.31 3-2.97v-7.02c0-1.66-1.34-3.01-3-3.01s-3 1.34-3 3.01v7.02c0 1.66 1.34 2.97 3 2.97z" fill="#4285f4"></path><path d="m11 18.08h2v3.92h-2z" fill="#34a853"></path><path d="m7.05 16.87c-1.27-1.33-2.05-2.83-2.05-4.87h2c0 1.45 0.56 2.42 1.47 3.38v0.32l-1.15 1.18z" fill="#f4b400"></path><path d="m12 16.93a4.97 5.25 0 0 1 -3.54 -1.55l-1.41 1.41c1.26 1.32 3.03 2.13 4.95 2.13 3.87 0 6.99-2.92 6.99-7h-1.99c0 2.92-2.24 4.98-4.99 4.98z" fill="#ea4335"></path></svg>
+          </div>
         </div>
       </div>
 
-      <p>
-        This map displays parking citations issued in Ann Arbor, Michigan. The
-        data is collected through automated scraping of the city's public
-        parking citation portal.
-      </p>
+      <!-- Results -->
+      <div class="results-container">
+        
+        <!-- Result 1: Methodology (Featured Snippet) -->
+        <div class="result-item">
+            <div class="featured-snippet">
+                <div class="result-string" style="color:#202124; margin-bottom:10px;">
+                    Citation numbers in Ann Arbor fall into roughly <b>20,000</b>-item ranges per officer/beat. The scraper monitors multiple windows across these ranges every few minutes to capture new tickets.
+                </div>
+                <ul class="featured-list">
+                    <li><b>Sequential Ranges:</b> Officers issue tickets in specific, predictable ranges.</li>
+                    <li><b>Real-time:</b> Scrapes every 10 minutes to find new "hits".</li>
+                    <li><b>Geocoding:</b> Converts addresses to lat/lon for the map.</li>
+                </ul>
+                <div style="margin-top:15px; border-top:1px solid #dfe1e5; padding-top:10px;">
+                    <a href="https://github.com/ammarateya/ann_arbor_parking" target="_blank" class="result-title" style="font-size:16px;">See the Source Code</a>
+                    <div class="result-url">
+                        <img src="/static/github-favicon.png" alt="icon">
+                        <span class="result-site-name">GitHub › ammarateya › ann_arbor_parking</span>
+                    </div>
+                </div>
+            </div>
+            <div class="result-url">
+                <img src="/static/parking-icon.png" alt="icon">
+                 <span>
+                    <span class="result-site-name">Ann Arbor Parking › About</span>
+                    <span style="color:var(--secondary-text)"> › Methodology</span>
+                 </span>
+            </div>
+            <a href="#" class="result-title">Methodology: How we track tickets</a>
+            <div class="result-snippet">
+                The scraper searches multiple windows across these ranges every few minutes to capture new citations as they're issued. Each citation is geocoded and displayed on this interactive map.
+            </div>
+        </div>
 
-      <div class="methodology">
-        <h2>How It Works</h2>
-        <p>
-          Citation numbers in Ann Arbor's system increment sequentially, but
-          they're organized into separate ranges of approximately 20,000
-          citations each. Different officers issue tickets across different
-          "beats" - UM (University of Michigan) and AA (Ann Arbor) - and each
-          beat/officer uses their own citation number ranges. The scraper
-          searches multiple windows across these ranges every few minutes to
-          capture new citations as they're issued. Each citation is geocoded and
-          displayed on this interactive map.
-        </p>
+        <!-- Result 2: Dynamic Stats -->
+        <div class="result-item" id="stats-container">
+            <div class="result-url">
+                <img src="/static/parking-icon.png" alt="icon">
+                <span class="result-site-name">Ann Arbor Parking › Insights</span>
+            </div>
+            <a href="#" class="result-title">Top Statistics & Fun Facts</a>
+            <div class="result-snippet">
+                Live statistics about parking enforcement in Ann Arbor. See worst places to park, most ticketed vehicle, and enforcement trends.
+            </div>
+            
+            <div id="loadingFacts" class="loading-skeleton" style="margin-top:10px;"></div>
+            <div id="factsContent" style="display:none; margin-top: 15px;">
+                <!-- Content populated by JS -->
+            </div>
+        </div>
+
+        <!-- Result 3: Receipt Sample -->
+         <div class="result-item">
+            <div class="result-url">
+                <img src="/static/parking-icon.png" alt="icon">
+                <span class="result-site-name">Ann Arbor Parking › Evidence</span>
+            </div>
+            <a href="#" class="result-title">Sample Citation Receipt</a>
+            <div class="result-snippet">
+                Below is an example of what a citation receipt looks like when accessed through the portal.
+            </div>
+            <img src="https://annarbor.citationportal.com/Citation/Image?CitationId=43dc0a4e-d6b4-f011-8e59-001dd8b724b7&MediaId=a37de9f0-d6b4-f011-8e59-001dd8b724b7" 
+                 class="receipt-img" alt="Sample Citation">
+        </div>
+
       </div>
 
-      <p>
-        Below is an example of what a citation receipt looks like when accessed
-        through the portal:
-      </p>
-
-      <figure class="receipt-image">
-        <img
-          src="https://annarbor.citationportal.com/Citation/Image?CitationId=43dc0a4e-d6b4-f011-8e59-001dd8b724b7&MediaId=a37de9f0-d6b4-f011-8e59-001dd8b724b7"
-          alt="Example parking citation receipt"
-        />
-        <figcaption>
-          Sample parking citation receipt from Ann Arbor's public portal
-        </figcaption>
-      </figure>
-
-      <p>
-        The scraped data includes location info which is then geocoded to
-        display citations on this interactive map. Citation images are stored
-        and compressed for efficient access. OCR is used to extract text from
-        citation images when needed.
-      </p>
-      <p>
-        Inspired by
-        <a href="https://walzr.com/sf-parking" target="_blank" rel="noopener"
-          >walzr.com/sf-parking</a
-        >.
-      </p>
-    </div>
-
-    <div
-      style="
-        text-align: center;
-        margin-top: 40px;
-        padding-top: 30px;
-        border-top: 2px solid #00d4ff;
-      "
-    >
-      <a href="/a2-parking/" class="back-link">← Back to Map</a>
+      <div style="margin-top: 40px; color: #5f6368; font-size: 12px; text-align: center; padding: 20px;">
+          <p>Not affiliated with the City of Ann Arbor. Public data project.</p>
+          <p>Inspired by <a href="https://walzr.com/sf-parking">walzr.com/sf-parking</a></p>
+      </div>
     </div>
 
     <script>
@@ -414,168 +445,85 @@
           loadingEl.style.display = "none";
           contentEl.style.display = "block";
 
-          let html = "";
+          let html = '<div class="stats-grid">';
 
-          // Champions section (worst plate and worst location)
-          if (
-            facts.champions &&
-            (facts.champions.worst_plate || facts.champions.worst_location)
-          ) {
-            html += '<div class="champions-section">';
-            html += "<h3>Ann Arbor's Favorite Citizens & Places</h3>";
+          // Helper to create card
+          const createCard = (title, value, sub) => {
+              return `
+              <div class="stat-card">
+                  <div class="stat-card-title">${title}</div>
+                  <div class="stat-card-value">${value}</div>
+                  ${sub ? `<div class="stat-card-sub">${sub}</div>` : ''}
+              </div>`;
+          };
 
-            if (facts.champions.worst_plate) {
-              const plate = facts.champions.worst_plate;
-              html += '<div class="champion-item">';
-              html += `<strong>🥇 Most Ticketed Plate</strong>`;
-              html += `${plate.plate_state} ${
-                plate.plate_number
-              } — <span class="stat-highlight">${
-                plate.citation_count
-              } tickets</span> ($${plate.total_amount?.toFixed(2) || "0.00"})`;
-              html += "</div>";
-            }
-
-            if (facts.champions.worst_location) {
-              const location = facts.champions.worst_location;
-              html += '<div class="champion-item">';
-              html += `<strong>📍 Most Ticketed Location</strong>`;
-              html += `${location.location} — <span class="stat-highlight">${
-                location.citation_count
-              } tickets</span> (avg $${
-                location.avg_amount?.toFixed(2) || "0.00"
-              })`;
-              html += "</div>";
-            }
-
-            html += "</div>";
+          // Most Ticketed Plate
+          if (facts.champions && facts.champions.worst_plate) {
+               html += createCard(
+                   "Most Ticketed Plate", 
+                   `${facts.champions.worst_plate.plate_state} ${facts.champions.worst_plate.plate_number}`,
+                   `${facts.champions.worst_plate.citation_count} tickets ($${facts.champions.worst_plate.total_amount?.toFixed(0)})`
+               );
+          }
+          
+          // Most Ticketed Location
+          if (facts.champions && facts.champions.worst_location) {
+               // Truncate location if too long
+               let loc = facts.champions.worst_location.location;
+               if(loc.length > 25) loc = loc.substring(0, 25) + '...';
+               
+               html += createCard(
+                   "Worst Location", 
+                   loc,
+                   `${facts.champions.worst_location.citation_count} tickets`
+               );
           }
 
-          // Additional insights
-          if (facts.insights) {
-            html += '<div class="fun-facts-section">';
-            html += "<h3>Overview</h3>";
-            html += '<ul class="fun-facts-list">';
-
-            if (
-              facts.insights.most_expensive &&
-              facts.insights.most_expensive > 0
-            ) {
-              html += `<li>Most expensive ticket: <span class="stat-highlight">$${facts.insights.most_expensive.toFixed(
-                2
-              )}</span></li>`;
-            }
-
-            if (facts.ticket_pressure && facts.ticket_pressure.total_revenue) {
-              html += `<li>Total revenue (last ${
-                facts.lookback_days
-              } days): <span class="stat-highlight">$${facts.ticket_pressure.total_revenue.toFixed(
-                2
-              )}</span></li>`;
-            }
-
-            if (facts.ticket_pressure && facts.ticket_pressure.total_tickets) {
-              html += `<li>Total tickets (last ${facts.lookback_days} days): <span class="stat-highlight">${facts.ticket_pressure.total_tickets}</span></li>`;
-            }
-
-            if (facts.insights.worst_day) {
-              html += `<li>Worst day of week: <span class="stat-highlight">${facts.insights.worst_day}</span> (${facts.insights.worst_day_count} tickets)</li>`;
-            }
-
-            if (
-              facts.insights.worst_hour !== null &&
-              facts.insights.worst_hour !== undefined
-            ) {
-              const hour = facts.insights.worst_hour;
-              const hour12 = hour === 0 ? 12 : hour > 12 ? hour - 12 : hour;
-              const ampm = hour >= 12 ? "PM" : "AM";
-              html += `<li>Worst hour of day: <span class="stat-highlight">${hour12}:00 ${ampm}</span> (${facts.insights.worst_hour_count} tickets)</li>`;
-            }
-
-            html += "</ul></div>";
+          // Total Revenue
+           if (facts.ticket_pressure && facts.ticket_pressure.total_revenue) {
+               html += createCard(
+                   "30-Day Revenue", 
+                   `$${Math.round(facts.ticket_pressure.total_revenue).toLocaleString()}`,
+                   `${facts.ticket_pressure.total_tickets} total tickets`
+               );
+          }
+          
+          // Most Expensive
+           if (facts.insights.most_expensive) {
+               html += createCard(
+                   "Highest Fine", 
+                   `$${facts.insights.most_expensive.toFixed(2)}`,
+                   "Single ticket amount"
+               );
           }
 
-          // Worst places to park
+          html += '</div>'; // End grid
+          
+          // Add list for "People also search for" (Top Places)
           if (facts.worst_blocks && facts.worst_blocks.length > 0) {
-            html += '<div class="fun-facts-section">';
-            html += "<h3>Hottest places to park?</h3>";
-            html += '<ol class="fun-facts-list">';
-            facts.worst_blocks.forEach((block, idx) => {
-              html += `<li><strong>#${idx + 1}:</strong> ${
-                block.location
-              } — <span class="stat-highlight">${
-                block.citation_count
-              } tickets</span> (avg $${
-                block.avg_amount?.toFixed(2) || "N/A"
-              })</li>`;
-            });
-            html += "</ol></div>";
-          }
-
-          // Repeat offenders
-          if (facts.repeat_offenders && facts.repeat_offenders.length > 0) {
-            html += '<div class="fun-facts-section">';
-            html += "<h3>Top 5 most wanted plates</h3>";
-            html += '<ol class="fun-facts-list">';
-            facts.repeat_offenders.forEach((offender, idx) => {
-              html += `<li><strong>#${idx + 1}:</strong> ${
-                offender.plate_state
-              } ${offender.plate_number} — <span class="stat-highlight">${
-                offender.citation_count
-              } tickets</span> ($${
-                offender.total_amount?.toFixed(2) || "0.00"
-              })</li>`;
-            });
-            html += "</ol></div>";
-          }
-
-          // Spicy time windows
-          if (facts.spicy_windows && facts.spicy_windows.length > 0) {
-            html += '<div class="fun-facts-section">';
-            html += "<h3>Worst time to park?</h3>";
-            html += '<ol class="fun-facts-list">';
-            facts.spicy_windows.forEach((window, idx) => {
-              const start = new Date(window.bucket_start);
-              const end = new Date(window.bucket_end);
-              const timeStr = start.toLocaleTimeString("en-US", {
-                hour: "numeric",
-                minute: "2-digit",
-                hour12: true,
+              html += '<div style="margin-top:20px;">';
+              html += '<h3 style="font-size:18px; font-weight:normal; margin-bottom:10px;">Top Enforcement Zones</h3>';
+              html += '<div style="border:1px solid #dfe1e5; border-radius:8px; overflow:hidden;">';
+              
+              facts.worst_blocks.slice(0, 3).forEach((block, idx) => {
+                  html += `
+                  <div style="padding:15px; border-bottom:1px solid #dfe1e5; display:flex; justify-content:space-between; align-items:center;">
+                    <div>
+                        <div style="font-weight:bold; color:#1a0dab;">${block.location}</div>
+                        <div style="font-size:12px; color:#5f6368;">Rank #${idx+1}</div>
+                    </div>
+                    <div style="font-weight:bold;">${block.citation_count} tickets</div>
+                  </div>`;
               });
-              html += `<li><strong>#${
-                idx + 1
-              }:</strong> ${timeStr} — <span class="stat-highlight">${
-                window.citation_count
-              } tickets</span> in 30 minutes</li>`;
-            });
-            html += "</ol></div>";
-          }
-
-          // Out of state heat
-          if (facts.out_of_state_heat && facts.out_of_state_heat.length > 0) {
-            html += '<div class="fun-facts-section">';
-            html += "<h3>Which states (not MI) are worst at parking?</h3>";
-            html += '<ol class="fun-facts-list">';
-            facts.out_of_state_heat.forEach((state, idx) => {
-              html += `<li><strong>#${idx + 1}:</strong> ${
-                state.plate_state
-              } — <span class="stat-highlight">${
-                state.citation_count
-              } tickets</span></li>`;
-            });
-            html += "</ol></div>";
-          }
-
-          if (html === "") {
-            html =
-              '<div class="fun-facts-section"><p style="text-align: center; color: #888;">No stats available yet. Check back soon!</p></div>';
+              
+              html += '</div></div>';
           }
 
           contentEl.innerHTML = html;
         } catch (error) {
           loadingEl.style.display = "none";
           contentEl.style.display = "block";
-          contentEl.innerHTML = `<div class="error">Failed to load stats: ${error.message}</div>`;
+          contentEl.innerHTML = `<div style="color:#da3c3c;">Unable to load statistics currently.</div>`;
         }
       }
 
