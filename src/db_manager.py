@@ -369,22 +369,7 @@ class DatabaseManager:
         logger.warning(f"Unsupported timestamp type: {type(value)}")
         return None
 
-    def get_scraper_state(self) -> Dict:
-        """Fetch the singleton scraper state row."""
-        try:
-            result = (
-                self.supabase
-                .table('scraper_state')
-                .select('*')
-                .limit(1)
-                .execute()
-            )
-            if result.data:
-                return result.data[0]
-            return {}
-        except Exception as e:
-            logger.error(f"Failed to load scraper state: {e}")
-            return {}
+
 
     def save_citation(self, citation_data: Dict):
         """Save citation data to Supabase"""
@@ -446,71 +431,28 @@ class DatabaseManager:
                 'errors': errors
             }
 
+
+
+
+
     def get_last_successful_citation(self) -> Optional[int]:
-        """Get the last successfully scraped citation number."""
-        state = self.get_scraper_state()
-        if not state:
-            return None
-        try:
-            value = state.get('last_successful_citation')
-            return int(value) if value is not None else None
-        except (ValueError, TypeError):
-            logger.warning(f"Invalid last_successful_citation value: {state.get('last_successful_citation')}")
-            return None
-
-    def get_last_citation_seen_at(self) -> Optional[datetime]:
-        """Return the timestamp of the last observed citation."""
-        state = self.get_scraper_state()
-        return self._parse_timestamp(state.get('last_citation_seen_at')) if state else None
-
-    def get_last_no_citation_email_sent_at(self) -> Optional[datetime]:
-        """Return when the last no-citation alert email was sent."""
-        state = self.get_scraper_state()
-        return self._parse_timestamp(state.get('last_no_citation_email_sent_at')) if state else None
-
-    def record_citation_activity(self, citation_number: Optional[int], seen_at: Optional[datetime] = None):
-        """Update scraper state when new citations are found."""
-        seen_at = seen_at or datetime.now(timezone.utc)
-        payload: Dict = {
-            'id': 1,
-            'last_citation_seen_at': seen_at.isoformat(),
-            'last_no_citation_email_sent_at': None,
-        }
-        if citation_number is not None:
-            payload['last_successful_citation'] = int(citation_number)
-
+        """Get the highest citation number currently in the database."""
         try:
             result = (
                 self.supabase
-                .table('scraper_state')
-                .upsert(payload)
+                .table('citations')
+                .select('citation_number')
+                .order('citation_number', desc=True)
+                .limit(1)
                 .execute()
             )
-            logger.info(f"Recorded citation activity at {payload['last_citation_seen_at']}")
-            return result
+            if result.data:
+                return int(result.data[0]['citation_number'])
+            return None
         except Exception as e:
-            logger.error(f"Failed to record citation activity: {e}")
-            raise
+            logger.error(f"Failed to get last successful citation: {e}")
+            return None
 
-    def mark_no_citation_email_sent(self, sent_at: Optional[datetime] = None):
-        """Track the moment when a no-citation alert email was dispatched."""
-        sent_at = sent_at or datetime.now(timezone.utc)
-        payload = {
-            'id': 1,
-            'last_no_citation_email_sent_at': sent_at.isoformat(),
-        }
-        try:
-            result = (
-                self.supabase
-                .table('scraper_state')
-                .upsert(payload)
-                .execute()
-            )
-            logger.info(f"Recorded no-citation alert email sent at {payload['last_no_citation_email_sent_at']}")
-            return result
-        except Exception as e:
-            logger.error(f"Failed to record no-citation email timestamp: {e}")
-            raise
 
     def get_existing_citation_numbers_in_range(self, start_range: int, end_range: int) -> set:
         """Get all existing citation numbers in the given range"""
@@ -585,18 +527,7 @@ class DatabaseManager:
             )
             return None
 
-    def update_last_successful_citation(self, citation_number: int):
-        """Update the last successfully scraped citation number"""
-        try:
-            result = self.supabase.table('scraper_state').upsert({
-                'id': 1,
-                'last_successful_citation': citation_number
-            }).execute()
-            logger.info(f"Updated last successful citation to {citation_number}")
-            return result
-        except Exception as e:
-            logger.error(f"Failed to update last successful citation: {e}")
-            raise
+
 
     def log_scrape_attempt(self, citation_number: int, success: bool, error_message: str = None):
         """Log a scrape attempt"""
