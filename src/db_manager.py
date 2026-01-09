@@ -457,14 +457,30 @@ class DatabaseManager:
     def get_existing_citation_numbers_in_range(self, start_range: int, end_range: int) -> set:
         """Get all existing citation numbers in the given range"""
         try:
+            # Log the query parameters and their types
+            logger.info(f"[DEBUG] get_existing_citation_numbers_in_range called with start={start_range} (type={type(start_range).__name__}), end={end_range} (type={type(end_range).__name__})")
+            
             result = self.supabase.table('citations').select('citation_number').gte('citation_number', start_range).lte('citation_number', end_range).execute()
+            
+            # Log raw result details
+            logger.info(f"[DEBUG] Raw result.data length: {len(result.data) if result.data else 0}")
             if result.data:
+                # Log sample of what we got back
+                sample = result.data[:5]
+                logger.info(f"[DEBUG] Sample results (first 5): {sample}")
+                sample_types = [(row['citation_number'], type(row['citation_number']).__name__) for row in sample]
+                logger.info(f"[DEBUG] Sample types: {sample_types}")
+                
                 existing_numbers = {row['citation_number'] for row in result.data}
                 logger.info(f"Found {len(existing_numbers)} existing citations in range {start_range}-{end_range}")
                 return existing_numbers
+            else:
+                logger.info(f"[DEBUG] No results returned from Supabase for range {start_range}-{end_range}")
             return set()
         except Exception as e:
             logger.error(f"Failed to get existing citation numbers in range: {e}")
+            import traceback
+            logger.error(f"[DEBUG] Traceback: {traceback.format_exc()}")
             return set()
 
     def get_max_citation_below(self, threshold: int) -> Optional[int]:
@@ -508,6 +524,9 @@ class DatabaseManager:
     def get_max_citation_between(self, min_inclusive: int, max_exclusive: int) -> Optional[int]:
         """Return the maximum citation_number in [min_inclusive, max_exclusive)."""
         try:
+            # Log the query parameters and their types
+            logger.info(f"[DEBUG] get_max_citation_between called with min={min_inclusive} (type={type(min_inclusive).__name__}), max={max_exclusive} (type={type(max_exclusive).__name__})")
+            
             result = (
                 self.supabase
                 .table('citations')
@@ -518,13 +537,22 @@ class DatabaseManager:
                 .limit(1)
                 .execute()
             )
+            
+            # Log raw result details
+            logger.info(f"[DEBUG] Raw result.data: {result.data}")
             if result.data:
+                raw_value = result.data[0]['citation_number']
+                logger.info(f"[DEBUG] Raw citation_number value: {raw_value} (type={type(raw_value).__name__})")
                 return int(result.data[0]['citation_number'])
+            else:
+                logger.info(f"[DEBUG] No results returned from Supabase for range [{min_inclusive}, {max_exclusive})")
             return None
         except Exception as e:
             logger.error(
                 f"Failed to get max citation between {min_inclusive} and {max_exclusive}: {e}"
             )
+            import traceback
+            logger.error(f"[DEBUG] Traceback: {traceback.format_exc()}")
             return None
 
 

@@ -117,18 +117,7 @@
           <path d="M784-120 532-372q-30 24-69 38t-83 14q-109 0-184.5-75.5T120-580q0-109 75.5-184.5T380-840q109 0 184.5 75.5T640-580q0 44-14 83t-38 69l252 252-56 56ZM380-400q75 0 127.5-52.5T560-580q0-75-52.5-127.5T380-760q-75 0-127.5 52.5T200-580q0 75 52.5 127.5T380-400Z"/>
         </svg>
       </button>
-      <button class="search-close-btn" id="searchCloseBtn" title="Close panel">
-        <svg
-          width="20"
-          height="20"
-          viewBox="0 0 24 24"
-          fill="none"
-          stroke="currentColor"
-          stroke-width="2"
-        >
-          <path d="M18 6L6 18M6 6l12 12" />
-        </svg>
-      </button>
+      <!-- searchCloseBtn removed -->
       <button
         class="search-clear-btn"
         id="searchClearBtn"
@@ -189,6 +178,21 @@
         </div>
       </div>
 
+      <!-- Side Panel Search Results List -->
+      <div class="side-panel-results" id="sidePanelResults" style="display: none">
+          <div class="results-header">
+              <span class="results-count" id="resultsCount"></span>
+              <button class="results-close-btn" id="resultsCloseBtn">
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                      <path d="M18 6L6 18M6 6l12 12" />
+                  </svg>
+              </button>
+          </div>
+          <div class="results-list" id="resultsList">
+              <!-- Results will be injected here -->
+          </div>
+      </div>
+
       <!-- Side Panel Gallery View (Google Maps style) -->
       <div
         class="side-panel-gallery"
@@ -206,27 +210,45 @@
           >
             <path d="M19 12H5M12 19l-7-7 7-7" />
           </svg>
-          <span>Back</span>
+          Back to details
         </button>
-        <div class="gallery-container">
-          <div
-            class="gallery-thumbnails-vertical"
-            id="galleryThumbnailsVertical"
-          ></div>
-          <div class="gallery-main-image">
-            <div
-              class="gallery-loading-spinner"
-              id="galleryLoadingSpinner"
-              style="display: none"
-            >
-              <div class="spinner"></div>
+          <div class="gallery-thumbnails-vertical" id="galleryThumbnails">
+            <!-- Thumbnails injected here -->
+          </div>
+          <div class="gallery-main-view">
+            <img id="galleryMainImage" class="gallery-main-photo" src="" alt="Citation Image" />
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Floating Citation Panel (Google Maps Inner Float style) -->
+    <div class="floating-panel" id="floatingPanel" style="display: none">
+        <button class="floating-close-btn" id="floatingCloseBtn">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M18 6L6 18M6 6l12 12" />
+            </svg>
+        </button>
+        
+        <!-- Replicated Hero & Content structure with 'Floating' ID prefix -->
+        <div class="photos-hero" id="floatingPhotosHero" style="display: none;">
+            <div class="hero-image-container">
+                <img id="floatingHeroImage" class="hero-image" src="" alt="Citation" />
+                <div class="hero-gradient"></div>
             </div>
-            <img
-              class="gallery-main-photo"
-              id="galleryMainPhoto"
-              src=""
-              alt=""
-            />
+        </div>
+
+        <div class="side-panel-content" id="floatingPanelContent">
+            <div class="citation-title" id="floatingCitationTitle" style="display: none;">
+                <h1 id="floatingCitationNumber">Citation #12345</h1>
+                <div class="citation-sub" id="floatingCitationSub">Parking Violation</div>
+            </div>
+
+            <div id="floatingCitationDetails">
+                <!-- Details injected here -->
+            </div>
+        </div>
+    </div>
             <div class="gallery-nav">
               <button
                 class="gallery-nav-btn gallery-nav-prev"
