@@ -122,12 +122,8 @@ def ongoing_scraper_job():
         logger.info("✓ Geocoder initialized")
 
         try:
-            last_citation_seen_at = db_manager.get_last_citation_seen_at()
-            last_no_citation_email_sent_at = db_manager.get_last_no_citation_email_sent_at()
-            if last_citation_seen_at:
-                logger.info(f"Last citation seen at: {last_citation_seen_at.isoformat()}")
-            if last_no_citation_email_sent_at:
-                logger.info(f"Last no-citation email sent at: {last_no_citation_email_sent_at.isoformat()}")
+            # Removed scraper_state table usage
+            pass
         except Exception as state_error:
             logger.warning(f"Unable to load historical scraper state timestamps: {state_error}")
         
@@ -171,12 +167,8 @@ def ongoing_scraper_job():
     
     try:
         logger.info("Getting last successful citation...")
-        last_citation = db_manager.get_last_successful_citation()
-        if not last_citation:
-            logger.error("No last successful citation found.")
-            return 
-
-        logger.info(f"Last successful citation: {last_citation}")
+        # Removed dependency on scraper_state table
+        last_citation = None 
 
         # Determine dynamic bases from DB using leading-digit bands
         # NC (starts with 2,080,000+): [2,080,000, 2,100,000)
@@ -222,7 +214,7 @@ def ongoing_scraper_job():
             range_size = 50
 
         # Center ranges on DB maxima directly (no env seeds)
-        aa_center = aa_db_max if aa_db_max is not None else last_citation
+        aa_center = aa_db_max if aa_db_max is not None else 10014000
         nc_center = nc_db_max if nc_db_max is not None else 2081673
         third_center = third_db_max if third_db_max is not None else 1123108
         fourth_center = fourth_db_max if fourth_db_max is not None else 2025645
@@ -539,7 +531,7 @@ def ongoing_scraper_job():
 
         # Explicitly run all ranges sequentially, isolating failures
         try:
-            process_range("AA", aa_range[0], aa_range[1], update_last_successful=True)
+            process_range("AA", aa_range[0], aa_range[1], update_last_successful=False)
         except Exception as e:
             logger.error(f"AA range processing failed: {e}")
             logger.error(f"Traceback: {traceback.format_exc()}")
@@ -627,12 +619,8 @@ def ongoing_scraper_job():
 
         if found_count > 0:
             try:
-                db_manager.record_citation_activity(
-                    latest_citation_number,
-                    latest_citation_seen_at or now_utc,
-                )
-                last_citation_seen_at = latest_citation_seen_at or now_utc
-                last_no_citation_email_sent_at = None
+                # Logic to record activity removed as it depended on scraper_state
+                pass
             except Exception as e:
                 logger.error(f"Failed to record citation activity: {e}")
                 logger.error(f"Traceback: {traceback.format_exc()}")
@@ -650,6 +638,11 @@ def ongoing_scraper_job():
                 f"Errors: {errors_count}",
             ]
         )
+        
+        # Checking for errors to fail the workflow if needed
+        if errors:
+            logger.error("Job finished with errors. Exiting with status 1.")
+            sys.exit(1)
 
 
 if __name__ == "__main__":
