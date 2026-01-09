@@ -5,6 +5,7 @@ from pathlib import Path
 from db_manager import DatabaseManager
 from storage_factory import StorageFactory
 from email_notifier import EmailNotifier
+from geocoder import Geocoder
 
 logger = logging.getLogger(__name__)
 
@@ -28,6 +29,16 @@ def get_db_manager():
     if _db_manager is None:
         _db_manager = DatabaseManager(DB_CONFIG)
     return _db_manager
+
+# Create a single Geocoder instance
+_geocoder = None
+
+def get_geocoder():
+    """Get or create the shared Geocoder instance"""
+    global _geocoder
+    if _geocoder is None:
+        _geocoder = Geocoder()
+    return _geocoder
 
 def get_og_image_url(base_url):
     """Get the Open Graph preview image URL, checking for og-preview.png first"""
@@ -634,6 +645,37 @@ def unsubscribe():
     except Exception as e:
         return jsonify({'status': 'error', 'error': str(e)}), 500
 
+@app.route('/api/geocode')
+def geocode_address():
+    """Geocode an address string to coordinates."""
+    try:
+        query = (request.args.get('q') or '').strip()
+        if not query:
+            return jsonify({'status': 'error', 'error': 'q parameter is required'}), 400
+
+        geocoder = get_geocoder()
+        # Use geocoder.geocode_address
+        coords = geocoder.geocode_address(query)
+        
+        if coords:
+            return jsonify({
+                'status': 'success', 
+                'lat': coords[0], 
+                'lon': coords[1],
+                'query': query
+            })
+        else:
+            return jsonify({
+                'status': 'error',
+                'error': 'Could not geocode address'
+            }), 404
+            
+    except Exception as e:
+        logger.error(f"Error in geocode_address: {e}")
+        return jsonify({'status': 'error', 'error': str(e)}), 500
+
+
 if __name__ == '__main__':
-    port = int(os.environ.get('PORT', 5000))
+    # Use 5001 as default to avoid macOS AirPlay Receiver on 5000
+    port = int(os.environ.get('PORT', 5001))
     app.run(host='0.0.0.0', port=port)

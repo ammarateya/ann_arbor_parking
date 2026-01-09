@@ -434,7 +434,400 @@ async function showOnlyMarkers(list) {
   } catch (_) {
     // no-op if elements not found
   }
+  
+  // Also update side panel results list
+  showSearchResults(list);
 }
+
+// Show search results in side panel list
+function showSearchResults(list, originalQuery = "") {
+    const resultsPanel = document.getElementById("sidePanelResults");
+    const resultsList = document.getElementById("resultsList");
+    const resultsCount = document.getElementById("resultsCount");
+    const sidePanel = document.getElementById("sidePanel");
+    const sidePanelContent = document.getElementById("sidePanelContent");
+    const photosHero = document.getElementById("photosHero");
+    const citationTitle = document.getElementById("citationTitle");
+    const searchSpinner = document.getElementById("searchSpinner");
+    
+    if (!resultsPanel || !resultsList) return;
+
+    // Reset view
+    resultsList.innerHTML = '';
+    
+    // Logic for "No results"
+    if (!list || list.length === 0) {
+        if (searchSpinner) searchSpinner.style.display = "none";
+        
+        // Show "No Results" message in the side panel
+        if (sidePanel) sidePanel.classList.add('active');
+        if (sidePanelContent) sidePanelContent.style.display = 'none';
+        
+        // Hide persistent headers
+        if (photosHero) photosHero.style.display = 'none';
+        if (citationTitle) citationTitle.style.display = 'none';
+        
+        resultsPanel.style.display = 'flex';
+        
+        if (resultsCount) resultsCount.textContent = "";
+
+        const noResultsDiv = document.createElement('div');
+        noResultsDiv.className = 'no-results-google-style';
+        noResultsDiv.innerHTML = `
+            <div class="no-results-header">
+                Google Maps can't find<br>
+                <em>${originalQuery || 'your search'}</em>
+            </div>
+            <div class="no-results-body">
+                Make sure your search is spelled correctly. Try adding a city, state, or zip code.
+            </div>
+            <div class="no-results-suggestions">
+                Note: Searches are limited to Ann Arbor, MI (within 6 miles).
+            </div>
+        `;
+        resultsList.appendChild(noResultsDiv);
+        
+        // Ensure panel is open to show this message
+        document.body.classList.add('panel-open');
+        return;
+    }
+
+    // Update count header
+    if (resultsCount) {
+        resultsCount.textContent = "Results";
+        resultsCount.className = "results-header-text"; // Add class for bold styling
+    }
+
+    // Populate list
+    // Limit to 50 items for performance in the DOM
+    const displayList = list.slice(0, 50);
+    
+    displayList.forEach(citation => {
+        const item = document.createElement('div');
+        item.className = 'result-item-google';
+        
+        const amount = (parseFloat(citation.amount_due) || 0).toFixed(0);
+        // const dateStr = citation.issue_date ? new Date(citation.issue_date).toLocaleDateString() : 'Unknown';
+        
+        // Get first image URL if available
+        let imageUrl = "https://maps.gstatic.com/tactile/pane/default_geocode-2x.png"; // Default placeholder
+        if (citation.image_urls && citation.image_urls.length > 0) {
+            // Handle both string URLs and object structure
+            imageUrl = citation.image_urls[0].url || citation.image_urls[0];
+        }
+        
+        // Determine color for meta text like "Open" in google, here maybe "Unpaid" or amount color
+        const amountColor = parseFloat(citation.amount_due) >= 50 ? '#d93025' : '#188038'; // Red for high, green for low? Or just dark gray.
+
+        item.innerHTML = `
+            <div class="result-info-google">
+                <div class="result-title-google">Citation #${citation.citation_number}</div>
+                <div class="result-rating-row">
+                    <span class="result-amount" style="color: ${amountColor}">$${amount}</span>
+                    <span class="result-dot">·</span>
+                    <span class="result-date">${citation.issue_date ? new Date(citation.issue_date).toLocaleDateString() : ''}</span>
+                </div>
+                 <div class="result-subtitle-google">${citation.location || 'Ann Arbor, MI'}</div>
+                <div class="result-meta-google">
+                    <span class="result-meta-icon">
+                        <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor" style="color: #1a73e8; margin-right: 4px; vertical-align: middle;">
+                             <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/>
+                        </svg>
+                    </span>
+                    Parking Violation
+                </div>
+            </div>
+            <div class="result-image-container">
+                <img src="${imageUrl}" class="result-thumbnail-google" alt="Citation Image" loading="lazy">
+            </div>
+        `;
+        
+        item.onclick = () => {
+             // Highlight in list (optional)
+             document.querySelectorAll('.result-item-google').forEach(el => el.style.backgroundColor = '');
+             item.style.backgroundColor = '#e8f0fe';
+
+            // Find marker and trigger click
+            const marker = citationToMarker.get(String(citation.citation_number));
+            if (marker) {
+                marker.fire('click');
+            } else {
+                // If in search results mode, show floating panel
+                // Otherwise show normal panel (shouldn't really happen here as we are in results list)
+                showFloatingCitationDetails(citation);
+            }
+        };
+        
+        resultsList.appendChild(item);
+    });
+    
+    if (list.length > 50) {
+        const moreDiv = document.createElement('div');
+        moreDiv.style.padding = '12px';
+        moreDiv.style.textAlign = 'center';
+        moreDiv.style.color = '#5f6368';
+        moreDiv.style.fontSize = '12px';
+        moreDiv.textContent = `+ ${list.length - 50} more results...`;
+        resultsList.appendChild(moreDiv);
+    }
+
+    // Show results panel
+    if (sidePanel) sidePanel.classList.add('active');
+    if (sidePanelContent) sidePanelContent.style.display = 'none';
+    
+    // Hide persistent headers
+    if (photosHero) photosHero.style.display = 'none';
+    if (citationTitle) citationTitle.style.display = 'none';
+    
+    resultsPanel.style.display = 'flex';
+    
+    // Switch to list view mode if needed
+    document.body.classList.add('panel-open');
+}
+
+// Haversine distance helper (in miles)
+function getDistanceFromLatLonInMiles(lat1, lon1, lat2, lon2) {
+  var R = 3959; // Radius of the earth in miles
+  var dLat = deg2rad(lat2-lat1);  
+  var dLon = deg2rad(lon2-lon1); 
+  var a = 
+    Math.sin(dLat/2) * Math.sin(dLat/2) +
+    Math.cos(deg2rad(lat1)) * Math.cos(deg2rad(lat2)) * 
+    Math.sin(dLon/2) * Math.sin(dLon/2)
+    ; 
+  var c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a)); 
+  var d = R * c; // Distance in miles
+  return d;
+}
+
+function deg2rad(deg) {
+  return deg * (Math.PI/180)
+}
+
+// Function to show floating citation details
+function showFloatingCitationDetails(citation) {
+    const floatingPanel = document.getElementById('floatingPanel');
+    if (!floatingPanel) return;
+
+    // Populate data
+    const floatingTitle = document.getElementById('floatingCitationNumber');
+    const floatingSub = document.getElementById('floatingCitationSub');
+    const floatingDetails = document.getElementById('floatingCitationDetails');
+    const floatingHero = document.getElementById('floatingHeroImage');
+    const floatingPhotosHero = document.getElementById('floatingPhotosHero');
+    const floatingTitleContainer = document.getElementById('floatingCitationTitle');
+    
+    if (floatingTitle) floatingTitle.textContent = `Citation #${citation.citation_number}`;
+    if (floatingTitleContainer) floatingTitleContainer.style.display = 'block';
+    
+    // Determine image
+    let imageUrl = null;
+    let images = [];
+    if (citation.image_urls) {
+        // Can be string JSON or object
+        if (typeof citation.image_urls === "string") {
+            try { images = JSON.parse(citation.image_urls); } catch(e) {}
+        } else if (Array.isArray(citation.image_urls)) {
+            images = citation.image_urls;
+        }
+    }
+    
+    if (images.length > 0) {
+        imageUrl = images[0].url || images[0];
+    }
+    
+    if (imageUrl && floatingHero) {
+        floatingHero.src = imageUrl;
+        if (floatingPhotosHero) floatingPhotosHero.style.display = 'block';
+    } else if (floatingPhotosHero) {
+        // Hide hero if no image or show default?
+        // Google shows street view often.
+        // For now hide or show default
+         floatingPhotosHero.style.display = 'none';
+    }
+
+    // Populate details content
+    if (floatingDetails) {
+        const amount = (parseFloat(citation.amount_due) || 0).toFixed(2);
+        const dateStr = citation.issue_date ? new Date(citation.issue_date).toLocaleString() : 'Unknown';
+        
+        floatingDetails.innerHTML = `
+            <div class="info-row">
+                <div class="info-label">Location</div>
+                <div class="info-value">${citation.location || 'Unknown'}</div>
+            </div>
+            <div class="info-row">
+                <div class="info-label">Amount Due</div>
+                <div class="info-value">$${amount}</div>
+            </div>
+            <div class="info-row">
+                <div class="info-label">Issue Date</div>
+                <div class="info-value">${dateStr}</div>
+            </div>
+            <div class="info-row">
+                <div class="info-label">Vehicle</div>
+                <div class="info-value">${citation.plate_state || ''} ${citation.plate_number || ''}</div>
+            </div>
+             <div class="info-row">
+                <div class="info-label">Violation</div>
+                <div class="info-value">${citation.violations || 'Parking Violation'}</div>
+            </div>
+        `;
+    }
+    
+    // Show Floating Panel
+    floatingPanel.style.display = 'flex';
+    
+    // Close button handler
+    const closeBtn = document.getElementById('floatingCloseBtn');
+    if (closeBtn) {
+        closeBtn.onclick = () => {
+            floatingPanel.style.display = 'none';
+             // Deselect list item highlight?
+             document.querySelectorAll('.result-item-google').forEach(el => el.style.backgroundColor = '');
+        };
+    }
+}
+
+// Handle search input
+async function handleSearch(query) {
+    if (!query) return;
+    query = query.trim();
+    
+    const loadingEl = document.getElementById("searchSpinner");
+    if (loadingEl) loadingEl.style.display = "block";
+    
+    try {
+        let apiUrl = '';
+        
+        // 1. Check for citation number (all digits)
+        if (/^\d+$/.test(query)) {
+            console.log("Searching by citation number");
+            apiUrl = `/api/search?mode=citation&citation_number=${encodeURIComponent(query)}`;
+        }
+        // 2. Check for Plate (State + Number) e.g. "MI ABC1234"
+        else if (/^([A-Za-z]{2})\s+([A-Za-z0-9]+)$/.test(query)) {
+            const match = query.match(/^([A-Za-z]{2})\s+([A-Za-z0-9]+)$/);
+            console.log("Searching by plate");
+            apiUrl = `/api/search?mode=plate&plate_state=${match[1]}&plate_number=${match[2]}`;
+        }
+        // 3. Fallback: Try as address/location
+        else {
+             console.log("Attempting to geocode...");
+             
+             // First check our geocode endpoint
+             const geoResp = await fetch(`/api/geocode?q=${encodeURIComponent(query)}`);
+             if (geoResp.ok) {
+                 const geoData = await geoResp.json();
+                 if (geoData.status === 'success') {
+                     // CHECK DISTANCE FROM ANN ARBOR CENTER
+                     const AA_LAT = 42.2808;
+                     const AA_LON = -83.7430;
+                     const MAX_DIST_MILES = 6.0;
+                     
+                     const dist = getDistanceFromLatLonInMiles(AA_LAT, AA_LON, geoData.lat, geoData.lon);
+                     
+                     if (dist > MAX_DIST_MILES) {
+                         // Too far! Show specific "No results" message for out-of-bounds
+                         console.warn(`Location is ${dist.toFixed(1)} miles away. Rejecting.`);
+                         showSearchResults([], query + " (outside Ann Arbor)"); // Hack to show message
+                         // Actually, let's just use the no results flow, maybe trigger it manually
+                         // Or better, just return empty list to trigger the "No results" UI with a custom message?
+                         // Let's modify showSearchResults to handle this if we want a custom message, 
+                         // but "Google Maps can't find" is also appropriate here if we consider it "not found in our valid area".
+                         // For now, let's show the standard "No results" panel which now includes a hint about 6 miles.
+                         showSearchResults([], query);
+                         return;
+                     }
+
+                     console.log("Geocoded to:", geoData);
+                     // Search by location radius
+                     const radius = 100; // meters
+                     apiUrl = `/api/search?mode=location&lat=${geoData.lat}&lon=${geoData.lon}&radius_m=${radius}`;
+                     
+                     // Move map to location
+                     map.setView([geoData.lat, geoData.lon], 16);
+                     
+                     // REMOVED: Blue circle (searchCircle logic deleted per feedback)
+                     if (searchCircle) {
+                         map.removeLayer(searchCircle);
+                         searchCircle = null;
+                     }
+                 }
+             } else {
+                 // Geocoding failed
+                 console.log("Geocoding failed, trying address search");
+                 apiUrl = `/api/search?mode=address&address=${encodeURIComponent(query)}`;
+             }
+        }
+
+        if (apiUrl) {
+            const response = await fetch(apiUrl);
+            const data = await response.json();
+            
+            if (data.status === 'success') {
+                // Always call showSearchResults, even if empty (it handles the UI now)
+                await showOnlyMarkers(data.citations || []);
+                showSearchResults(data.citations || [], query);
+                
+                // If exactly one result, show details immediately
+                if (data.citations && data.citations.length === 1) {
+                    showCitationDetails(data.citations[0]);
+                }
+            } else {
+                // Error from API
+                 showSearchResults([], query);
+            }
+        } else {
+            // No API URL (e.g. Geocoding failed and didn't fall back, or distance check failed above)
+            // If distance check failed, we already called showSearchResults.
+            // If we got here with no API URL and no previous return, it means geocode failed hard.
+             showSearchResults([], query);
+        }
+        
+    } catch (e) {
+        console.error("Search error:", e);
+        showSearchResults([], query);
+    } finally {
+        if (loadingEl) loadingEl.style.display = "none";
+    }
+}
+
+// Initialize Search Listeners
+(function initSearchListeners() {
+    const input = document.getElementById("mainSearchInput");
+    const btn = document.getElementById("searchSubmitBtn");
+    const closeBtn = document.getElementById("resultsCloseBtn");
+    
+    if (input) {
+        input.addEventListener("keydown", (e) => {
+            if (e.key === "Enter") {
+                handleSearch(input.value);
+            }
+        });
+    }
+    
+    if (btn) {
+        btn.addEventListener("click", () => {
+            if (input) handleSearch(input.value);
+        });
+    }
+
+    if (closeBtn) {
+        closeBtn.addEventListener("click", () => {
+             const resultsPanel = document.getElementById("sidePanelResults");
+             const content = document.getElementById("sidePanelContent");
+             if (resultsPanel) resultsPanel.style.display = 'none';
+             if (content) content.style.display = 'block';
+             // Optionally close panel or return to default state
+             closeSidePanel();
+             
+             // Restore all markers?
+             // Maybe reload/reset filter?
+             // For now just close the drawer.
+        });
+    }
+})();
 
 // Header recent time: fixed-length scramble during load, gentle decode reveal
 let recentScrambleTimer = null;
@@ -1213,8 +1606,7 @@ async function showCitationDetails(citation, markerLatLng = null) {
       preloadedImageUrl = url;
   }
 
-  // If we don't have images yet, OR we want to fetch the full list (which we do need for the gallery)
-  // we still fire the API call, but we don't *wait* for it to show the panel if we have a preloaded image.
+  // Always fetch full details in background to get complete image list/comments/etc
   const fetchPromise = (async () => {
     try {
         const response = await fetch(`/api/citation/${citation.citation_number}`);
@@ -1234,66 +1626,74 @@ async function showCitationDetails(citation, markerLatLng = null) {
     }
   })();
 
-  // If we didn't have a preloaded image, we MUST wait for the fetch to try and get one
+  // If we don't have an image URL yet, wait for the fetch
   if (!preloadedImageUrl) {
       try {
           const fetchedImages = await fetchPromise;
           if (fetchedImages.length > 0) {
               images = fetchedImages;
-              
-              // Preload the hero image BEFORE opening panel
-              preloadedImageUrl = await new Promise((resolve) => {
-                const preloader = new Image();
-                let resolved = false;
-
-                preloader.onload = () => {
-                  if (!resolved) {
-                    resolved = true;
-                    console.log("[image] Successfully preloaded:", images[0].url);
-                    resolve(preloader.src);
-                  }
-                };
-
-                preloader.onerror = (error) => {
-                  if (!resolved) {
-                    resolved = true;
-                    // If failed to load, we'll still resolve so we can show the panel (maybe with placeholder)
-                    console.error("[image] Failed to preload:", images[0].url, error);
-                    resolve(null); 
-                  }
-                };
-
-                preloader.src = images[0].url;
-
-                // Longer timeout for slow connections
-                setTimeout(() => {
-                  if (!resolved) {
-                    resolved = true;
-                    console.warn(
-                      "[image] Preload timeout, proceeding anyway:",
-                      images[0].url
-                    );
-                    resolve(images[0].url); // Try anyway on timeout
-                  }
-                }, 5000); 
-              });
+              preloadedImageUrl = images[0].url;
           }
       } catch (e) {
           console.error("Error awaiting fetch for images:", e);
       }
   } else {
-      // We have a preloaded image, but we should let the full list update in the background
+      // We have a URL, but still want to update full list in background
       fetchPromise.then(fetchedImages => {
           if (fetchedImages.length > 0) {
-              // Update our images list with the full set
               images = fetchedImages;
-              // If the hero image was just a string, update it to the full object if matched?
-              // Actually, just having the list is enough for the gallery later.
           }
       });
   }
 
-  // ===== NOW OPEN THE PANEL (image is ready) =====
+  // Now, if we have a URL, we MUST wait for it to load
+  let preloadedSrc = null;
+  if (preloadedImageUrl) {
+      preloadedSrc = await new Promise((resolve) => {
+        const preloader = new Image();
+        let resolved = false;
+
+        preloader.onload = () => {
+          if (!resolved) {
+            resolved = true;
+            console.log("[image] Successfully preloaded:", preloadedImageUrl);
+            resolve(preloader.src);
+          }
+        };
+
+        preloader.onerror = (error) => {
+          if (!resolved) {
+            resolved = true;
+            console.error("[image] Failed to preload:", preloadedImageUrl, error);
+            resolve(null); 
+          }
+        };
+
+        preloader.src = preloadedImageUrl;
+
+        // Timeout for slow connections (3s)
+        setTimeout(() => {
+          if (!resolved) {
+            resolved = true;
+            console.warn("[image] Preload timeout, proceeding anyway:", preloadedImageUrl);
+            resolve(preloadedImageUrl); // Try anyway on timeout
+          }
+        }, 3000); 
+      });
+  }
+
+  // Toggle classes for layout (hero vs no hero)
+  if (panel) {
+      if (preloadedSrc) {
+          panel.classList.remove('no-hero');
+          panel.classList.add('has-hero');
+      } else {
+          panel.classList.add('no-hero');
+          panel.classList.remove('has-hero');
+      }
+  }
+
+  // ===== NOW OPEN THE PANEL (image is ready or failed) =====
   if (isMobile) {
     panel.classList.add("active");
     document.body.classList.add("mobile-panel-open");
@@ -2700,7 +3100,6 @@ loadCitations();
   const searchSpinner = document.getElementById("searchSpinner");
   const searchClearBtn = document.getElementById("searchClearBtn");
   const searchSubmitBtn = document.getElementById("searchSubmitBtn");
-  const searchCloseBtn = document.getElementById("searchCloseBtn");
   let searchTimeout = null;
   let lastSearchQuery = "";
 
@@ -2737,25 +3136,6 @@ loadCitations();
         performSearch(query);
         lastSearchQuery = query;
       }
-    });
-  }
-
-  // Close button handler - closes side panel and returns to main view
-  if (searchCloseBtn) {
-    searchCloseBtn.addEventListener("click", function () {
-      // If the right viewer (large image viewer) is active, close it first
-      // This ensures we go directly to home without an intermediate white state
-      if (document.body.classList.contains("right-viewer-active")) {
-        closeSidePanelGallery();
-      }
-      // Close the side panel
-      closeSidePanel();
-      // Clear the search input
-      searchInput.value = "";
-      if (searchClearBtn) searchClearBtn.style.display = "none";
-      lastSearchQuery = "";
-      // Reset to show all citations for current time filter
-      filterCitationsByTime(window.currentTimeFilter || "week");
     });
   }
 
