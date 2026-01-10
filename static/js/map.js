@@ -17,6 +17,24 @@ function closeSidePanel() {
   closeCitationPopup();
   closeSidePanelGallery();
   
+  // Reset search navigation state
+  lastSearchResults = null;
+  lastSearchQuery = "";
+  isViewingSearchResultDetail = false;
+  
+  // Restore hamburger menu if it was transformed to back arrow
+  const searchMenuBtn = document.getElementById("searchMenuBtn");
+  if (searchMenuBtn) {
+    if (searchMenuBtn._searchBackHandler) {
+      searchMenuBtn.removeEventListener("click", searchMenuBtn._searchBackHandler);
+      searchMenuBtn._searchBackHandler = null;
+    }
+    if (searchMenuBtn._originalHTML) {
+      searchMenuBtn.innerHTML = searchMenuBtn._originalHTML;
+      searchMenuBtn.title = "Menu";
+    }
+  }
+  
   // Clear URL deep link if present
   if (window.location.pathname.includes('/citation/')) {
     window.history.pushState({}, '', '/');
@@ -268,6 +286,11 @@ let mostRecentCitationTime = null; // Store the most recent citation timestamp
 let mostRecentCitationNumber = null; // Store the most recent citation number
 const rootElement = document.documentElement;
 
+// Search navigation stack - for back button in search results
+let lastSearchResults = null;      // Store the search results list
+let lastSearchQuery = "";          // Store the original query
+let isViewingSearchResultDetail = false; // Track if we drilled into a result
+
 function updateTopOffsets() {
   const headerEl = document.querySelector(".header");
   const timeFilterEl = document.getElementById("timeFilterBar");
@@ -348,13 +371,6 @@ map.on("moveend", function () {
 });
 
 // Search UI logic
-
-function clearAllMarkers() {
-  markersLayerGroup.clearLayers();
-  markers = [];
-  citationToMarker.clear();
-  usedCoordinates = new Map();
-}
 
 async function showOnlyMarkers(list) {
   clearAllMarkers();
@@ -452,6 +468,12 @@ function showSearchResults(list, originalQuery = "") {
     
     if (!resultsPanel || !resultsList) return;
 
+    // Store results for back navigation (only if we have results)
+    if (list && list.length > 0) {
+        lastSearchResults = list;
+        lastSearchQuery = originalQuery;
+    }
+
     // Reset view
     resultsList.innerHTML = '';
     
@@ -547,15 +569,22 @@ function showSearchResults(list, originalQuery = "") {
              document.querySelectorAll('.result-item-google').forEach(el => el.style.backgroundColor = '');
              item.style.backgroundColor = '#e8f0fe';
 
-            // Find marker and trigger click
-            const marker = citationToMarker.get(String(citation.citation_number));
-            if (marker) {
-                marker.fire('click');
-            } else {
-                // If in search results mode, show floating panel
-                // Otherwise show normal panel (shouldn't really happen here as we are in results list)
-                showFloatingCitationDetails(citation);
-            }
+            // Track that we're viewing from search results
+            isViewingSearchResultDetail = true;
+            
+            // HIDE the results panel before showing details
+            const resultsPanel = document.getElementById("sidePanelResults");
+            if (resultsPanel) resultsPanel.style.display = 'none';
+            
+            // Show the content panel (hidden when showing results)
+            const contentPanel = document.getElementById("sidePanelContent");
+            if (contentPanel) contentPanel.style.display = 'block';
+            
+            // Show full citation details in side panel (not floating)
+            showCitationDetails(citation);
+            
+            // Transform hamburger to back arrow for navigation
+            transformSearchBtnToBack();
         };
         
         resultsList.appendChild(item);
@@ -687,6 +716,68 @@ function showFloatingCitationDetails(citation) {
              document.querySelectorAll('.result-item-google').forEach(el => el.style.backgroundColor = '');
         };
     }
+}
+
+// Transform hamburger menu to back arrow for search result navigation
+function transformSearchBtnToBack() {
+    const searchMenuBtn = document.getElementById("searchMenuBtn");
+    if (!searchMenuBtn) return;
+    
+    // Store original if not already stored
+    if (!searchMenuBtn._originalHTML) {
+        searchMenuBtn._originalHTML = searchMenuBtn.innerHTML;
+    }
+    
+    // Remove any existing handlers
+    if (searchMenuBtn._searchBackHandler) {
+        searchMenuBtn.removeEventListener("click", searchMenuBtn._searchBackHandler);
+    }
+    if (searchMenuBtn._galleryBackHandler) {
+        searchMenuBtn.removeEventListener("click", searchMenuBtn._galleryBackHandler);
+    }
+    
+    // Transform to back arrow
+    searchMenuBtn.innerHTML = `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <path d="M19 12H5M12 19l-7-7 7-7" />
+    </svg>`;
+    searchMenuBtn.title = "Back to results";
+    
+    // Store and bind handler
+    searchMenuBtn._searchBackHandler = () => goBackToSearchResults();
+    searchMenuBtn.addEventListener("click", searchMenuBtn._searchBackHandler);
+}
+
+// Go back to search results list from citation detail view
+function goBackToSearchResults() {
+    if (!lastSearchResults || !isViewingSearchResultDetail) return;
+    
+    // Reset navigation state
+    isViewingSearchResultDetail = false;
+    
+    // Restore hamburger menu
+    const searchMenuBtn = document.getElementById("searchMenuBtn");
+    if (searchMenuBtn) {
+        if (searchMenuBtn._searchBackHandler) {
+            searchMenuBtn.removeEventListener("click", searchMenuBtn._searchBackHandler);
+            searchMenuBtn._searchBackHandler = null;
+        }
+        if (searchMenuBtn._originalHTML) {
+            searchMenuBtn.innerHTML = searchMenuBtn._originalHTML;
+            searchMenuBtn.title = "Menu";
+        }
+    }
+    
+    // Hide citation details, show search results list
+    const sidePanelContent = document.getElementById("sidePanelContent");
+    const photosHero = document.getElementById("photosHero");
+    const citationTitle = document.getElementById("citationTitle");
+    
+    if (sidePanelContent) sidePanelContent.style.display = 'none';
+    if (photosHero) photosHero.style.display = 'none';
+    if (citationTitle) citationTitle.style.display = 'none';
+    
+    // Re-show search results list
+    showSearchResults(lastSearchResults, lastSearchQuery);
 }
 
 // Handle search input
@@ -1334,14 +1425,16 @@ function createMarkerForCitation(citation) {
         window.history.pushState({}, '', '/citation/' + citation.citation_number);
     }
     
+    // Show citation details immediately instead of waiting for moveend
+    // This fixes the "two-click" issue when switching between nearby markers
+    showCitationDetails(citation);
+    
+    // Animate the map to the marker location (happens in parallel)
     map.flyTo([lat, lon], currentZoom, {
       animate: true,
       duration: 0.6,
       easeLinearity: 0.25,
       noMoveStart: false,
-    });
-    map.once("moveend", function handleMarkerPan() {
-      showCitationDetails(citation);
     });
   });
 
@@ -1626,24 +1719,19 @@ async function showCitationDetails(citation, markerLatLng = null) {
     }
   })();
 
-  // If we don't have an image URL yet, wait for the fetch
-  if (!preloadedImageUrl) {
-      try {
-          const fetchedImages = await fetchPromise;
-          if (fetchedImages.length > 0) {
-              images = fetchedImages;
+  // Always await the fetch promise to ensure we have the complete images array
+  // before setting up click handlers (fixes gallery closure issue)
+  try {
+      const fetchedImages = await fetchPromise;
+      if (fetchedImages.length > 0) {
+          images = fetchedImages;
+          // Update preloadedImageUrl if we didn't have one already
+          if (!preloadedImageUrl) {
               preloadedImageUrl = images[0].url;
           }
-      } catch (e) {
-          console.error("Error awaiting fetch for images:", e);
       }
-  } else {
-      // We have a URL, but still want to update full list in background
-      fetchPromise.then(fetchedImages => {
-          if (fetchedImages.length > 0) {
-              images = fetchedImages;
-          }
-      });
+  } catch (e) {
+      console.error("Error awaiting fetch for images:", e);
   }
 
   // Now, if we have a URL, we MUST wait for it to load

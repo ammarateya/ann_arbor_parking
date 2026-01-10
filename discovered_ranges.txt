@@ -1,0 +1,36 @@
+# Citation Range Discovery Results
+# Run at: 2026-01-09T12:28:22.925617
+# Cutoff date for 'recent': 2025-12-25
+# Sample step: every 500th citation
+================================================================================
+
+### OLD RANGE: 1,080,000 - 1,090,000 (1 hits)
+  [OLD] 1088000 | Issued: 4/4/20253:23 PM | Location: S Main St | Status: CLOSED DISMISSED
+
+### OLD RANGE: 1,140,000 - 1,150,000 (2 hits)
+  [OLD] 1143500 | Issued: 10/17/20243:09 PM | Location: Elm St | Status: SUSPENDED EXPORT
+  [OLD] 1149000 | Issued: 4/12/20259:37 AM | Location: Ramp 2 | Status: CLOSED VOID
+
+### OLD RANGE: 1,090,000 - 1,100,000 (3 hits)
+  [OLD] 1095500 | Issued: 1/30/202511:10 AM | Location: S Forest Ave | Status: OPEN
+  [OLD] 1096000 | Issued: 2/14/20253:50 PM | Location: Detroit St | Status: OPEN
+  [OLD] 1097500 | Issued: 4/9/20259:49 AM | Location: N Thayer St | Status: CLOSED DISMISSED
+
+### OLD RANGE: 1,050,000 - 1,060,000 (2 hits)
+  [OLD] 1055500 | Issued: 12/19/202410:09 AM | Location: Brown St | Status: OPEN
+  [OLD] 1059000 | Issued: 3/17/20252:36 PM | Location: Church St | Status: OPEN
+
+================================================================================
+# SUMMARY
+# Total ranges checked: 279
+# Total citations sampled: 5580
+# Total hits: 8 (0 recent)
+# Elapsed time: 769.5 seconds
+
+# RECENTLY ACTIVE RANGES (citations since Dec 25, 2025):
+
+# OLDER ACTIVE RANGES (no recent citations found in sample):
+  (1,050,000, 1,060,000),  # 2 hits
+  (1,080,000, 1,090,000),  # 1 hits
+  (1,090,000, 1,100,000),  # 3 hits
+  (1,140,000, 1,150,000),  # 2 hits

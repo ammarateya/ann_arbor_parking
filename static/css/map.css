@@ -1882,6 +1882,8 @@ body.panel-open .location-search-controls {
 .photos-hero {
   position: relative;
   width: 100%;
+  min-height: 200px;
+  /* Reserve space while loading */
   max-height: 240px;
   margin-top: 0;
   margin-bottom: 16px;
@@ -2546,6 +2548,8 @@ body.right-viewer-active .side-panel {
   height: 100%;
   background: var(--color-white);
   padding: 0;
+  padding-top: 56px;
+  /* Space for search bar */
 }
 
 .results-header {
@@ -2826,6 +2830,7 @@ body.right-viewer-active .side-panel {
     max-height: 50vh;
   }
 }
+
 /* When the hero image is missing (no-hero class), push the title down 
    so it clears the floating search bar */
 .side-panel.no-hero .citation-title {

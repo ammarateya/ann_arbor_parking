@@ -1,0 +1,15 @@
+# Citation Range Discovery Results - GENTLE
+# Run at: 2026-01-09T13:02:55.337257
+# Cutoff date for 'recent': 2025-12-25
+# Sample step: every 500th citation
+================================================================================
+  [OLD] 1055500 | Issued: 12/19/202410:09 AM | Location: Brown St | Status: OPEN | Range: 1,050,000-1,060,000
+  [OLD] 1059000 | Issued: 3/17/20252:36 PM | Location: Church St | Status: OPEN | Range: 1,050,000-1,060,000
+  [OLD] 1081000 | Issued: 7/27/20243:34 PM | Location: Ann Arbor-saline Rd | Status: OPEN | Range: 1,080,000-1,090,000
+  [OLD] 1088000 | Issued: 4/4/20253:23 PM | Location: S Main St | Status: CLOSED DISMISSED | Range: 1,080,000-1,090,000
+  [OLD] 1095500 | Issued: 1/30/202511:10 AM | Location: S Forest Ave | Status: OPEN | Range: 1,090,000-1,100,000
+  [OLD] 1096000 | Issued: 2/14/20253:50 PM | Location: Detroit St | Status: OPEN | Range: 1,090,000-1,100,000
+  [OLD] 1097500 | Issued: 4/9/20259:49 AM | Location: N Thayer St | Status: CLOSED DISMISSED | Range: 1,090,000-1,100,000
+  [OLD] 1131000 | Issued: 1/17/20259:03 AM | Location: Packard Rd | Status: CLOSED VOID | Range: 1,130,000-1,140,000
+  [OLD] 1143500 | Issued: 10/17/20243:09 PM | Location: Elm St | Status: SUSPENDED EXPORT | Range: 1,140,000-1,150,000
+  [OLD] 1149000 | Issued: 4/12/20259:37 AM | Location: Ramp 2 | Status: CLOSED VOID | Range: 1,140,000-1,150,000
