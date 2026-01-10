@@ -35,6 +35,12 @@ function closeSidePanel() {
     }
   }
   
+  // Hide the X button when closing the panel
+  const searchClearBtn = document.getElementById("searchClearBtn");
+  if (searchClearBtn) {
+    searchClearBtn.style.display = "none";
+  }
+  
   // Clear URL deep link if present
   if (window.location.pathname.includes('/citation/')) {
     window.history.pushState({}, '', '/');
@@ -1794,6 +1800,12 @@ async function showCitationDetails(citation, markerLatLng = null) {
   const searchInput = document.getElementById("mainSearchInput");
   if (searchInput && citation.citation_number) {
     searchInput.value = citation.citation_number.toString();
+  }
+
+  // Show the X button so users can close the citation and return to main view
+  const searchClearBtn = document.getElementById("searchClearBtn");
+  if (searchClearBtn) {
+    searchClearBtn.style.display = "flex";
   }
 
   // #region agent log (debug)
