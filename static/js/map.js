@@ -1269,9 +1269,14 @@ function getOffsetCoordinates(lat, lon) {
 
 function closeCitationPopup() {
   if (activeCitationPopup) {
-    map.closePopup(activeCitationPopup);
-    map.removeLayer(activeCitationPopup);
+    const popup = activeCitationPopup;
+    // Clear the global reference immediately to avoid any race conditions
+    // (though the remove event listener would also do this)
     activeCitationPopup = null;
+    
+    // map.closePopup() already calls removeLayer(), so we just need to close it.
+    // Using the local variable ensures we don't pass null if the event fires synchronously.
+    map.closePopup(popup);
   }
 }
 
@@ -1692,17 +1697,26 @@ async function showCitationDetails(citation, markerLatLng = null) {
         } else if (data?.citation?.images?.length > 0) {
             fetchedImages = data.citation.images;
         }
-        return fetchedImages;
+        
+        return { images: fetchedImages, fullData: data };
     } catch (err) {
-        console.error("Error fetching citation images:", err);
-        return [];
+        console.error("Error fetching citation details:", err);
+        return { images: [], fullData: null };
     }
   })();
 
   // Always await the fetch promise to ensure we have the complete images array
   // before setting up click handlers (fixes gallery closure issue)
   try {
-      const fetchedImages = await fetchPromise;
+      const result = await fetchPromise;
+      const fetchedImages = result.images;
+      
+      // Update citation with full details (stats, officer info, etc)
+      if (result.fullData && result.fullData.citation) {
+          Object.assign(citation, result.fullData.citation);
+          console.log("Updated citation with full details:", citation);
+      }
+      
       if (fetchedImages.length > 0) {
           images = fetchedImages;
           // Update preloadedImageUrl if we didn't have one already
@@ -1905,6 +1919,101 @@ async function showCitationDetails(citation, markerLatLng = null) {
                 : ""
             }
            `;
+
+  // ===== INJECT REVIEWS SECTION =====
+  // Only show if we have officer info (even just a badge number is enough for "Local Guide")
+  // or if we have officer_stats
+  if (citation.officer_name || citation.officer_badge || citation.officer_stats) {
+      const stats = citation.officer_stats || { total_citations: 1, total_photos: 1 };
+      
+      // Determine Avatar
+      // If beat contains "UM" -> Michigan Logo
+      // Else -> Ann Arbor Logo (default)
+      const isUM = citation.officer_beat && citation.officer_beat.toUpperCase().includes("UM");
+      // Use existing logos in static folder? We saw parking-icon.png.
+      // Let's use generic placeholder URLs if we don't have specific assets yet, 
+      // or try to find a public URL for Ann Arbor / UM seals.
+      // For now, let's use a colored circle with initials or the parking icon as fallback.
+      // Better: User mentioned "City of Ann Arbor or University of Michigan".
+      const umLogo = "https://upload.wikimedia.org/wikipedia/commons/thumb/9/93/Michigan_Wolverines_logo.svg/1200px-Michigan_Wolverines_logo.svg.png";
+      const a2Logo = "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQYpRUBYQEElkVQY9-i_36XEVqIYQRRyhWbEA&s";
+      const avatarUrl = isUM ? umLogo : a2Logo;
+      
+      // Determine Name
+      const officerName = citation.officer_name || `Officer ${citation.officer_badge}` || "Parking Enforcement";
+
+      // Comments Generation
+      // "funny fake review from the officer"
+      const commentsPool = [
+          "Just doing my job, ma'am.",
+          "Nothing personal, just business.",
+          "Please park more carefully next time.",
+          "I've seen worse parking, but not by much.",
+          "This spot is for loading only.",
+          "The fire hydrant is not a decoration.",
+          "Sidewalks are for people, not cars.",
+          "Yellow lines mean no parking.",
+          "Maybe take the bus next time?",
+          "I wish I didn't have to do this.",
+          "Reviewing parking compliance is my passion.",
+          "Another day, another citation.",
+          "Excellent parking... for a monster truck rally.",
+          "So close, yet so far from the curb.",
+          "I waited 5 minutes before writing this.",
+          "Nice car. Shame about the parking job."
+      ];
+      
+      // Pick a random comment or based on violation type? Random is fine for "funny".
+      // Let's us a simple hash of citation number to keep it consistent for the same citation
+      const seed = citation.citation_number || 12345;
+      const commentIndex = seed % commentsPool.length;
+      const comment = commentsPool[commentIndex];
+      
+      // Also if we have actual violations, maybe mention them
+      // "Parked in Handicapped Zone? Really?"
+      
+      const reviewsHtml = `
+        <div class="reviews-section" style="margin-top: 24px; padding-top: 16px;">
+            <div class="reviews-header" style="font-size: 16px; font-weight: 500; margin-bottom: 16px; display: flex; align-items: center; justify-content: space-between;">
+                <span>Reviews</span>
+                <span style="color: #1a73e8; font-size: 14px; cursor: pointer;">Write a review</span>
+            </div>
+            
+            <div class="review-item" style="display: flex; gap: 16px;">
+                <div class="review-avatar">
+                    <img src="${avatarUrl}" alt="Officer Avatar" style="width: 32px; height: 32px; border-radius: 50%; object-fit: contain; background: #fff; border: 1px solid #e0e0e0;">
+                </div>
+                <div class="review-content" style="flex: 1;">
+                    <div class="review-author" style="font-size: 14px; font-weight: 500; color: #202124;">
+                        ${officerName}
+                    </div>
+                    <div class="review-meta" style="font-size: 12px; color: #70757a; margin-bottom: 4px;">
+                        Local Guide · ${stats.total_citations.toLocaleString()} citations · ${stats.total_photos.toLocaleString()} photos
+                    </div>
+                    <div class="review-stars" style="color: #fbbc04; font-size: 12px; margin-bottom: 4px;">
+                        ★★★★★ <span style="color: #70757a; margin-left: 6px;">${citation.issue_date ? new Date(citation.issue_date).toLocaleDateString() : 'Recently'}</span>
+                    </div>
+                    <div class="review-text" style="font-size: 14px; color: #202124; line-height: 20px;">
+                        ${comment}
+                    </div>
+                     <!-- Action buttons like Google Maps reviews -->
+                     <div class="review-actions" style="display: flex; gap: 16px; margin-top: 12px;">
+                        <button style="background: none; border: 1px solid #dadce0; border-radius: 16px; padding: 0 12px; height: 32px; font-size: 13px; color: #3c4043; cursor: pointer; display: flex; align-items: center; gap: 6px;">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 9V5a3 3 0 0 0-3-3l-4 9v11h11.28a2 2 0 0 0 2-1.7l1.38-9a2 2 0 0 0-2-2.3zM7 22H4a2 2 0 0 1-2-2v-7a2 2 0 0 1 2-2h3"></path></svg>
+                            Helpful
+                        </button>
+                        <button style="background: none; border: 1px solid #dadce0; border-radius: 16px; padding: 0 12px; height: 32px; font-size: 13px; color: #3c4043; cursor: pointer; display: flex; align-items: center; gap: 6px;">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"/><polyline points="16 6 12 2 8 6"/><line x1="12" y1="2" x2="12" y2="15"/></svg>
+                            Share
+                        </button>
+                     </div>
+                </div>
+            </div>
+        </div>
+      `;
+      
+      content.innerHTML += reviewsHtml;
+  }
 
   // ===== DISPLAY PRELOADED IMAGE (already fetched above) =====
   const photosHero = document.getElementById("photosHero");
