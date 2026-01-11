@@ -21,6 +21,8 @@ function closeSidePanel() {
   lastSearchResults = null;
   lastSearchQuery = "";
   isViewingSearchResultDetail = false;
+  isSearchActive = false;
+  unfilteredSearchResults = null;
   
   // Restore hamburger menu if it was transformed to back arrow
   const searchMenuBtn = document.getElementById("searchMenuBtn");
@@ -43,7 +45,7 @@ function closeSidePanel() {
   
   // Clear URL deep link if present
   if (window.location.pathname.includes('/citation/')) {
-    window.history.pushState({}, '', './');
+    window.history.pushState({}, '', '/');
   }
 }
 
@@ -293,9 +295,10 @@ let mostRecentCitationNumber = null; // Store the most recent citation number
 const rootElement = document.documentElement;
 
 // Search navigation stack - for back button in search results
-let lastSearchResults = null;      // Store the search results list
+let lastSearchResults = null;      // Store the search results list (after time filter)
 let lastSearchQuery = "";          // Store the original query
 let isViewingSearchResultDetail = false; // Track if we drilled into a result
+let unfilteredSearchResults = null; // Store raw search results before time filter
 
 function updateTopOffsets() {
   const headerEl = document.querySelector(".header");
@@ -863,23 +866,33 @@ async function handleSearch(query) {
             const data = await response.json();
             
             if (data.status === 'success') {
-                // Always call showSearchResults, even if empty (it handles the UI now)
-                await showOnlyMarkers(data.citations || []);
-                showSearchResults(data.citations || [], query);
+                // Store raw (unfiltered) search results for time filtering
+                const rawResults = data.citations || [];
+                unfilteredSearchResults = rawResults;
+                isSearchActive = true;
                 
-                // If exactly one result, show details immediately
-                if (data.citations && data.citations.length === 1) {
-                    showCitationDetails(data.citations[0]);
+                // Apply current time filter to search results
+                const filteredResults = filterCitationsByTime(rawResults, currentTimeFilter);
+                
+                // Update markers and UI with filtered results
+                await showOnlyMarkers(filteredResults);
+                showSearchResults(filteredResults, query);
+                
+                // If exactly one result in filtered set, show details immediately
+                if (filteredResults.length === 1) {
+                    showCitationDetails(filteredResults[0]);
                 }
             } else {
                 // Error from API
-                 showSearchResults([], query);
+                unfilteredSearchResults = null;
+                showSearchResults([], query);
             }
         } else {
             // No API URL (e.g. Geocoding failed and didn't fall back, or distance check failed above)
             // If distance check failed, we already called showSearchResults.
             // If we got here with no API URL and no previous return, it means geocode failed hard.
-             showSearchResults([], query);
+            unfilteredSearchResults = null;
+            showSearchResults([], query);
         }
         
     } catch (e) {
@@ -1425,10 +1438,12 @@ function createMarkerForCitation(citation) {
   marker.on("click", function () {
     const currentZoom = map.getZoom();
     closeCitationPopup();
-    
-    // Update URL
+    // Update URL (use absolute path to avoid nesting, only if different)
     if (citation.citation_number) {
-        window.history.pushState({}, '', 'citation/' + citation.citation_number);
+        const newPath = '/citation/' + citation.citation_number;
+        if (window.location.pathname !== newPath) {
+            window.history.pushState({}, '', newPath);
+        }
     }
     
     // Show citation details immediately instead of waiting for moveend
@@ -2565,12 +2580,37 @@ function toggleTheme() {
   currentTileLayer.addTo(map);
 }
 
+// Helper: get cutoff timestamp for a time filter period
+function getCutoffTimestamp(period) {
+  const now = new Date();
+  let cutoffTime = null;
+
+  if (period === "hour") {
+    cutoffTime = new Date(now.getTime() - 60 * 60 * 1000);
+  } else if (period === "day") {
+    cutoffTime = new Date(now.getTime() - 24 * 60 * 60 * 1000);
+  } else if (period === "week") {
+    cutoffTime = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+  }
+  // else null (show all)
+  return cutoffTime ? cutoffTime.getTime() : null;
+}
+
+// Helper: filter a list of citations by time period
+function filterCitationsByTime(citationList, period) {
+  const cutoffTimestamp = getCutoffTimestamp(period);
+  if (cutoffTimestamp === null) {
+    return citationList; // "all" - no filtering
+  }
+  return citationList.filter((c) => {
+    if (!c.issue_date) return false;
+    const issueTimestamp = new Date(c.issue_date).getTime();
+    return issueTimestamp >= cutoffTimestamp;
+  });
+}
+
 // Filter citations by time period
 async function filterByTime(period) {
-  if (isSearchActive) {
-    // Ignore time filter while search is active
-    return;
-  }
   currentTimeFilter = period;
 
   // Update dropdown value
@@ -2583,34 +2623,28 @@ async function filterByTime(period) {
   const noResultsMsg = document.getElementById("noResultsMessage");
   noResultsMsg.classList.remove("visible");
 
-  // Calculate cutoff time - use UTC for consistent comparison with database dates
-  // Database dates are in UTC, so we need to compare in UTC
-  const now = new Date();
-  let cutoffTime = null;
-
-  if (period === "hour") {
-    cutoffTime = new Date(now.getTime() - 60 * 60 * 1000);
-  } else if (period === "day") {
-    cutoffTime = new Date(now.getTime() - 24 * 60 * 60 * 1000);
-  } else if (period === "week") {
-    cutoffTime = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+  // If search is active, re-filter search results
+  if (isSearchActive && unfilteredSearchResults) {
+    const filteredSearchResults = filterCitationsByTime(unfilteredSearchResults, period);
+    
+    // Update markers and UI
+    await showOnlyMarkers(filteredSearchResults);
+    showSearchResults(filteredSearchResults, lastSearchQuery);
+    
+    // Show no results if empty
+    if (filteredSearchResults.length === 0 && period !== "all") {
+      let intervalText = getNoResultsIntervalText(period);
+      document.getElementById("noResultsInterval").textContent = intervalText;
+      noResultsMsg.classList.add("visible");
+    }
+    return;
   }
-  // else cutoffTime remains null (show all)
 
-  // Convert cutoff to UTC timestamp for comparison
-  // JavaScript Date objects are internally UTC, but we ensure proper comparison
-  const cutoffTimestamp = cutoffTime ? cutoffTime.getTime() : null;
+  // Normal (non-search) mode: filter all citations
+  const cutoffTimestamp = getCutoffTimestamp(period);
 
   // Filter citations based on time period
-  // Use allCitations (full dataset) when showing "all", otherwise filter from allCitations
-  const filteredCitations =
-    cutoffTimestamp === null
-      ? allCitations
-      : allCitations.filter((c) => {
-          if (!c.issue_date) return false;
-          const issueTimestamp = new Date(c.issue_date).getTime();
-          return issueTimestamp >= cutoffTimestamp;
-        });
+  const filteredCitations = filterCitationsByTime(allCitations, period);
 
   // Update citations array to reflect filtered set
   citations = filteredCitations;
@@ -2623,14 +2657,7 @@ async function filterByTime(period) {
 
   // Show no results message if no citations found
   if (visibleCount === 0 && period !== "all") {
-    let intervalText = "";
-    if (period === "hour") {
-      intervalText = "NONE FOUND IN THE LAST HOUR";
-    } else if (period === "day") {
-      intervalText = "NONE FOUND IN THE LAST 24 HOURS";
-    } else if (period === "week") {
-      intervalText = "NONE FOUND IN THE LAST WEEK";
-    }
+    let intervalText = getNoResultsIntervalText(period);
     document.getElementById("noResultsInterval").textContent = intervalText;
     noResultsMsg.classList.add("visible");
   } else {
@@ -2639,6 +2666,18 @@ async function filterByTime(period) {
 
   // Update stats based on visible citations
   updateStatsForFilter(period, cutoffTimestamp);
+}
+
+// Helper: get "no results" interval text for a period
+function getNoResultsIntervalText(period) {
+  if (period === "hour") {
+    return "NONE FOUND IN THE LAST HOUR";
+  } else if (period === "day") {
+    return "NONE FOUND IN THE LAST 24 HOURS";
+  } else if (period === "week") {
+    return "NONE FOUND IN THE LAST WEEK";
+  }
+  return "";
 }
 
 // Update statistics for filtered citations
