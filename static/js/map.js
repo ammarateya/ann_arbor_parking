@@ -3298,15 +3298,7 @@ loadCitations();
     }
   });
 
-  // Debounced search as user types
-  searchInput.addEventListener("input", function () {
-    const query = this.value.trim();
-    if (searchTimeout) clearTimeout(searchTimeout);
 
-    if (query.length >= 3) {
-      searchTimeout = setTimeout(() => performSearch(query), 500);
-    }
-  });
 
   function showSpinner() {
     if (searchIcon) searchIcon.style.display = "none";
