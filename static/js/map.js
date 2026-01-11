@@ -44,8 +44,13 @@ function closeSidePanel() {
   }
   
   // Clear URL deep link if present
-  if (window.location.pathname.includes('/citation/')) {
-    window.history.pushState({}, '', '/');
+
+
+  // Restore Default Map View (Current Time Filter)
+  // This ensures that when we close a search result or detail view, 
+  // we see all citations for the current period again.
+  if (typeof filterByTime === "function" && typeof currentTimeFilter !== "undefined") {
+    filterByTime(currentTimeFilter);
   }
 }
 
@@ -1227,8 +1232,7 @@ async function loadCitations() {
       // Hide loading
       document.getElementById("loading").style.display = "none";
       
-      // Check for deep link
-      await handleDeepLink();
+
     }
   } catch (error) {
     console.error("Error loading citations:", error);
@@ -1236,56 +1240,7 @@ async function loadCitations() {
   }
 }
 
-// Handle deep linking for citations
-async function handleDeepLink() {
-  const path = window.location.pathname;
-  const match = path.match(/\/citation\/(\d+)/);
-  if (match && match[1]) {
-    const citationNumber = match[1];
-    
-    // First try to find it in the loaded markers
-    if (citationToMarker.has(citationNumber)) {
-      const marker = citationToMarker.get(citationNumber);
-      showCitationDetails(marker._citation);
-      map.setView(marker.getLatLng(), 18);
-    } else {
-      // If not in current view (e.g. filtered out or paginated), fetch it directly
-      try {
-        const response = await fetch(`/api/citation/${citationNumber}`);
-        const data = await response.json();
-        
-        if (data.status === 'success' && data.citation) {
-          showCitationDetails(data.citation);
-          
-          if (data.citation.latitude && data.citation.longitude) {
-            const lat = parseFloat(data.citation.latitude);
-            const lon = parseFloat(data.citation.longitude);
-            map.setView([lat, lon], 18);
-            
-            // Create a temporary marker if one doesn't exist
-            const tempMarker = L.marker([lat, lon], {
-                icon: L.icon({
-                  iconUrl: pinIcons.red, // default to red for deep link
-                  iconSize: [32, 40],
-                  iconAnchor: [16, 40],
-                })
-            }).addTo(map);
-            tempMarker.bindPopup("Filtered citation").openPopup();
-          }
-        }
-      } catch (e) {
-        console.error("Failed to load deep linked citation", e);
-      }
-    }
-  } else if (path === '/') {
-    // If returning to root, ensure side panel is closed
-    closeSidePanel();
-  }
-}
 
-window.addEventListener('popstate', () => {
-  handleDeepLink();
-});
 
 // Get offset for duplicate coordinates
 function getOffsetCoordinates(lat, lon) {
@@ -1442,13 +1397,7 @@ function createMarkerForCitation(citation) {
   marker.on("click", function () {
     const currentZoom = map.getZoom();
     closeCitationPopup();
-    // Update URL (use absolute path to avoid nesting, only if different)
-    if (citation.citation_number) {
-        const newPath = '/citation/' + citation.citation_number;
-        if (window.location.pathname !== newPath) {
-            window.history.pushState({}, '', newPath);
-        }
-    }
+
     
     // Show citation details immediately instead of waiting for moveend
     // This fixes the "two-click" issue when switching between nearby markers
