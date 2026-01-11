@@ -459,9 +459,6 @@ async function showOnlyMarkers(list) {
   } catch (_) {
     // no-op if elements not found
   }
-  
-  // Also update side panel results list
-  showSearchResults(list);
 }
 
 // Show search results in side panel list
@@ -502,24 +499,25 @@ function showSearchResults(list, originalQuery = "") {
         
         if (resultsCount) resultsCount.textContent = "";
 
-        const noResultsDiv = document.createElement('div');
-        noResultsDiv.className = 'no-results-google-style';
-        noResultsDiv.innerHTML = `
-            <div class="no-results-header">
-                Google Maps can't find<br>
-                <em>${originalQuery || 'your search'}</em>
-            </div>
-            <div class="no-results-body">
-                Make sure your search is spelled correctly. Try adding a city, state, or zip code.
-            </div>
-            <div class="no-results-suggestions">
-                Note: Searches are limited to Ann Arbor, MI (within 6 miles).
-            </div>
-        `;
-        resultsList.appendChild(noResultsDiv);
-        
-        // Ensure panel is open to show this message
-        document.body.classList.add('panel-open');
+        // Delay showing the no-results message to allow any pending UI updates
+        setTimeout(() => {
+            const noResultsDiv = document.createElement('div');
+            noResultsDiv.className = 'no-results-google-style';
+            noResultsDiv.innerHTML = `
+                <div class="no-results-header">
+                    Google Maps can't find ${originalQuery || 'your search'}
+                </div>
+                <div class="no-results-body">
+                    Make sure your search is spelled correctly. Try adding a city, state, or zip code.
+                </div>
+                <div class="no-results-suggestions">
+                    Note: Searches are limited to Ann Arbor, MI (within 6 miles).
+                </div>
+            `;
+            resultsList.appendChild(noResultsDiv);
+            // Ensure panel is open to show this message
+            document.body.classList.add('panel-open');
+        }, 500);
         return;
     }
 
@@ -876,11 +874,17 @@ async function handleSearch(query) {
                 
                 // Update markers and UI with filtered results
                 await showOnlyMarkers(filteredResults);
-                showSearchResults(filteredResults, query);
+
                 
                 // If exactly one result in filtered set, show details immediately
                 if (filteredResults.length === 1) {
+                    // Manually update search state since we are skipping showSearchResults
+                    lastSearchResults = filteredResults;
+                    lastSearchQuery = query;
+                    
                     showCitationDetails(filteredResults[0]);
+                } else {
+                    showSearchResults(filteredResults, query);
                 }
             } else {
                 // Error from API
@@ -1699,7 +1703,13 @@ async function showCitationDetails(citation, markerLatLng = null) {
   if (!citation) return;
   const panel = document.getElementById("sidePanel");
   const content = document.getElementById("sidePanelContent");
+  const resultsPanel = document.getElementById("sidePanelResults");
+  
   if (!panel || !content) return;
+
+  // Enforce Details View State
+  content.style.display = "block";
+  if (resultsPanel) resultsPanel.style.display = "none";
 
   // Check if mobile
   const isMobile =
