@@ -15,9 +15,20 @@ create table if not exists public.citations (
   comments              text,
   violations            jsonb,
   image_urls            jsonb,
+  -- Officer info extracted from receipt images via OCR
+  officer_badge         text,
+  officer_name          text,
+  officer_beat          text,
+  officer_info_extracted_at timestamp with time zone,
+  -- Location/geocoding
+  latitude              double precision,
+  longitude             double precision,
+  geocoded_at           timestamp with time zone,
+  -- Timestamps
   created_at            timestamp with time zone default now(),
   scraped_at            timestamp with time zone default now()
 );
+
 
 -- Scraper state tracks last successful citation processed
 create table if not exists public.scraper_state (
@@ -70,6 +81,9 @@ create table if not exists public.citation_images (
 -- Helpful indexes
 create index if not exists idx_citations_issue_date on public.citations (issue_date);
 create index if not exists idx_citations_plate on public.citations (plate_state, plate_number);
+create index if not exists idx_citations_location on public.citations (latitude, longitude);
+create index if not exists idx_citations_officer_badge on public.citations (officer_badge);
+create index if not exists idx_citations_officer_name on public.citations (officer_name);
 create index if not exists idx_citation_images_citation on public.citation_images (citation_number);
 create index if not exists idx_citation_images_b2_citation on public.citation_images_b2 (citation_number);
 create index if not exists idx_citation_images_b2_hash on public.citation_images_b2 (content_hash);

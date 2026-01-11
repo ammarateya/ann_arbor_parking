@@ -218,6 +218,25 @@ class CitationScraper:
                     logger.info(f"Extracted clean address from OCR: {clean_address}")
             except Exception as e:
                 logger.warning(f"Failed to extract address from receipt image: {e}")
+            
+            # Extract officer info from receipt image (last image)
+            try:
+                officer_info = self.extract_officer_info_from_receipt(image_urls[-1])
+                has_officer_info = False
+                if officer_info.get('officer_badge'):
+                    info['officer_badge'] = officer_info['officer_badge']
+                    has_officer_info = True
+                if officer_info.get('officer_name'):
+                    info['officer_name'] = officer_info['officer_name']
+                    has_officer_info = True
+                if officer_info.get('officer_beat'):
+                    info['officer_beat'] = officer_info['officer_beat']
+                    has_officer_info = True
+                
+                if has_officer_info:
+                    info['officer_info_extracted_at'] = datetime.now().isoformat()
+            except Exception as e:
+                logger.warning(f"Failed to extract officer info from receipt image: {e}")
 
         return info
     
@@ -278,6 +297,176 @@ class CitationScraper:
         except Exception as e:
             logger.debug(f"Error extracting address from receipt: {e}")
             return None
+    
+    def extract_officer_info_from_receipt(self, image_url: str) -> Dict:
+        """Extract officer badge, name, and beat from receipt image using OCR.
+        
+        Returns a dict with keys: officer_badge, officer_name, officer_beat
+        Any or all may be None if not found.
+        """
+        result = {
+            'officer_badge': None,
+            'officer_name': None,
+            'officer_beat': None
+        }
+        
+        try:
+            # Check if pytesseract is available
+            try:
+                import pytesseract
+            except ImportError:
+                logger.debug("Tesseract not available, skipping officer OCR")
+                return result
+            
+            # Download image
+            response = self.session.get(image_url, timeout=30)
+            response.raise_for_status()
+            
+            # Preprocess image
+            image = Image.open(io.BytesIO(response.content))
+            if image.mode != 'RGB':
+                image = image.convert('RGB')
+            
+            original_width = image.width
+            original_height = image.height
+            
+            # Officer info is typically near the TOP of the receipt (after citation number and date)
+            # Scan the top 40% of the image to capture OFFICER and BEAT lines
+            crop_left = 0
+            crop_top = 0  # Start from top
+            crop_right = original_width  # Full width
+            crop_bottom = int(original_height * 0.4)  # Top 40%
+            
+            cropped_image = image.crop((crop_left, crop_top, crop_right, crop_bottom))
+            
+            # Resize if too small for better OCR accuracy
+            if cropped_image.width < 800 or cropped_image.height < 400:
+                ratio = max(800 / cropped_image.width, 400 / cropped_image.height)
+                new_width = int(cropped_image.width * ratio)
+                new_height = int(cropped_image.height * ratio)
+                cropped_image = cropped_image.resize((new_width, new_height), Image.Resampling.LANCZOS)
+            
+            # Extract text with OCR
+            custom_config = r'--oem 3 --psm 6'
+            text = pytesseract.image_to_string(cropped_image, config=custom_config)
+            
+            # Debug: log the raw OCR text for troubleshooting
+            if text and text.strip():
+                logger.debug(f"Officer OCR raw text (top portion):\n{text[:500]}")
+            
+            # Parse the text for officer info
+            result = self.parse_officer_info_from_ocr(text)
+            
+            if result.get('officer_badge') or result.get('officer_name'):
+                logger.info(f"Extracted officer info from OCR: badge={result.get('officer_badge')}, name={result.get('officer_name')}, beat={result.get('officer_beat')}")
+            
+            return result
+            
+        except Exception as e:
+            logger.debug(f"Error extracting officer info from receipt: {e}")
+            return result
+    
+    def parse_officer_info_from_ocr(self, text: str) -> Dict:
+        """Parse officer badge, name, and beat from OCR text.
+        
+        Typical receipt patterns:
+        - OFFICER: 801 RITTER
+        - OFFICER: 1234 SMITH, JOHN
+        - OFFICER 1234 SMITH JOHN
+        - BADGE: 1234
+        - BEAT: A
+        """
+        result = {
+            'officer_badge': None,
+            'officer_name': None,
+            'officer_beat': None
+        }
+        
+        if not text:
+            return result
+        
+        # Normalize text
+        text = text.upper()
+        lines = text.split('\n')
+        
+        for line in lines:
+            line = line.strip()
+            if not line:
+                continue
+            
+            # Pattern: OFFICER: 1234 SMITH, JOHN or OFFICER 1234 SMITH JOHN
+            # Allow 1-8 digits for badge to be safe
+            officer_patterns = [
+                # OFFICER: badge name (e.g. OFFICER : 801 RITTER)
+                r'OFFICER[:\s]+(\d{1,8})\s+([A-Z0-9][A-Z0-9\s,\.\'-]+)',
+                # OFFICER: name (badge)
+                r'OFFICER[:\s]+([A-Z][A-Z\s,\.\'-]+)\s*\((\d{1,8})\)',
+                # Just looking for badge number on a line with OFFICER
+                r'OFFICER[:\s]+(\d{1,8})$',
+            ]
+            
+            # Check officer patterns
+            for pattern in officer_patterns:
+                match = re.search(pattern, line)
+                if match:
+                    groups = match.groups()
+                    if len(groups) >= 2:
+                        # First pattern: badge then name
+                        if groups[0].isdigit():
+                            result['officer_badge'] = groups[0].strip()
+                            result['officer_name'] = self._clean_officer_name(groups[1])
+                        else:
+                            # Second pattern: name then badge
+                            result['officer_name'] = self._clean_officer_name(groups[0])
+                            result['officer_badge'] = groups[1].strip()
+                    elif len(groups) == 1 and groups[0].isdigit():
+                        result['officer_badge'] = groups[0].strip()
+                    
+                    # If we found something, break logic for this line? 
+                    # We might still find BEAT on the same line if it exists
+                    break
+            
+            # Pattern: BADGE: 1234 or BADGE 1234 (if not found in OFFICER line)
+            if not result['officer_badge']:
+                badge_match = re.search(r'BADGE[:\s]+(\d{1,8})', line)
+                if badge_match:
+                    result['officer_badge'] = badge_match.group(1).strip()
+            
+            # Pattern: BEAT: A1 or BEAT A (single letter or number or mix)
+            # Sometimes just "BEAT A"
+            if not result['officer_beat']:
+                beat_match = re.search(r'BEAT[:\s]+([A-Z0-9\-]+)', line)
+                if beat_match:
+                    result['officer_beat'] = beat_match.group(1).strip()
+            
+            # Pattern: OFFICER NAME: SMITH, JOHN
+            if not result['officer_name']:
+                name_match = re.search(r'(?:OFFICER\s*)?NAME[:\s]+([A-Z][A-Z\s,\.\'-]+)', line)
+                if name_match:
+                    result['officer_name'] = self._clean_officer_name(name_match.group(1))
+        
+        return result
+    
+    def _clean_officer_name(self, name: str) -> Optional[str]:
+        """Clean up officer name from OCR text."""
+        if not name:
+            return None
+        
+        # Remove extra whitespace
+        name = ' '.join(name.split())
+        
+        # Remove trailing punctuation except for valid name characters
+        name = name.strip(' ,.')
+        
+        # Skip if too short or looks like noise
+        if len(name) < 2:
+            return None
+        
+        # Skip if it's mostly numbers
+        if sum(c.isdigit() for c in name) > len(name) // 2:
+            return None
+        
+        return name if name else None
     
     def parse_address_from_ocr(self, text: str) -> Optional[str]:
         """Parse address from OCR text"""
