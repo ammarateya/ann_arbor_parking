@@ -43,7 +43,7 @@ function closeSidePanel() {
   
   // Clear URL deep link if present
   if (window.location.pathname.includes('/citation/')) {
-    window.history.pushState({}, '', '/');
+    window.history.pushState({}, '', './');
   }
 }
 
@@ -1428,7 +1428,7 @@ function createMarkerForCitation(citation) {
     
     // Update URL
     if (citation.citation_number) {
-        window.history.pushState({}, '', '/citation/' + citation.citation_number);
+        window.history.pushState({}, '', 'citation/' + citation.citation_number);
     }
     
     // Show citation details immediately instead of waiting for moveend
