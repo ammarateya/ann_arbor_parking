@@ -270,7 +270,7 @@ def get_citation(citation_number):
         db_manager = get_db_manager()
         
         # Fetch citation with all fields including image_urls
-        fields = 'citation_number,location,plate_state,plate_number,issue_date,amount_due,more_info_url,comments,violations,latitude,longitude,image_urls'
+        fields = 'citation_number,location,plate_state,plate_number,issue_date,amount_due,more_info_url,comments,violations,latitude,longitude,image_urls,officer_name,officer_badge,officer_beat'
         
         try:
             result = (
@@ -317,6 +317,17 @@ def get_citation(citation_number):
                         'caption': f"Citation #{citation_number}"
                     })
         
+        # Get officer stats if officer info is present
+        officer_stats = None
+        if citation.get('officer_name') or citation.get('officer_badge'):
+            try:
+                officer_stats = db_manager.get_officer_stats(
+                    officer_name=citation.get('officer_name'),
+                    officer_badge=citation.get('officer_badge')
+                )
+            except Exception as e:
+                logger.warning(f"Failed to fetch officer stats: {e}")
+
         return jsonify({
             'status': 'success',
             'citation': {
@@ -331,7 +342,12 @@ def get_citation(citation_number):
                 'more_info_url': citation.get('more_info_url'),
                 'latitude': citation.get('latitude'),
                 'longitude': citation.get('longitude'),
-                'images': images
+                'images': images,
+                # Officer info
+                'officer_name': citation.get('officer_name'),
+                'officer_badge': citation.get('officer_badge'),
+                'officer_beat': citation.get('officer_beat'),
+                'officer_stats': officer_stats
             }
         })
     except Exception as e:
