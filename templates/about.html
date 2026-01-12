@@ -519,6 +519,26 @@
               html += '</div></div>';
           }
 
+          // Top Officers
+          if (facts.officer_leaderboard && facts.officer_leaderboard.length > 0) {
+              html += '<div style="margin-top:20px;">';
+              html += '<h3 style="font-size:18px; font-weight:normal; margin-bottom:10px;">Top Producing Officers (30 Days)</h3>';
+              html += '<div style="border:1px solid #dfe1e5; border-radius:8px; overflow:hidden;">';
+              
+              facts.officer_leaderboard.slice(0, 5).forEach((officer, idx) => {
+                  html += `
+                  <div style="padding:15px; border-bottom:1px solid #dfe1e5; display:flex; justify-content:space-between; align-items:center;">
+                    <div>
+                        <div style="font-weight:bold; color:#1a0dab;">${officer.officer_name || 'Unknown Officer'}</div>
+                        <div style="font-size:12px; color:#5f6368;">Rank #${idx+1} • ${officer.citation_count} tickets</div>
+                    </div>
+                    <div style="font-weight:bold;">$${Math.round(officer.revenue).toLocaleString()}</div>
+                  </div>`;
+              });
+              
+              html += '</div></div>';
+          }
+
           contentEl.innerHTML = html;
         } catch (error) {
           loadingEl.style.display = "none";

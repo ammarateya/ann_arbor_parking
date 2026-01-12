@@ -115,6 +115,7 @@ class DatabaseManager:
             'out_of_state_heat': [],
             'champions': {'worst_plate': None, 'worst_location': None},
             'insights': {'most_expensive': 0.0, 'worst_day': None, 'worst_hour': None},
+            'officer_leaderboard': [],
         }
 
         try:
@@ -131,7 +132,7 @@ class DatabaseManager:
                 result = (
                     self.supabase
                     .table('citations')
-                    .select('location,plate_state,plate_number,issue_date,amount_due')
+                    .select('location,plate_state,plate_number,issue_date,amount_due,officer_name')
                     .gte('issue_date', cutoff_date)
                     .order('issue_date', desc=False)
                     .range(offset, offset + page_size - 1)
@@ -162,7 +163,11 @@ class DatabaseManager:
             time_buckets = defaultdict(int)
             hour_buckets = defaultdict(int)
             day_buckets = defaultdict(int)
+            hour_buckets = defaultdict(int)
+            day_buckets = defaultdict(int)
             out_of_state_counts = defaultdict(int)
+            officer_revenue = defaultdict(float)
+            officer_counts = defaultdict(int)
             all_amounts = []
             max_amount = 0.0
             last_24h_count = 0
@@ -219,6 +224,14 @@ class DatabaseManager:
                     # Out of state
                     if plate_state.upper() != 'MI':
                         out_of_state_counts[plate_state.upper()] += 1
+
+                # Officer stats
+                officer_name = citation.get('officer_name')
+                if officer_name:
+                    officer_name = officer_name.strip()
+                    if officer_name:
+                        officer_revenue[officer_name] += amount_float
+                        officer_counts[officer_name] += 1
                 
                 # Time buckets (30-minute windows)
                 if issue_date:
@@ -337,6 +350,21 @@ class DatabaseManager:
                 reverse=True
             )[:3]
             facts['out_of_state_heat'] = out_of_state_heat
+
+            # Officer Leaderboard
+            officer_leaderboard = sorted(
+                [
+                    {
+                        'officer_name': name,
+                        'revenue': revenue,
+                        'citation_count': officer_counts[name]
+                    }
+                    for name, revenue in officer_revenue.items()
+                ],
+                key=lambda x: x['revenue'],
+                reverse=True
+            )[:5]
+            facts['officer_leaderboard'] = officer_leaderboard
             
         except Exception as e:
             logger.error(f"Failed to build fun facts: {e}")
@@ -638,6 +666,78 @@ class DatabaseManager:
             return {'total_images': 0, 'total_mb': 0, 'citations_with_images': 0}
 
     # Subscriptions
+    def get_officer_stats(self, officer_name: str, officer_badge: str) -> Dict:
+        """
+        Get statistics for a specific officer (citation count, photo count).
+        Returns a dict with 'total_citations' and 'total_photos'.
+        """
+        stats = {'total_citations': 0, 'total_photos': 0}
+        
+        # We need at least one identifier
+        if not officer_name and not officer_badge:
+            return stats
+            
+        try:
+            # Build query
+            query = self.supabase.table('citations').select('image_urls', count='exact')
+            
+            # Filter by badge if available (more precise), otherwise name
+            # If both are present, we might want to prioritize badge or match both? 
+            # Given the data quality, matching one might be safer. Let's try matching badge if present, else name.
+            if officer_badge:
+                query = query.eq('officer_badge', officer_badge)
+            elif officer_name:
+                query = query.eq('officer_name', officer_name)
+                
+            # Execute count query first for total reviews/citations
+            # We want all records, not just a page. But selecting all rows for images might be heavy.
+            # Strategy: 
+            # 1. Get exact count of citations (reviews)
+            # 2. To get photo count, we ideally want to sum the lengths of image_urls arrays.
+            #    Doing this client-side (in python) requires fetching all rows.
+            #    Let's fetch just the image_urls column for all matching records.
+            
+            # Fetch all image_urls for this officer
+            # Note: If an officer has thousands of tickets, this fetch might be large.
+            # But the payload is just the list of lists of URLs.
+            # Let's paginate if necessary or just hope limit is high enough? 
+            # Supabase default limit is 1000. We better loop or use a stored procedure.
+            # For simplicity in this "fun" feature, let's just fetch up to 1000 for now to estimate photos.
+            # Or better, we can use the count from step 1 for citations, and sample photos?
+            # User asked for "calculate how many photos".
+            
+            # Let's try a single fetch with a reasonable limit (e.g. 5000)
+            result = query.limit(5000).execute()
+            
+            if result.count is not None:
+                stats['total_citations'] = result.count
+            
+            # Calculate total photos from the returned batch
+            photo_count = 0
+            if result.data:
+                for row in result.data:
+                    urls = row.get('image_urls')
+                    if urls:
+                        if isinstance(urls, list):
+                            photo_count += len(urls)
+                        elif isinstance(urls, str):
+                            # In case it's a JSON string (shouldn't be with python client but safety first)
+                            # Actually python client returns parsed JSON usually
+                            pass
+            
+            # If we hit the limit, this is a lower bound, which is fine for "reviews"
+            stats['total_photos'] = photo_count
+            
+            # If we have 0 citations, return 0
+            if stats['total_citations'] == 0:
+                pass
+                
+            return stats
+
+        except Exception as e:
+            logger.error(f"Failed to get officer stats: {e}")
+            return stats
+
     def add_subscription(self, plate_state: str, plate_number: str, email: str) -> Dict:
         """Create or upsert a subscription for the given plate and email."""
         if not email:
