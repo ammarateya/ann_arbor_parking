@@ -802,17 +802,80 @@ async function handleSearch(query) {
     
     try {
         let apiUrl = '';
+        let exactMatchResults = [];
         
-        // 1. Check for citation number (all digits)
+        // Helper function to search citations for plate matches
+        function findPlateMatches(plateNumber, plateState = null) {
+            const upperQuery = plateNumber.toUpperCase();
+            const matches = allCitations.filter(c => {
+                const citationPlate = (c.plate_number || '').toUpperCase();
+                const citationState = (c.plate_state || '').toUpperCase();
+                
+                // Match plate number
+                if (citationPlate !== upperQuery) return false;
+                
+                // If state specified, must match
+                if (plateState && citationState !== plateState.toUpperCase()) return false;
+                
+                return true;
+            });
+            return matches;
+        }
+        
+        // 1. Try exact plate match against loaded citations first
+        // Try formats: "ABC1234", "MI ABC1234", "MIABC1234"
+        
+        // Format: "MI ABC1234" (state + space + plate)
+        let plateMatch = query.match(/^([A-Za-z]{2})\s+([A-Za-z0-9]+)$/);
+        if (plateMatch) {
+            console.log("Trying exact plate match: State + Space + Plate");
+            exactMatchResults = findPlateMatches(plateMatch[2], plateMatch[1]);
+        }
+        
+        // Format: "MIABC1234" (state + plate, no space)
+        if (exactMatchResults.length === 0) {
+            plateMatch = query.match(/^([A-Za-z]{2})([A-Za-z0-9]+)$/);
+            if (plateMatch && plateMatch[2].length >= 3) { // Ensure plate part is at least 3 chars
+                console.log("Trying exact plate match: State + Plate (no space)");
+                exactMatchResults = findPlateMatches(plateMatch[2], plateMatch[1]);
+            }
+        }
+        
+        // Format: Just plate number (e.g., "ABC1234")
+        if (exactMatchResults.length === 0 && /^[A-Za-z0-9]{3,}$/.test(query)) {
+            console.log("Trying exact plate match: Plate only");
+            exactMatchResults = findPlateMatches(query);
+        }
+        
+        // If we found exact matches, use them
+        if (exactMatchResults.length > 0) {
+            console.log(`Found ${exactMatchResults.length} exact plate match(es)`);
+            unfilteredSearchResults = exactMatchResults;
+            isSearchActive = true;
+            
+            // Apply current time filter to search results
+            const filteredResults = filterCitationsByTime(exactMatchResults, currentTimeFilter);
+            
+            // Update markers and UI with filtered results
+            await showOnlyMarkers(filteredResults);
+            
+            // If exactly one result in filtered set, show details immediately
+            if (filteredResults.length === 1) {
+                lastSearchResults = filteredResults;
+                lastSearchQuery = query;
+                showCitationDetails(filteredResults[0]);
+            } else {
+                showSearchResults(filteredResults, query);
+            }
+            
+            if (loadingEl) loadingEl.style.display = "none";
+            return;
+        }
+        
+        // 2. Check for citation number (all digits)
         if (/^\d+$/.test(query)) {
             console.log("Searching by citation number");
             apiUrl = `/api/search?mode=citation&citation_number=${encodeURIComponent(query)}`;
-        }
-        // 2. Check for Plate (State + Number) e.g. "MI ABC1234"
-        else if (/^([A-Za-z]{2})\s+([A-Za-z0-9]+)$/.test(query)) {
-            const match = query.match(/^([A-Za-z]{2})\s+([A-Za-z0-9]+)$/);
-            console.log("Searching by plate");
-            apiUrl = `/api/search?mode=plate&plate_state=${match[1]}&plate_number=${match[2]}`;
         }
         // 3. Fallback: Try as address/location
         else {
